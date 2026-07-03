@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "spec-writer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Interview-driven skill that grills you into a complete, testable spec.md before any planning or coding.",
   "author": {
     "name": "dmarchena",
