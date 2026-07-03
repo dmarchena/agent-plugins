@@ -1,0 +1,14 @@
+{
+  "name": "agent-plugins",
+  "description": "Plugin marketplace for AI coding agents (Claude Code, AGENTS.md-compatible): an installable monorepo of Markdown plugins.",
+  "owner": {
+    "name": "dmarchena"
+  },
+  "plugins": [
+    {
+      "name": "spec-writer",
+      "source": "./plugins/spec-writer",
+      "description": "Interview-driven skill that grills you into a complete, testable spec.md before any planning or coding."
+    }
+  ]
+}
