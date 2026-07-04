@@ -23,12 +23,12 @@
       "incidencia": null
     },
     "T3-manual-confirm": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 25000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 60011,
+      "deviation": 35011,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-manual-confirm.test.mjs",
+      "commit": "d2f7488",
       "incidencia": null
     },
     "T4-degraded-manual": {
