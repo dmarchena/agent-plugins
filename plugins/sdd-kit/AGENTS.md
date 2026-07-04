@@ -42,6 +42,12 @@ slug from the feature name), holding the whole chain's artifacts together:
 - `spec-writer` writes `docs/specs/<slug>/spec.md`.
 - `plan-writer` writes `docs/specs/<slug>/execution_plan.json` alongside it.
 
+Grouping by feature (not by artifact type) follows the standard SDD layout —
+spec-kit and Kiro both keep a feature's spec, plan and tasks together under
+`specs/<feature>/`, where "spec" means the whole bundle. The full rationale,
+and why `docs/` rather than a repo-root `specs/`, is recorded in
+[ADR 0001](docs/adr/0001-artifact-location.md).
+
 While the feature is in progress that directory is committed on the feature
 branch — git is the handoff between stages and sessions, not the conversation.
 

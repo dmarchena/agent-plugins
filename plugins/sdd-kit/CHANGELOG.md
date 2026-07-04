@@ -18,4 +18,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Defined the artifact convention: each feature's `spec.md` and
   `execution_plan.json` live together in `docs/specs/<slug>/`, committed on
   the feature branch, and are archived to `docs/specs/archived/<slug>/` once
-  every acceptance criterion is green.
+  every acceptance criterion is green. Rationale and alternatives recorded in
+  [ADR 0001](docs/adr/0001-artifact-location.md).
