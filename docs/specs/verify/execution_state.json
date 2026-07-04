@@ -68,12 +68,12 @@
       "incidencia": null
     },
     "T8-e2e": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 40000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 65778,
+      "deviation": 25778,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-e2e.test.mjs",
+      "commit": "671cacf",
       "incidencia": null
     }
   },
