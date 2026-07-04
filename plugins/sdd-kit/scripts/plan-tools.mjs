@@ -189,7 +189,7 @@ function validateSchema(plan) {
     if (!VALID_MODELS.has(t.model)) return `${p}.model`;
     if (!isNonEmptyString(t.justification)) return `${p}.justification`;
     if (!isNonEmptyString(t.instructions)) return `${p}.instructions`;
-    if (t.expected_output_schema === undefined || t.expected_output_schema === null) {
+    if (!isNonEmptyString(t.expected_output_schema)) {
       return `${p}.expected_output_schema`;
     }
     if (!Array.isArray(t.satisfies_acs) || t.satisfies_acs.length < 1) return `${p}.satisfies_acs`;
