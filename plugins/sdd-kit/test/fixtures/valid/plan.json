@@ -19,7 +19,11 @@
       "satisfies_acs": ["AC1", "AC2"],
       "estimated_tokens": 5000,
       "actual_tokens": null,
-      "deviation": null
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R1.S1", "assertion": "El login con credenciales válidas responde con éxito y entrega un token de sesión" },
+        { "ref": "R1.S2", "assertion": "El login con credenciales inválidas se rechaza con el mensaje de credenciales inválidas" }
+      ]
     },
     {
       "task_id": "task-catalog",
@@ -34,7 +38,10 @@
       "satisfies_acs": ["AC3"],
       "estimated_tokens": 4000,
       "actual_tokens": null,
-      "deviation": null
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R2.S1", "assertion": "El listado de productos devuelve la colección de productos disponibles del catálogo" }
+      ]
     },
     {
       "task_id": "task-cart",
@@ -49,7 +56,10 @@
       "satisfies_acs": ["AC4"],
       "estimated_tokens": 4500,
       "actual_tokens": null,
-      "deviation": null
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R3.S1", "assertion": "Un usuario autenticado que añade un producto obtiene el carrito actualizado incluyendo ese producto" }
+      ]
     },
     {
       "task_id": "task-e2e",
@@ -64,7 +74,8 @@
       "satisfies_acs": ["AC-E2E"],
       "estimated_tokens": 3000,
       "actual_tokens": null,
-      "deviation": null
+      "deviation": null,
+      "test_contract": null
     }
   ],
   "coverage": {

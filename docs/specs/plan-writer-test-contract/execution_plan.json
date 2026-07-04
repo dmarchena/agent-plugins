@@ -1,0 +1,83 @@
+{
+  "plan_id": "plan-writer-test-contract",
+  "project_name": "sdd-kit — plan-writer test contract",
+  "global_objective": "Añadir a plan-writer un contrato de test por tarea (test_contract) en schema, validador y skill, y corregir la semántica documentada de actual_tokens/deviation (el plan es inmutable; el consumo real vive en execution_state.json).",
+  "source_spec": "docs/specs/plan-writer-test-contract/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 58000,
+  "tasks": [
+    {
+      "task_id": "T-schema",
+      "source_ids": ["R1", "R2.S1"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Edición estructural acotada de un JSON schema con criterios de aceptación claros; artefacto de código con criterios precisos → code_writer/sonnet.",
+      "instructions": "Edita `skills/plan-writer/assets/execution_plan.schema.json` del plugin sdd-kit para (R1) añadir la clave requerida `test_contract` en el sub-schema de cada tarea (`tasks.items`) y (R2.S1) corregir las descripciones de consumo. Forma de `test_contract` acordada en esta fase de plan: para tareas `code_writer`, un array con `minItems:1` de objetos `{ ref, assertion }` (ambos string no vacío, `additionalProperties:false`), donde `ref` es un ID del spec (`R<n>.S<m>` o `AC<n>`) y `assertion` una aserción observable en prosa; para el resto de `agent_type`, `null`. Como JSON Schema no puede condicionar el tipo al valor de `agent_type`, modela `test_contract` con `oneOf`: (a) `null`, o (b) el array de casos; la exclusividad code_writer↔no-null la impone el validador, no el schema. Añade `test_contract` a `required` de `tasks.items` y descríbelo. Para R2.S1/AC3: reescribe la descripción de nivel raíz (hoy afirma que la fase exec rellenará `actual_tokens`/`deviation`) y las descripciones de las propiedades `actual_tokens` y `deviation` para que no afirmen que exec las rellena en el plan, indiquen que el plan es inmutable en la fase exec y que el consumo real se registra en `execution_state.json`. Satisface AC1 (estructura del contrato) y AC3 (descripciones). No toques ningún otro campo.",
+      "expected_output_schema": "execution_plan.schema.json actualizado: `test_contract` como clave requerida en tasks.items (oneOf null | array minItems:1 de {ref:string, assertion:string} con additionalProperties:false); descripciones de nivel raíz, actual_tokens y deviation reescritas sin mención a que exec las rellene y citando execution_state.json. Sigue siendo JSON válido.",
+      "satisfies_acs": ["AC1", "AC3"],
+      "estimated_tokens": 8000,
+      "actual_tokens": null,
+      "deviation": null
+    },
+    {
+      "task_id": "T-skill",
+      "source_ids": ["R1.S1", "R2.S1"],
+      "dependencies": [],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Redacción de documentación (SKILL.md) siguiendo un esquema ya fijado → doc_writer/sonnet.",
+      "instructions": "Edita `skills/plan-writer/SKILL.md` de plan-writer para (R1.S1/AC1) instruir la generación del contrato de test y (R2.S1/AC3) corregir la redacción sobre los huecos de consumo. Para R1.S1/AC1: añade una sección que instruya a plan-writer a emitir en cada tarea la clave `test_contract`; forma acordada en esta fase de plan: para tareas `code_writer`, un array no vacío de casos `{ ref, assertion }` — `ref` es un ID existente del spec (`R<n>.S<m>` o `AC<n>`) del que la tarea deriva, `assertion` una aserción observable en prosa; prohibido copiar texto del spec (referenciar por ID, coherente con la regla existente del campo `instructions`) y prohibido incluir código o nombres de fichero de test; para cualquier otro `agent_type`, `test_contract: null`. Indica derivar los casos de los escenarios (`R<n>.S<m>`) y ACs que la tarea satisface. Para R2.S1/AC3: localiza el pasaje que dice que la fase exec rellenará `actual_tokens`/`deviation` y reescríbelo para que afirme que el plan es inmutable en exec y que el consumo real se registra en `execution_state.json`, no en el plan. No ejecutes ninguna tarea del plan ni edites specs.",
+      "expected_output_schema": "SKILL.md de plan-writer con una sección nueva que instruye generar `test_contract` (array {ref,assertion} para code_writer, null para el resto, sin código ni copiar spec) y con el pasaje de actual_tokens/deviation reescrito (plan inmutable + consumo real en execution_state.json).",
+      "satisfies_acs": ["AC1", "AC3"],
+      "estimated_tokens": 10000,
+      "actual_tokens": null,
+      "deviation": null
+    },
+    {
+      "task_id": "T-validator",
+      "source_ids": ["R1.S2"],
+      "dependencies": ["T-schema"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Lógica de validación en JS con criterios de aceptación precisos (tres casos de rechazo) → code_writer/sonnet.",
+      "instructions": "Edita `scripts/plan-tools.mjs` (comando `check-plan`) del plugin sdd-kit para imponer la regla de `test_contract` (R1.S2/AC2). Consume el sub-schema de `test_contract` tal como lo deja el fichero schema actualizado por la tarea T-schema. Valida el campo en `validateSchema` y añade un check nuevo registrado en el array `checks` de `cmdCheckPlan` que, por cada tarea, rechace con exit ≠ 0 nombrando el `task_id` y la regla incumplida cuando: (a) `agent_type` es `code_writer` y `test_contract` es `null` o array vacío; (b) `agent_type` no es `code_writer` y `test_contract` no es `null`; (c) algún caso referencia en `ref` un ID inexistente en el spec (usa el parseo ya presente: `requirements`, `scenarios`, `acs`). Cubre los tres casos de R1.S2. No alteres el resto de checks ni su orden observable.",
+      "expected_output_schema": "plan-tools.mjs con un check nuevo en check-plan que valida `test_contract`: exit≠0 nombrando task_id+regla para code_writer sin contrato, no-code_writer con contrato, o ref inexistente en el spec; exit 0 con planes válidos.",
+      "satisfies_acs": ["AC2"],
+      "estimated_tokens": 15000,
+      "actual_tokens": null,
+      "deviation": null
+    },
+    {
+      "task_id": "T-e2e",
+      "source_ids": ["R-E2E.S1"],
+      "dependencies": ["T-schema", "T-skill", "T-validator"],
+      "agent_type": "terminal_operator",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "Ejecutar la skill y checks deterministas y reportar (exit code, existencia de IDs); verificación mecánica → terminal_operator/haiku.",
+      "instructions": "Dogfood de R-E2E.S1/AC-E2E. Con el schema (T-schema), la skill (T-skill) y el validador (T-validator) ya actualizados, invoca la skill plan-writer sobre `docs/specs/plan-executor/spec.md` (spec real en formato spec-writer) para regenerar su `execution_plan.json`. Luego: (1) ejecuta `node scripts/plan-tools.mjs check-plan docs/specs/plan-executor/spec.md <plan>` y confirma exit 0; (2) extrae de cada `test_contract` todos los `ref` y verifica por grep que cada ID existe en `docs/specs/plan-executor/spec.md`; (3) confirma que toda tarea `code_writer` tiene contrato no vacío y las demás `test_contract: null`. Reporta exit code, cualquier ref ausente del spec y el desglose code_writer/no-code_writer. No modifiques el spec ni los ficheros del plugin.",
+      "expected_output_schema": "Informe de verificación: exit code de check-plan sobre el plan regenerado de plan-executor (esperado 0), lista de refs de contrato ausentes del spec (esperada vacía) y recuento de tareas code_writer con contrato vs. resto con null.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T-schema", "T-skill", "T-validator"],
+      "R2": ["T-schema", "T-skill"],
+      "R-E2E": ["T-e2e"]
+    },
+    "acs": {
+      "AC1": ["T-schema", "T-skill"],
+      "AC2": ["T-validator"],
+      "AC3": ["T-schema", "T-skill"],
+      "AC-E2E": ["T-e2e"]
+    }
+  }
+}

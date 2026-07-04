@@ -25,7 +25,8 @@
       ],
       "estimated_tokens": 5000,
       "actual_tokens": null,
-      "deviation": null
+      "deviation": null,
+      "test_contract": null
     },
     {
       "task_id": "task-catalog",
@@ -44,7 +45,8 @@
       ],
       "estimated_tokens": 4000,
       "actual_tokens": null,
-      "deviation": null
+      "deviation": null,
+      "test_contract": null
     },
     {
       "task_id": "task-cart",
@@ -65,7 +67,8 @@
       ],
       "estimated_tokens": 4500,
       "actual_tokens": null,
-      "deviation": null
+      "deviation": null,
+      "test_contract": null
     },
     {
       "task_id": "task-e2e",
@@ -88,7 +91,8 @@
       ],
       "estimated_tokens": 3000,
       "actual_tokens": null,
-      "deviation": null
+      "deviation": null,
+      "test_contract": null
     }
   ],
   "coverage": {

@@ -87,6 +87,13 @@ const CASES = [
     stream: 'stderr',
     substr: 'esquema:',
   },
+  {
+    name: 'bad-test-contract: ref de test_contract inexistente en el spec',
+    args: ['check-plan', 'valid/spec.md', 'bad-test-contract/plan.json'],
+    expectExit: 1,
+    stream: 'stderr',
+    substr: 'test_contract.ref inexistente en spec:',
+  },
 ];
 
 // Los argumentos que terminan en .md/.json son rutas de fixtures relativas;
