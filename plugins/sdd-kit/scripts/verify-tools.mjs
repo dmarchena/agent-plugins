@@ -121,3 +121,76 @@ export function loadSpecdir(specDir) {
 
   return { checklist, coverageAcs, taskState };
 }
+
+// ---------------------------------------------------------------------------
+// groundCheck — T2: re-run evidence for [auto] ACs (R2, R2.S1, R2.S2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Re-verifies `[auto]`-tagged checklist items against the *current* working
+ * tree, reusing plan-executor's resume pattern: re-run each covering task's
+ * stored `test_cmd` and compare its exit status, rather than trusting the
+ * `done` status recorded in execution_state.json at face value.
+ *
+ * Scope boundary: an AC is only ever placed in `green` or `drift` when ALL of
+ * its covering tasks (per `coverageAcs[ac_id]`) are `status === 'done'` *and*
+ * have a non-null `test_cmd`. If `taskState` is null, or any covering task is
+ * not done yet / has no stored test_cmd, that AC is left out of BOTH lists —
+ * no verdict is produced. Reasoning about that "not ready to verify" case
+ * belongs to other tasks (incomplete coverage / degraded-manual handling),
+ * not to this function. `manual`-tagged checklist items are never considered.
+ *
+ * @param {Array<{ac_id: string, ref: string, tag: 'auto'|'manual', description: string}>} checklist
+ * @param {Record<string, string[]>} coverageAcs - AC id -> covering task_ids.
+ * @param {Record<string, {status: string, test_cmd: string|null}>|null} taskState
+ * @param {{rerun: (testCmd: string) => {passed: boolean, output: string}}} deps
+ * @returns {{
+ *   green: string[],
+ *   drift: Array<{ac_id: string, task_id: string, test_cmd: string, output: string}>,
+ * }}
+ */
+export function groundCheck(checklist, coverageAcs, taskState, { rerun }) {
+  const green = [];
+  const drift = [];
+
+  if (!taskState) {
+    return { green, drift };
+  }
+
+  for (const item of checklist) {
+    if (item.tag !== 'auto') continue;
+
+    const taskIds = coverageAcs[item.ac_id] || [];
+    if (taskIds.length === 0) continue;
+
+    const readyToVerify = taskIds.every((taskId) => {
+      const entry = taskState[taskId];
+      return entry && entry.status === 'done' && entry.test_cmd != null;
+    });
+    if (!readyToVerify) continue;
+
+    let acDrift = [];
+    let allPassed = true;
+    for (const taskId of taskIds) {
+      const entry = taskState[taskId];
+      const result = rerun(entry.test_cmd);
+      if (!result.passed) {
+        allPassed = false;
+        acDrift.push({
+          ac_id: item.ac_id,
+          task_id: taskId,
+          test_cmd: entry.test_cmd,
+          output: result.output,
+        });
+      }
+    }
+
+    if (allPassed) {
+      green.push(item.ac_id);
+    } else {
+      drift.push(...acDrift);
+    }
+  }
+
+  return { green, drift };
+}

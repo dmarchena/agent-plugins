@@ -5,12 +5,12 @@
   "started_at": "2026-07-04T23:30:36.717Z",
   "tasks": {
     "T1-load-inputs": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 30000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 84126,
+      "deviation": 54126,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-tools.test.mjs",
+      "commit": "1ddcc31",
       "incidencia": null
     },
     "T2-ground-check": {
@@ -77,5 +77,10 @@
       "incidencia": null
     }
   },
-  "pause": null
+  "pause": {
+    "reason": "presupuesto: real > 2x estimado ejecutado",
+    "real_tokens": 84126,
+    "estimated_tokens": 30000,
+    "at_task": "T2-ground-check"
+  }
 }
