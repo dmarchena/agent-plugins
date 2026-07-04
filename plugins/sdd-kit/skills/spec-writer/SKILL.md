@@ -183,14 +183,17 @@ interview, not a wizard with rigid pages.
   (payments, auth, data loss, irreversible actions) or when running in full
   mode.
 
-## Output
+## Output — where the spec lives
 
 When the interview is complete, read `assets/spec-template.md` and write the
-final file as `spec.md` (or `<feature-slug>-spec.md` if the user is managing
-several specs in the same place) following that template's structure
-exactly — this should be the first and only time the full document gets
-written out. Show the user the finished spec and ask if anything needs
-adjusting before treating it as final.
+finished file to **`docs/specs/<slug>/spec.md`** (creating the directory),
+where `<slug>` is a short kebab-case slug derived from the feature name —
+unless the user asks for a different location. That per-feature directory is
+the shared home for the whole chain: `plan-writer` later drops its
+`execution_plan.json` alongside, in the same `docs/specs/<slug>/`. Follow the
+template's structure exactly — this should be the first and only time the
+full document gets written out. Show the user the finished spec and ask if
+anything needs adjusting before treating it as final.
 
 Two constraints on the written file: it must be **self-contained** — a
 verification agent with no access to this interview must be able to run the

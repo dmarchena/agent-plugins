@@ -11,7 +11,8 @@ allowed-tools: Read, Write, Edit, Bash
 
 Second stage of a spec → plan → exec → verify workflow. Takes a `spec.md`
 written in spec-writer's format and produces `execution_plan.json` next to
-it: a Directed Acyclic Graph (DAG) of atomic, agent-assigned tasks that a
+it — in the same `docs/specs/<slug>/` directory the spec lives in — a
+Directed Acyclic Graph (DAG) of atomic, agent-assigned tasks that a
 future orchestrator (`exec-runner`) can run without reinterpreting the spec.
 This skill deliberately does **not** execute any task and does **not** edit
 the spec — it only reads it and writes the plan.

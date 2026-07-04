@@ -31,7 +31,28 @@ this plugin only covers the spec and plan artifacts.
 3. **exec** *(future)* — an orchestrator runs the plan's tasks in
    dependency order, dispatching each to its assigned subagent/model.
 4. **verify** *(future)* — checks the executed work against the spec's
-   acceptance-criteria checklist.
+   acceptance-criteria checklist, then archives the feature's artifacts (see
+   "Where the artifacts live" below).
+
+## Where the artifacts live
+
+Every feature gets one directory, **`docs/specs/<slug>/`** (a kebab-case
+slug from the feature name), holding the whole chain's artifacts together:
+
+- `spec-writer` writes `docs/specs/<slug>/spec.md`.
+- `plan-writer` writes `docs/specs/<slug>/execution_plan.json` alongside it.
+
+While the feature is in progress that directory is committed on the feature
+branch — git is the handoff between stages and sessions, not the conversation.
+
+**On completion** — every acceptance criterion green — the directory is
+archived: moved to **`docs/specs/archived/<slug>/`** and committed. A spec is
+the durable record of intended behavior and its acceptance criteria, worth
+keeping for later regressions and audits; but a finished spec shouldn't sit
+in the active `docs/specs/` path, where every subsequent plan/verify session
+would reload it. Archiving preserves the history without the context cost —
+it is neither deleted nor left in place. The `verify` stage performs this
+move once it lands; until then it's a manual `git mv`.
 
 ## Shared ID format
 
