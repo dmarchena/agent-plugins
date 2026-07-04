@@ -32,12 +32,12 @@
       "incidencia": null
     },
     "T4-degraded-manual": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 20000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 45591,
+      "deviation": 25591,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-degraded-manual.test.mjs",
+      "commit": "6412e31",
       "incidencia": null
     },
     "T5-incomplete-coverage": {
