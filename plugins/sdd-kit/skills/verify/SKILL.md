@@ -34,3 +34,32 @@ status. It does not re-validate the plan against the spec — that already
 happened in plan-executor's `init`. When `execution_plan.json` or `spec.md`
 is missing from `SPECDIR`, `loadSpecdir` throws before evaluating or
 archiving anything, naming the exact missing file.
+
+## Manual AC confirmation protocol
+
+Every `[manual]`-tagged AC (and, in degraded mode with no
+`execution_state.json`, every AC regardless of tag — see R4) MUST be
+confirmed **one by one, in this main conversation thread, directly with the
+user**. For each such AC: present its `ac_id` and its `description` (the
+probe text) to the user, and wait for an explicit answer before moving to
+the next one. Only an explicit "yes, this is met" from the user justifies
+calling `.confirm(ac_id)`; anything else — an explicit "no", or the
+conversation moving on without an answer — means it stays `'unanswered'` or
+becomes `.reject(ac_id)`, and either way it is **not** green (R3, R3.S1,
+R3.S2).
+
+This confirmation step **MUST NOT be delegated to a subagent** and **MUST
+NOT be resolved unilaterally** by the orchestrating agent guessing or
+inferring the answer from code/tests. A subagent has no standing to give
+informed consent on the user's behalf, and re-running a test or reading code
+is exactly what `[auto]` ACs are for — a `[manual]` AC exists precisely
+because it needs a human judgment call that automation cannot make. If you
+find yourself tempted to mark a manual AC green without an explicit
+back-and-forth with the user in this thread, stop: that is a spec violation,
+not a shortcut.
+
+The bookkeeping for this (tracking each AC's `'unanswered'` /
+`'confirmed'` / `'rejected'` status and computing which ones count green) is
+`manualConfirmation(items)` in `verify-tools.mjs` — it is pure bookkeeping
+with no I/O of its own; the actual presenting-to-the-user and waiting for a
+reply happens here, in the conversation, AC by AC, driven by this protocol.

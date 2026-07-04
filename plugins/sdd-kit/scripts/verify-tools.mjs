@@ -194,3 +194,128 @@ export function groundCheck(checklist, coverageAcs, taskState, { rerun }) {
 
   return { green, drift };
 }
+
+// ---------------------------------------------------------------------------
+// tokenDeviations — T6: flag tasks whose real token spend blew past their
+// estimate (R6, R6.S1, R6.S2, AC8).
+// ---------------------------------------------------------------------------
+
+/**
+ * Flags tasks whose `actual_tokens` overshot `estimated_tokens` by more than
+ * 2x, so the final verify report can surface them for the user to review.
+ *
+ * A task is only evaluable when BOTH `actual_tokens` and `estimated_tokens`
+ * are non-null; a task not yet run (or run without token bookkeeping) is
+ * simply omitted — it is neither "in range" nor "deviated". The deviation
+ * itself is recomputed here from the two raw fields (`actual_tokens -
+ * estimated_tokens`) rather than trusting the stored `deviation` field, so
+ * this function stays correct even if a caller hands it a taskState whose
+ * `deviation` field wasn't (re)computed upstream.
+ *
+ * This is purely informative: the returned entries never carry any kind of
+ * "block" flag, and archiving must never be gated on this result (R6.S2).
+ *
+ * @param {Record<string, {estimated_tokens: number|null, actual_tokens: number|null}>|null} taskState
+ * @returns {Array<{ task_id: string, actual_tokens: number, estimated_tokens: number, suggestion: string }>}
+ */
+export function tokenDeviations(taskState) {
+  if (!taskState) {
+    return [];
+  }
+
+  const deviations = [];
+  for (const [taskId, entry] of Object.entries(taskState)) {
+    if (entry.actual_tokens == null || entry.estimated_tokens == null) continue;
+
+    if (entry.actual_tokens > 2 * entry.estimated_tokens) {
+      deviations.push({
+        task_id: taskId,
+        actual_tokens: entry.actual_tokens,
+        estimated_tokens: entry.estimated_tokens,
+        suggestion: `Task ${taskId} used ${entry.actual_tokens} tokens vs an estimate of ${entry.estimated_tokens} (more than 2x over) — review this task's token estimate or reconsider whether its scope/definition was too broad.`,
+      });
+    }
+  }
+
+  return deviations;
+}
+
+// ---------------------------------------------------------------------------
+// manualConfirmation — per-AC manual confirmation bookkeeping (T3)
+// ---------------------------------------------------------------------------
+
+/**
+ * Pure bookkeeping primitive for tracking explicit human confirmation of a
+ * list of ACs, one by one. This does NOT do any prompting/I-O itself — the
+ * real orchestrating conversation is responsible for presenting each item's
+ * probe (`description`) to the user and calling `.confirm()`/`.reject()`
+ * with the result; this object only remembers the answers and computes the
+ * aggregate verdict.
+ *
+ * Generic over "any AC list": `items` just needs an `ac_id` per entry. This
+ * function does not look at `tag` and does not filter — for R3 (manual-only
+ * confirmation), the caller filters the loaded checklist to
+ * `tag === 'manual'` before calling this. A later task (T4, degraded-manual
+ * routing) reuses this exact primitive unfiltered, passing the WHOLE
+ * checklist (auto + manual) when `execution_state.json` is absent (R4),
+ * since in that mode every AC — regardless of tag — needs explicit human
+ * confirmation.
+ *
+ * Every item starts `'unanswered'`. Only an explicit `.confirm(ac_id)` moves
+ * it to `'confirmed'` (green); `.reject(ac_id)` moves it to `'rejected'`.
+ * There is no automatic transition out of `'unanswered'` — asking for the
+ * report before answering an item (i.e. "the session ends without an
+ * answer", R3.S2) leaves it `'unanswered'`, which `.report()` treats the
+ * same as `'rejected'`: not green, blocks archiving.
+ *
+ * @param {Array<{ ac_id: string }>} items
+ * @returns {{
+ *   confirm: (acId: string) => void,
+ *   reject: (acId: string) => void,
+ *   status: (acId: string) => 'unanswered'|'confirmed'|'rejected',
+ *   report: () => {
+ *     green: string[],
+ *     notGreen: Array<{ ac_id: string, status: 'rejected'|'unanswered' }>,
+ *     allGreen: boolean,
+ *   },
+ * }}
+ */
+export function manualConfirmation(items) {
+  const statuses = new Map();
+  for (const item of items) {
+    statuses.set(item.ac_id, 'unanswered');
+  }
+
+  function assertKnown(acId) {
+    if (!statuses.has(acId)) {
+      throw new Error(`manualConfirmation: unknown ac_id "${acId}"`);
+    }
+  }
+
+  return {
+    confirm(acId) {
+      assertKnown(acId);
+      statuses.set(acId, 'confirmed');
+    },
+    reject(acId) {
+      assertKnown(acId);
+      statuses.set(acId, 'rejected');
+    },
+    status(acId) {
+      assertKnown(acId);
+      return statuses.get(acId);
+    },
+    report() {
+      const green = [];
+      const notGreen = [];
+      for (const [ac_id, status] of statuses) {
+        if (status === 'confirmed') {
+          green.push(ac_id);
+        } else {
+          notGreen.push({ ac_id, status });
+        }
+      }
+      return { green, notGreen, allGreen: notGreen.length === 0 };
+    },
+  };
+}
