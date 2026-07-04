@@ -120,10 +120,13 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs complete SPECDIR <task_id> \
   --rojo pass|fail --verde pass|fail [--message "<commit subject>"]
 ```
 
-`--rojo pass` means the executor produced genuine red-before evidence;
-`--verde pass` means it reported green-after. `complete` applies the
-deterministic gate: it re-runs `--test-cmd` itself and only trusts a green
-it can reproduce (R3). Branch on its output:
+`--rojo` and `--verde` report the **exit status of the test** in each TDD
+phase, not a verdict. Genuine red→green evidence is `--rojo fail`
+(the test **fails** before the implementation exists) **and** `--verde
+pass` (it passes after). A `--rojo pass` means the test passed with nothing
+implemented — that is the "sin evidencia de rojo" incidence, not success.
+`complete` applies the deterministic gate: it re-runs `--test-cmd` itself
+and only trusts a green it can reproduce (R3). Branch on its output:
 
 - **`{ status: "done", commit, deviation }`** → verified green. The script
   already committed the task (test + implementation) on the plan branch and
