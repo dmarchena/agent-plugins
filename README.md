@@ -19,10 +19,12 @@ Then restart your session (or `/reload-plugins`).
 |--------|--------------|
 | [`sdd-kit`](plugins/sdd-kit/AGENTS.md) | Spec-driven development kit: `spec-writer` (grills you into a complete, testable `spec.md`) and `plan-writer` (turns that `spec.md` into a validated `execution_plan.json` task DAG), with future exec/verify stages planned. |
 
-> Nota: `spec-writer` era un plugin independiente hasta la versión 0.1.x; ahora vive como skill dentro de `sdd-kit`.
+> Note: `spec-writer` was a standalone plugin up to version 0.1.x; it now lives as a skill inside `sdd-kit`.
 
 ## Conventions
 
+- Repo-wide rules for any agent working here — language (English artifacts,
+  bilingual chat), branch naming, git flow — live in [`AGENTS.md`](AGENTS.md).
 - Each plugin lives in `plugins/<name>/` with a `.claude-plugin/plugin.json`
   manifest (`version` in **semver `X.Y.Z`**, bumped manually on every change)
   and an `AGENTS.md` (or `README.md`) describing its purpose and use without
