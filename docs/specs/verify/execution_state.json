@@ -50,12 +50,12 @@
       "incidencia": null
     },
     "T6-token-deviation": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 20000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 49299,
+      "deviation": 29299,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-token-deviation.test.mjs",
+      "commit": "ceb3229",
       "incidencia": null
     },
     "T7-report-archive": {
@@ -79,8 +79,8 @@
   },
   "pause": {
     "reason": "presupuesto: real > 2x estimado ejecutado",
-    "real_tokens": 84126,
-    "estimated_tokens": 30000,
-    "at_task": "T2-ground-check"
+    "real_tokens": 236322,
+    "estimated_tokens": 100000,
+    "at_task": "T4-degraded-manual"
   }
 }

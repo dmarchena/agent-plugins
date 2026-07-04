@@ -319,3 +319,143 @@ export function manualConfirmation(items) {
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// degradedManualRouting — T4: route the whole checklist to manual
+// confirmation when execution_state.json is absent (R4, R4.S1, AC6).
+// ---------------------------------------------------------------------------
+
+/**
+ * Detects the "degraded" verify case — `execution_state.json` absent from
+ * SPECDIR, i.e. `taskState === null` exactly as `loadSpecdir` returns it (see
+ * T1) — and, when degraded, routes the ENTIRE checklist (both `[auto]` and
+ * `[manual]` items) to `manualConfirmation` for explicit human confirmation.
+ * This is the whole point of R4: with no recorded task state there is
+ * nothing to re-run test commands against, so every AC — regardless of tag —
+ * must be confirmed by a human one by one, exactly like a `[manual]` AC
+ * normally is (see the "Manual AC confirmation protocol" in SKILL.md).
+ *
+ * The detection condition is exactly `taskState === null`, not any kind of
+ * falsy/empty check: an empty (but non-null) taskState object is a normal
+ * (non-degraded) state with zero recorded tasks, not this degraded case.
+ *
+ * When NOT degraded, this function does none of the above — it returns
+ * `{ degraded: false }` and callers (T7) are expected to only invoke this
+ * routing when `taskState === null` in the first place; the non-degraded
+ * branch here is intentionally a no-op stub, not a second code path.
+ *
+ * @param {Array<{ac_id: string, ref: string, tag: 'auto'|'manual', description: string}>} checklist
+ * @param {Record<string, object>|null} taskState
+ * @returns {
+ *   | { degraded: true, reason: string, tracker: ReturnType<typeof manualConfirmation> }
+ *   | { degraded: false }
+ * }
+ */
+export function degradedManualRouting(checklist, taskState) {
+  if (taskState !== null) {
+    return { degraded: false };
+  }
+
+  return {
+    degraded: true,
+    reason:
+      'no execution_state.json: verification is fully manual (all ACs, auto and manual, require explicit human confirmation)',
+    tracker: manualConfirmation(checklist),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// incompleteCoverage — T5: explain [auto] ACs left out of groundCheck's
+// green/drift verdict because their coverage isn't fully 'done' yet
+// (R5, R5.S1, R5.S2, AC7).
+// ---------------------------------------------------------------------------
+
+/**
+ * Explains WHY an `[auto]` checklist item is not (yet) green, for every case
+ * that `groundCheck` (T2) silently omits from both its `green` and `drift`
+ * lists: a covering task that is `blocked`/`skipped` (R5.S1, AC7), or one
+ * that is still `pending`/`running` (R5.S2) — i.e. the plan's execution
+ * hasn't finished for that AC. An AC is never reported twice: once ALL of an
+ * AC's covering tasks reach `status === 'done'`, this function has nothing
+ * to say about it — that AC has moved fully into `groundCheck`'s territory
+ * (green or drift), so no entry is produced here for it (T7 merges both
+ * lists into the final report without overlap).
+ *
+ * Only `tag === 'auto'` checklist items are considered; `manual` items are
+ * never evaluated here (they are `manualConfirmation`'s territory instead).
+ *
+ * Scope boundary: when `taskState === null` (no execution_state.json at
+ * all), this function returns an empty array — that degraded case is
+ * T4-degraded-manual's responsibility (`degradedManualRouting`), not this
+ * function's; it is simply not applicable here.
+ *
+ * For an AC with multiple covering tasks, the FIRST non-done task found (in
+ * `coverageAcs[ac_id]` order) determines the reported reason: a
+ * blocked/skipped task takes precedence over a pending/running one, since a
+ * blocked/skipped task is a harder stop that needs attention first.
+ *
+ * @param {Array<{ac_id: string, ref: string, tag: 'auto'|'manual', description: string}>} checklist
+ * @param {Record<string, string[]>} coverageAcs - AC id -> covering task_ids.
+ * @param {Record<string, {status: string, incidencia?: string|null}>|null} taskState
+ * @returns {Array<{
+ *   ac_id: string,
+ *   task_id: string,
+ *   status: string,
+ *   incidencia?: string|null,
+ *   reason: 'blocked-or-skipped'|'not-finished',
+ * }>}
+ */
+export function incompleteCoverage(checklist, coverageAcs, taskState) {
+  if (!taskState) {
+    return [];
+  }
+
+  const entries = [];
+
+  for (const item of checklist) {
+    if (item.tag !== 'auto') continue;
+
+    const taskIds = coverageAcs[item.ac_id] || [];
+    if (taskIds.length === 0) continue;
+
+    const allDone = taskIds.every((taskId) => {
+      const entry = taskState[taskId];
+      return entry && entry.status === 'done';
+    });
+    if (allDone) continue;
+
+    const blockedOrSkippedId = taskIds.find((taskId) => {
+      const entry = taskState[taskId];
+      return entry && (entry.status === 'blocked' || entry.status === 'skipped');
+    });
+
+    if (blockedOrSkippedId) {
+      const entry = taskState[blockedOrSkippedId];
+      entries.push({
+        ac_id: item.ac_id,
+        task_id: blockedOrSkippedId,
+        status: entry.status,
+        incidencia: entry.incidencia != null ? entry.incidencia : null,
+        reason: 'blocked-or-skipped',
+      });
+      continue;
+    }
+
+    const notFinishedId = taskIds.find((taskId) => {
+      const entry = taskState[taskId];
+      return entry && (entry.status === 'pending' || entry.status === 'running');
+    });
+
+    if (notFinishedId) {
+      const entry = taskState[notFinishedId];
+      entries.push({
+        ac_id: item.ac_id,
+        task_id: notFinishedId,
+        status: entry.status,
+        reason: 'not-finished',
+      });
+    }
+  }
+
+  return entries;
+}
