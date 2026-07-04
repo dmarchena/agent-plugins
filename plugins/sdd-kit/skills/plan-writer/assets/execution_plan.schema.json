@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agent-plugins.local/sdd-kit/plan-writer/execution_plan.schema.json",
   "title": "Execution Plan",
-  "description": "DAG de tareas atomicas generado por la skill plan-writer a partir de un spec.md. Fija la forma de salida que consumen los ejecutores (subagentes) y el propio proceso de seguimiento (actual_tokens/deviation).",
+  "description": "DAG de tareas atomicas generado por la skill plan-writer a partir de un spec.md. Fija la forma de SALIDA de plan-writer que consumen los ejecutores (subagentes). actual_tokens y deviation se reservan aqui como null (huecos que la fase exec rellenara mas tarde, fuera del alcance de este esquema).",
   "type": "object",
   "properties": {
     "plan_id": {

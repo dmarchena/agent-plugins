@@ -8,7 +8,7 @@
     {
       "name": "sdd-kit",
       "source": "./plugins/sdd-kit",
-      "description": "Spec-driven development kit: skills para spec.md y plan de ejecución."
+      "description": "Spec-driven development kit: skills for spec.md and the execution plan."
     }
   ]
 }
