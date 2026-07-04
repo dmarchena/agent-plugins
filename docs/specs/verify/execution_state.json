@@ -59,12 +59,12 @@
       "incidencia": null
     },
     "T7-report-archive": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 35000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 63495,
+      "deviation": 28495,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-report-archive.test.mjs",
+      "commit": "90b20b1",
       "incidencia": null
     },
     "T8-e2e": {
@@ -79,8 +79,8 @@
   },
   "pause": {
     "reason": "presupuesto: real > 2x estimado ejecutado",
-    "real_tokens": 329319,
-    "estimated_tokens": 145000,
-    "at_task": "T7-report-archive"
+    "real_tokens": 392814,
+    "estimated_tokens": 180000,
+    "at_task": "T8-e2e"
   }
 }
