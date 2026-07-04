@@ -44,6 +44,17 @@ been superseded by the prefixes above.
 
 - One commit per completed, verifiable checkpoint (a subplan closing, a task
   going green) — not one giant commit per feature.
+- Commit messages follow **[Conventional Commits](https://www.conventionalcommits.org/)**:
+  `<type>(<scope>): <subject>`.
+  - `<type>` — one of `feat`, `fix`, `docs`, `chore`, `refactor`, `test`,
+    `style`, `ci`, `build`, `perf`. Matches the branch prefix for the change
+    that produced the commit (a `feat/<slug>` branch produces `feat:` commits).
+  - `<scope>` — the plugin or area touched (`sdd-kit`, `plan-executor`,
+    `agents-md`...); omit only for changes with no single scope (e.g. a
+    repo-wide rename).
+  - `<subject>` — imperative mood, lowercase after the colon, no trailing
+    period, in English (per "Language" above).
+  - Example: `fix(plan-executor): use feat/ branch prefix instead of ia/`.
 - Open a PR to `main` for review; merge once CI (`scripts/validate.sh` via
   GitHub Actions) is green. Don't push directly to `main`.
 - After a PR merges, switch to `main` and pull; don't delete the
@@ -54,3 +65,11 @@ been superseded by the prefixes above.
 See `README.md`'s "Conventions" and "Validation" sections — plugin layout,
 manifest `version` (semver, bumped manually), and the `scripts/validate.sh`
 gate are documented there and not repeated here.
+
+## Templates
+
+Reusable skeletons for the recurring artifacts in this repo live in
+[`templates/`](templates/): a new ADR, `SKILL.md`, slash command,
+`CHANGELOG.md`, or plugin manifest starts by copying the matching file there
+rather than an existing example. PRs use the template GitHub picks up
+automatically, [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md).

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "<plugin-name>",
+  "version": "0.1.0",
+  "description": "<One line, English, what the plugin does.>",
+  "author": {
+    "name": "<author name>",
+    "email": "<author email>"
+  }
+}
