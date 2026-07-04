@@ -41,12 +41,12 @@
       "incidencia": null
     },
     "T5-incomplete-coverage": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 25000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 47406,
+      "deviation": 22406,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-incomplete-coverage.test.mjs",
+      "commit": "04368e1",
       "incidencia": null
     },
     "T6-token-deviation": {
@@ -79,8 +79,8 @@
   },
   "pause": {
     "reason": "presupuesto: real > 2x estimado ejecutado",
-    "real_tokens": 236322,
-    "estimated_tokens": 100000,
-    "at_task": "T4-degraded-manual"
+    "real_tokens": 329319,
+    "estimated_tokens": 145000,
+    "at_task": "T7-report-archive"
   }
 }

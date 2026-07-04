@@ -63,3 +63,27 @@ The bookkeeping for this (tracking each AC's `'unanswered'` /
 `manualConfirmation(items)` in `verify-tools.mjs` — it is pure bookkeeping
 with no I/O of its own; the actual presenting-to-the-user and waiting for a
 reply happens here, in the conversation, AC by AC, driven by this protocol.
+
+## Final report and archiving
+
+Verify always evaluates the **whole** checklist before concluding anything —
+it never stops at the first not-green AC (that's the spec's own stated
+default). `assembleReport(checklist, groundCheckResult, manualTracker,
+degradedResult, incompleteCoverageResult, tokenDeviationsResult)` in
+`verify-tools.mjs` merges every prior check (`groundCheck`,
+`manualConfirmation`, `degradedManualRouting`, `incompleteCoverage`,
+`tokenDeviations`) into one final per-AC verdict plus an overall `allGreen`
+flag. Token deviations ride along as an informational `deviatedTasks` list —
+they are never allowed to turn a green AC (or the archiving decision) red
+(R6.S2).
+
+Only when `allGreen` is true does `archiveIfGreen(specDir, report, { cwd })`
+archive: `git mv SPECDIR docs/specs/archived/<slug>/` followed by a commit,
+on whatever branch is currently checked out — no new branch is created, and
+unlike plan-executor's per-task commits, this is explicitly allowed to run
+on `main` (R7). If the destination already exists, it refuses before running
+any git command and reports the collision. If any AC isn't green, nothing is
+moved or committed — the report instead names exactly which ACs are missing
+and why (drift, blocked/skipped, not finished, rejected, unanswered, or fully
+manual-degraded), so the user knows precisely what's left before verify can
+close out the SPECDIR.

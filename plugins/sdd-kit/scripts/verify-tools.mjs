@@ -3,6 +3,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 /**
  * Thrown when a required SPECDIR input (execution_plan.json or spec.md) is
@@ -458,4 +459,237 @@ export function incompleteCoverage(checklist, coverageAcs, taskState) {
   }
 
   return entries;
+}
+
+// ---------------------------------------------------------------------------
+// assembleReport — T7: merge every prior check into one final verdict
+// (R7).
+// ---------------------------------------------------------------------------
+
+/**
+ * Merges the outputs of `groundCheck`, `manualConfirmation`,
+ * `degradedManualRouting`, `incompleteCoverage`, and `tokenDeviations` into
+ * one final report: a per-AC green/not-green verdict (with a reason and
+ * supporting details when not green) plus an overall `allGreen` flag that
+ * `archiveIfGreen` (below) gates archiving on.
+ *
+ * Two modes, decided purely by `degradedResult.degraded`:
+ *
+ * - **Degraded** (`degradedResult.degraded === true`, i.e. no
+ *   `execution_state.json`): every checklist item — `[auto]` and `[manual]`
+ *   alike — gets its verdict from `degradedResult.tracker.report()`. In this
+ *   mode `groundCheckResult` and `incompleteCoverageResult` are IGNORED
+ *   entirely (there is nothing to ground-check without task state); not-green
+ *   items get `reason: 'manual-degraded'`.
+ * - **Normal** (`degradedResult.degraded === false`): `[auto]` items are
+ *   green iff present in `groundCheckResult.green`; otherwise not-green, with
+ *   `reason: 'drift'` (details: the matching `groundCheckResult.drift`
+ *   entries) if found there, else the `reason` reported by
+ *   `incompleteCoverageResult` (`'blocked-or-skipped'` or `'not-finished'`,
+ *   details: the matching entries). `[manual]` items are green iff present
+ *   in `manualTracker.report().green`; otherwise not-green with the
+ *   `manualTracker`'s own status (`'rejected'` or `'unanswered'`) as the
+ *   reason. `manualTracker` may be `null` when the checklist has no
+ *   `[manual]` ACs at all.
+ *
+ * `tokenDeviationsResult` is folded into the report verbatim as
+ * `deviatedTasks` — purely informational (R6.S2/AC8): it is NEVER consulted
+ * when computing any AC's verdict or the overall `allGreen`.
+ *
+ * @param {Array<{ac_id: string, ref: string, tag: 'auto'|'manual', description: string}>} checklist
+ * @param {{green: string[], drift: Array<{ac_id: string, task_id: string, test_cmd: string, output: string}>}} groundCheckResult
+ * @param {ReturnType<typeof manualConfirmation>|null} manualTracker
+ * @param {{degraded: boolean, reason?: string, tracker?: ReturnType<typeof manualConfirmation>}} degradedResult
+ * @param {Array<{ac_id: string, task_id: string, status: string, incidencia?: string|null, reason: string}>} incompleteCoverageResult
+ * @param {Array<{task_id: string, actual_tokens: number, estimated_tokens: number, suggestion: string}>} tokenDeviationsResult
+ * @returns {{
+ *   allGreen: boolean,
+ *   acs: Array<{
+ *     ac_id: string,
+ *     ref: string,
+ *     tag: 'auto'|'manual',
+ *     green: boolean,
+ *     reason?: string,
+ *     details?: object,
+ *   }>,
+ *   deviatedTasks: Array<{task_id: string, actual_tokens: number, estimated_tokens: number, suggestion: string}>,
+ * }}
+ */
+export function assembleReport(
+  checklist,
+  groundCheckResult,
+  manualTracker,
+  degradedResult,
+  incompleteCoverageResult,
+  tokenDeviationsResult
+) {
+  const acs = [];
+
+  if (degradedResult && degradedResult.degraded) {
+    const { green, notGreen } = degradedResult.tracker.report();
+    const greenSet = new Set(green);
+    const notGreenByAc = new Map(notGreen.map((e) => [e.ac_id, e.status]));
+
+    for (const item of checklist) {
+      if (greenSet.has(item.ac_id)) {
+        acs.push({ ac_id: item.ac_id, ref: item.ref, tag: item.tag, green: true });
+      } else {
+        acs.push({
+          ac_id: item.ac_id,
+          ref: item.ref,
+          tag: item.tag,
+          green: false,
+          reason: 'manual-degraded',
+          details: { status: notGreenByAc.get(item.ac_id) },
+        });
+      }
+    }
+  } else {
+    const groundGreenSet = new Set(groundCheckResult.green);
+
+    const driftByAc = new Map();
+    for (const d of groundCheckResult.drift) {
+      if (!driftByAc.has(d.ac_id)) driftByAc.set(d.ac_id, []);
+      driftByAc.get(d.ac_id).push(d);
+    }
+
+    const incompleteByAc = new Map();
+    for (const e of incompleteCoverageResult) {
+      if (!incompleteByAc.has(e.ac_id)) incompleteByAc.set(e.ac_id, []);
+      incompleteByAc.get(e.ac_id).push(e);
+    }
+
+    const manualReport = manualTracker ? manualTracker.report() : null;
+    const manualGreenSet = manualReport ? new Set(manualReport.green) : new Set();
+    const manualStatusByAc = manualReport
+      ? new Map(manualReport.notGreen.map((e) => [e.ac_id, e.status]))
+      : new Map();
+
+    for (const item of checklist) {
+      if (item.tag === 'auto') {
+        if (groundGreenSet.has(item.ac_id)) {
+          acs.push({ ac_id: item.ac_id, ref: item.ref, tag: item.tag, green: true });
+        } else if (driftByAc.has(item.ac_id)) {
+          acs.push({
+            ac_id: item.ac_id,
+            ref: item.ref,
+            tag: item.tag,
+            green: false,
+            reason: 'drift',
+            details: { entries: driftByAc.get(item.ac_id) },
+          });
+        } else if (incompleteByAc.has(item.ac_id)) {
+          const entries = incompleteByAc.get(item.ac_id);
+          acs.push({
+            ac_id: item.ac_id,
+            ref: item.ref,
+            tag: item.tag,
+            green: false,
+            reason: entries[0].reason,
+            details: { entries },
+          });
+        } else {
+          // Not covered by any of the three sources — nothing has produced
+          // a verdict for this AC yet (e.g. missing coverage.acs entry).
+          acs.push({
+            ac_id: item.ac_id,
+            ref: item.ref,
+            tag: item.tag,
+            green: false,
+            reason: 'not-evaluated',
+          });
+        }
+      } else {
+        if (manualGreenSet.has(item.ac_id)) {
+          acs.push({ ac_id: item.ac_id, ref: item.ref, tag: item.tag, green: true });
+        } else {
+          const status = manualStatusByAc.get(item.ac_id) || 'unanswered';
+          acs.push({
+            ac_id: item.ac_id,
+            ref: item.ref,
+            tag: item.tag,
+            green: false,
+            reason: status,
+          });
+        }
+      }
+    }
+  }
+
+  const allGreen = acs.every((a) => a.green);
+
+  return { allGreen, acs, deviatedTasks: tokenDeviationsResult || [] };
+}
+
+// ---------------------------------------------------------------------------
+// archiveIfGreen — T7: archive the SPECDIR once every AC is green
+// (R7, R7.S1, R7.S2, R7.S3).
+// ---------------------------------------------------------------------------
+
+function runGit(args, cwd) {
+  return spawnSync('git', args, { cwd, encoding: 'utf8' });
+}
+
+/**
+ * Archives `specDir` to a sibling `archived/<slug>/` directory (i.e.
+ * `docs/specs/archived/<slug>/` when `specDir` is `docs/specs/<slug>/`) via
+ * `git mv` + a commit, but ONLY when `report.allGreen` is true (R7.S1). When
+ * it isn't, this does nothing — no `git mv`, no commit — and instead names
+ * exactly which ACs are not green and why (R7.S2).
+ *
+ * Operates on the CURRENT branch, whatever it is — unlike plan-executor's
+ * per-task `commitTask`, this deliberately does NOT guard against `main`/
+ * `master`: verify is explicitly allowed to archive on `main` (R7).
+ *
+ * Collision guard (R7.S3): if the destination directory already exists,
+ * this refuses before running ANY git command — neither `specDir` nor the
+ * pre-existing destination is touched.
+ *
+ * @param {string} specDir
+ * @param {{allGreen: boolean, acs: Array<{ac_id: string, green: boolean, reason?: string}>}} report
+ * @param {{cwd?: string}} [options]
+ * @returns {
+ *   | { archived: true, destination: string, commit: string }
+ *   | { archived: false, reason: 'not all ACs green', notGreenAcs: Array<{ac_id: string, reason?: string}> }
+ *   | { archived: false, reason: 'collision', destination: string }
+ * }
+ */
+export function archiveIfGreen(specDir, report, { cwd } = {}) {
+  if (!report.allGreen) {
+    const notGreenAcs = report.acs
+      .filter((a) => !a.green)
+      .map((a) => ({ ac_id: a.ac_id, reason: a.reason }));
+    return { archived: false, reason: 'not all ACs green', notGreenAcs };
+  }
+
+  const resolvedSpecDir = path.resolve(specDir);
+  const slug = path.basename(resolvedSpecDir);
+  const destination = path.join(path.dirname(resolvedSpecDir), 'archived', slug);
+
+  if (fs.existsSync(destination)) {
+    return { archived: false, reason: 'collision', destination };
+  }
+
+  const gitCwd = cwd || process.cwd();
+
+  // git mv requires the destination's parent directory to already exist.
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+
+  const mvRes = runGit(['mv', resolvedSpecDir, destination], gitCwd);
+  if (mvRes.status !== 0) {
+    throw new Error(`git mv failed: ${mvRes.stderr}`);
+  }
+
+  const commitRes = runGit(
+    ['commit', '-m', `verify: archive ${slug} (all ACs green)`],
+    gitCwd
+  );
+  if (commitRes.status !== 0) {
+    throw new Error(`git commit failed: ${commitRes.stderr}`);
+  }
+
+  const hashRes = runGit(['rev-parse', '--short', 'HEAD'], gitCwd);
+  const commit = hashRes.stdout.trim();
+
+  return { archived: true, destination, commit };
 }
