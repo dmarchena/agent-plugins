@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-plugins.local/sdd-kit/plan-writer/execution_plan.schema.json",
+  "title": "Execution Plan",
+  "description": "DAG de tareas atomicas generado por la skill plan-writer a partir de un spec.md. Fija la forma de SALIDA de plan-writer que consumen los ejecutores (subagentes). actual_tokens y deviation se reservan aqui como null (huecos que la fase exec rellenara mas tarde, fuera del alcance de este esquema).",
+  "type": "object",
+  "properties": {
+    "plan_id": {
+      "type": "string",
+      "description": "Identificador unico del plan de ejecucion."
+    },
+    "project_name": {
+      "type": "string",
+      "description": "Nombre del proyecto o feature al que pertenece el plan."
+    },
+    "global_objective": {
+      "type": "string",
+      "description": "Objetivo global que persigue el conjunto de tareas del plan."
+    },
+    "source_spec": {
+      "type": "string",
+      "description": "Ruta al spec.md de origen del que deriva este plan."
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["low"],
+      "description": "Marca la estimacion de tokens como orientativa, no como compromiso."
+    },
+    "estimated_tokens_total": {
+      "type": "integer",
+      "description": "Suma estimada de tokens de todas las tareas del plan."
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Lista de tareas atomicas que componen el DAG de ejecucion.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "task_id",
+          "source_ids",
+          "dependencies",
+          "agent_type",
+          "subagent",
+          "model",
+          "justification",
+          "instructions",
+          "expected_output_schema",
+          "satisfies_acs",
+          "estimated_tokens",
+          "actual_tokens",
+          "deviation"
+        ],
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Identificador unico de la tarea dentro del plan."
+          },
+          "source_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs del spec (R<n> o R<n>.S<m>) de los que deriva esta tarea."
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "task_ids de los que depende esta tarea; array vacio si no tiene dependencias."
+          },
+          "agent_type": {
+            "type": "string",
+            "enum": [
+              "researcher",
+              "terminal_operator",
+              "code_writer",
+              "doc_writer",
+              "reviewer",
+              "architect"
+            ],
+            "description": "Rol abstracto y portable asignado a la tarea."
+          },
+          "subagent": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Subagente concreto de Claude Code que ejecuta la tarea."
+          },
+          "model": {
+            "type": "string",
+            "enum": ["haiku", "sonnet", "opus"],
+            "description": "Modelo asignado a la tarea siguiendo el criterio del mas austero con garantias."
+          },
+          "justification": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Motivo de la eleccion de agent_type/subagent/model para esta tarea."
+          },
+          "instructions": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Instrucciones autocontenidas que recibira el ejecutor de la tarea."
+          },
+          "expected_output_schema": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Descripcion del artefacto o formato de salida esperado de la tarea."
+          },
+          "satisfies_acs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de criterios de aceptacion (AC<n>) que satisface esta tarea."
+          },
+          "estimated_tokens": {
+            "type": "integer",
+            "description": "Estimacion de tokens que consumira la ejecucion de esta tarea."
+          },
+          "actual_tokens": {
+            "type": ["null"],
+            "description": "Hueco reservado para que el ejecutor rellene el consumo real de tokens tras la ejecucion."
+          },
+          "deviation": {
+            "type": ["null"],
+            "description": "Hueco reservado para que el ejecutor rellene la desviacion frente a la estimacion tras la ejecucion."
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirements", "acs"],
+      "description": "Trazabilidad entre requisitos/criterios del spec y las tareas que los cubren.",
+      "properties": {
+        "requirements": {
+          "type": "object",
+          "description": "Mapa de ID de requisito (R<n> o R<n>.S<m>) a lista de task_ids que lo cubren.",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "acs": {
+          "type": "object",
+          "description": "Mapa de ID de criterio de aceptacion (AC<n>) a lista de task_ids que lo cubren.",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "plan_id",
+    "project_name",
+    "global_objective",
+    "source_spec",
+    "confidence",
+    "estimated_tokens_total",
+    "tasks",
+    "coverage"
+  ],
+  "additionalProperties": false
+}

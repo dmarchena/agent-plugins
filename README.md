@@ -8,7 +8,7 @@ docs (AGENTS.md) so the plugins aren't tied to a single agent.
 
 ```sh
 claude plugin marketplace add dmarchena/agent-plugins
-claude plugin install spec-writer@agent-plugins
+claude plugin install sdd-kit@agent-plugins
 ```
 
 Then restart your session (or `/reload-plugins`).
@@ -17,7 +17,9 @@ Then restart your session (or `/reload-plugins`).
 
 | Plugin | What it does |
 |--------|--------------|
-| [`spec-writer`](plugins/spec-writer/AGENTS.md) | Interview-driven skill that grills you into a complete, testable `spec.md` before any planning or coding. |
+| [`sdd-kit`](plugins/sdd-kit/AGENTS.md) | Spec-driven development kit: `spec-writer` (grills you into a complete, testable `spec.md`) and `plan-writer` (turns that `spec.md` into a validated `execution_plan.json` task DAG), with future exec/verify stages planned. |
+
+> Nota: `spec-writer` era un plugin independiente hasta la versión 0.1.x; ahora vive como skill dentro de `sdd-kit`.
 
 ## Conventions
 

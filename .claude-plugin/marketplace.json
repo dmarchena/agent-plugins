@@ -6,9 +6,9 @@
   },
   "plugins": [
     {
-      "name": "spec-writer",
-      "source": "./plugins/spec-writer",
-      "description": "Interview-driven skill that grills you into a complete, testable spec.md before any planning or coding."
+      "name": "sdd-kit",
+      "source": "./plugins/sdd-kit",
+      "description": "Spec-driven development kit: skills for spec.md and the execution plan."
     }
   ]
 }

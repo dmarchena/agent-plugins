@@ -26,6 +26,9 @@ for pj in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do
   fi
 done
 
+echo "▶ Validando fixtures de plan-writer (plan-tools.mjs)…"
+node "$ROOT"/plugins/sdd-kit/test/run.mjs || fail=1
+
 if [[ $fail -ne 0 ]]; then
   echo "✘ Validación fallida" >&2
   exit 1

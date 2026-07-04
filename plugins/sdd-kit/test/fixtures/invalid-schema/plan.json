@@ -1,0 +1,126 @@
+{
+  "plan_id": "plan-tienda-online-001",
+  "project_name": "Tienda Online Básica",
+  "global_objective": "Implementar el flujo mínimo de autenticación, catálogo y carrito de una tienda online.",
+  "source_spec": "spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 16500,
+  "tasks": [
+    {
+      "task_id": "task-auth",
+      "source_ids": [
+        "R1.S1",
+        "R1.S2"
+      ],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementación acotada de un endpoint de autenticación con criterios de aceptación claros.",
+      "instructions": "Implementa el endpoint POST /login referenciando los escenarios R1.S1 y R1.S2 del spec: éxito con token y 401 con 'credenciales inválidas'.",
+      "expected_output_schema": "Endpoint POST /login con manejo de credenciales válidas e inválidas",
+      "satisfies_acs": [
+        "AC1",
+        "AC2"
+      ],
+      "estimated_tokens": 5000,
+      "actual_tokens": null,
+      "deviation": null
+    },
+    {
+      "task_id": "task-catalog",
+      "source_ids": [
+        "R2.S1"
+      ],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "justification": "Endpoint de solo lectura sin lógica compleja de negocio.",
+      "instructions": "Implementa el endpoint GET /products referenciando el escenario R2.S1 del spec.",
+      "expected_output_schema": "Endpoint GET /products que devuelve el array JSON del catálogo",
+      "satisfies_acs": [
+        "AC3"
+      ],
+      "estimated_tokens": 4000,
+      "actual_tokens": null,
+      "deviation": null
+    },
+    {
+      "task_id": "task-cart",
+      "source_ids": [
+        "R3.S1"
+      ],
+      "dependencies": [
+        "task-auth"
+      ],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Depende de la sesión autenticada producida por task-auth para asociar el carrito al usuario.",
+      "instructions": "Implementa el endpoint POST /cart referenciando el escenario R3.S1 del spec; consume el token de sesión producido por task-auth para validar al usuario autenticado.",
+      "expected_output_schema": "Endpoint POST /cart que añade un producto al carrito del usuario autenticado",
+      "satisfies_acs": [
+        "AC4"
+      ],
+      "estimated_tokens": 4500,
+      "actual_tokens": null,
+      "deviation": null
+    },
+    {
+      "task_id": "task-e2e",
+      "source_ids": [
+        "R-E2E.S1"
+      ],
+      "dependencies": [
+        "task-auth",
+        "task-catalog",
+        "task-cart"
+      ],
+      "agent_type": "reviewer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Verificación integradora del recorrido completo; requiere criterio para validar la coherencia end-to-end.",
+      "instructions": "Verifica el recorrido R-E2E.S1 completo (login → catálogo → carrito), combinando los outputs de task-auth, task-catalog y task-cart.",
+      "expected_output_schema": "Reporte de verificación E2E con el resultado de cada paso del recorrido",
+      "satisfies_acs": [
+        "AC-E2E"
+      ],
+      "estimated_tokens": 3000,
+      "actual_tokens": null,
+      "deviation": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": [
+        "task-auth"
+      ],
+      "R2": [
+        "task-catalog"
+      ],
+      "R3": [
+        "task-cart"
+      ],
+      "R-E2E": [
+        "task-e2e"
+      ]
+    },
+    "acs": {
+      "AC1": [
+        "task-auth"
+      ],
+      "AC2": [
+        "task-auth"
+      ],
+      "AC3": [
+        "task-catalog"
+      ],
+      "AC4": [
+        "task-cart"
+      ],
+      "AC-E2E": [
+        "task-e2e"
+      ]
+    }
+  }
+}
