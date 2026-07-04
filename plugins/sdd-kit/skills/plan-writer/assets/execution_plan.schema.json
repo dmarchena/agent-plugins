@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agent-plugins.local/sdd-kit/plan-writer/execution_plan.schema.json",
   "title": "Execution Plan",
-  "description": "DAG de tareas atomicas generado por la skill plan-writer a partir de un spec.md. Fija la forma de SALIDA de plan-writer que consumen los ejecutores (subagentes). actual_tokens y deviation se reservan aqui como null (huecos que la fase exec rellenara mas tarde, fuera del alcance de este esquema).",
+  "description": "DAG de tareas atomicas generado por la skill plan-writer a partir de un spec.md. Fija la forma de SALIDA de plan-writer que consumen los ejecutores (subagentes). El plan es inmutable en la fase exec: actual_tokens y deviation se fijan aqui como null y nunca se rellenan en el plan; el consumo real (tokens reales, desviacion) se registra aparte en execution_state.json.",
   "type": "object",
   "properties": {
     "plan_id": {
@@ -50,7 +50,8 @@
           "satisfies_acs",
           "estimated_tokens",
           "actual_tokens",
-          "deviation"
+          "deviation",
+          "test_contract"
         ],
         "properties": {
           "task_id": {
@@ -123,11 +124,40 @@
           },
           "actual_tokens": {
             "type": ["null"],
-            "description": "Hueco reservado para que el ejecutor rellene el consumo real de tokens tras la ejecucion."
+            "description": "Siempre null en el plan: es inmutable en la fase exec. El consumo real de tokens tras la ejecucion se registra en execution_state.json, no aqui."
           },
           "deviation": {
             "type": ["null"],
-            "description": "Hueco reservado para que el ejecutor rellene la desviacion frente a la estimacion tras la ejecucion."
+            "description": "Siempre null en el plan: es inmutable en la fase exec. La desviacion real frente a la estimacion se registra en execution_state.json, no aqui."
+          },
+          "test_contract": {
+            "description": "Para tareas agent_type=code_writer: lista no vacia de casos de prueba {ref, assertion}, donde ref es un ID del spec (R<n>.S<m> o AC<n>) y assertion es una asercion observable en prosa que debe cumplirse. Para el resto de agent_type: null. La exclusividad code_writer<->no-null la impone el validador externo, no este esquema.",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["ref", "assertion"],
+                  "properties": {
+                    "ref": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "ID del spec (R<n>.S<m> o AC<n>) que este caso de prueba verifica."
+                    },
+                    "assertion": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Asercion observable en prosa que debe cumplirse para satisfacer el ref."
+                    }
+                  }
+                }
+              }
+            ]
           }
         }
       }

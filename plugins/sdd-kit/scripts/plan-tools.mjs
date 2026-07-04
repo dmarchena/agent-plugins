@@ -196,6 +196,19 @@ function validateSchema(plan) {
     if (!isInteger(t.estimated_tokens)) return `${p}.estimated_tokens`;
     if (t.actual_tokens !== null) return `${p}.actual_tokens`;
     if (t.deviation !== null) return `${p}.deviation`;
+
+    if (t.test_contract !== null) {
+      if (!Array.isArray(t.test_contract) || t.test_contract.length < 1) {
+        return `${p}.test_contract`;
+      }
+      for (let j = 0; j < t.test_contract.length; j++) {
+        const tc = t.test_contract[j];
+        const tcp = `${p}.test_contract[${j}]`;
+        if (typeof tc !== 'object' || tc === null || Array.isArray(tc)) return tcp;
+        if (!isNonEmptyString(tc.ref)) return `${tcp}.ref`;
+        if (!isNonEmptyString(tc.assertion)) return `${tcp}.assertion`;
+      }
+    }
   }
 
   return null;
@@ -367,6 +380,32 @@ function checkParallelizableTasks(spec, tasks) {
   return null;
 }
 
+// Reglas de negocio de test_contract: solo code_writer lleva contrato, y sus
+// refs deben existir en el spec (escenario R<n>.S<m> o AC AC<n>).
+function checkTestContract(spec, tasks) {
+  const validRefs = new Set([...spec.scenarios, ...spec.acs]);
+
+  for (const t of tasks) {
+    const isCodeWriter = t.agent_type === 'code_writer';
+    const hasContract = Array.isArray(t.test_contract) && t.test_contract.length > 0;
+
+    if (isCodeWriter && !hasContract) {
+      return `test_contract vacío en tarea code_writer: ${t.task_id}`;
+    }
+    if (!isCodeWriter && t.test_contract !== null) {
+      return `test_contract debe ser null para agent_type=${t.agent_type}: ${t.task_id}`;
+    }
+    if (hasContract) {
+      for (const tc of t.test_contract) {
+        if (!validRefs.has(tc.ref)) {
+          return `test_contract.ref inexistente en spec: ${t.task_id} -> ${tc.ref}`;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // check-plan: orquestación
 // ---------------------------------------------------------------------------
@@ -403,6 +442,7 @@ function cmdCheckPlan(specPath, planPath) {
     () => checkACCoverage(spec, tasks),
     () => checkSpecDependencyConsistency(spec, tasks),
     () => checkParallelizableTasks(spec, tasks),
+    () => checkTestContract(spec, tasks),
   ];
 
   for (const check of checks) {
