@@ -1,0 +1,81 @@
+{
+  "plan_id": "verify-exec-plan",
+  "source_spec": "docs/specs/verify/spec.md",
+  "branch": "ia/verify",
+  "started_at": "2026-07-04T23:30:36.717Z",
+  "tasks": {
+    "T1-load-inputs": {
+      "status": "pending",
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T2-ground-check": {
+      "status": "pending",
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T3-manual-confirm": {
+      "status": "pending",
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T4-degraded-manual": {
+      "status": "pending",
+      "estimated_tokens": 20000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T5-incomplete-coverage": {
+      "status": "pending",
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T6-token-deviation": {
+      "status": "pending",
+      "estimated_tokens": 20000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T7-report-archive": {
+      "status": "pending",
+      "estimated_tokens": 35000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T8-e2e": {
+      "status": "pending",
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    }
+  },
+  "pause": null
+}

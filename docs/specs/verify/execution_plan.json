@@ -1,0 +1,196 @@
+{
+  "plan_id": "verify-exec-plan",
+  "project_name": "verify (sdd-kit, verify phase)",
+  "global_objective": "Build the sdd-kit skill that checks a SPECDIR's Acceptance Criteria checklist against a spec.md, execution_plan.json, and (optional) execution_state.json — ground-checking done tasks' stored tests, requiring explicit human confirmation for manual ACs, reporting token deviations — and archives the SPECDIR to docs/specs/archived/<slug>/ via git mv + commit only once every AC is green.",
+  "source_spec": "docs/specs/verify/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 220000,
+  "tasks": [
+    {
+      "task_id": "T1-load-inputs",
+      "source_ids": ["R1", "R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation with clear AC1/AC2 criteria: parse three known input files and detect the missing one; no open trade-offs.",
+      "instructions": "Implement loading of spec.md, execution_plan.json, and (if present) execution_state.json from a docs/specs/<slug>/ directory (R1, R1.S1, R1.S2). Parse the AC checklist from spec.md (R<n>, R<n>.S<m>, AC<n>, [auto]/[manual] tags), the coverage.acs map from execution_plan.json, and per-task status from execution_state.json when it exists. When execution_plan.json or spec.md is missing, stop before evaluating or archiving anything and name the exact missing file in the error message (R1.S2). Deliver a scripts/verify-tools.mjs module exposing a loadSpecdir(specdir) function used by every later task, plus tests and fixtures exercising AC1 (all three inputs present and consistent) and AC2 (missing execution_plan.json or spec.md). Also draft the SKILL.md section describing how verify is invoked over a SPECDIR.",
+      "expected_output_schema": "scripts/verify-tools.mjs module exporting loadSpecdir(specdir) that returns the parsed AC checklist, coverage.acs map, and per-task state (or null state when execution_state.json is absent); reports a typed error naming the missing file when spec.md or execution_plan.json is absent. Plus the SKILL.md invocation section. Includes tests/fixtures verifying AC1 (loads checklist, coverage, and task states without error) and AC2 (stops naming the missing file, no evaluation or archiving).",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R1.S1", "assertion": "Given a SPECDIR with spec.md, a valid execution_plan.json, and execution_state.json, verify loads the AC checklist, coverage.acs map, and per-task state and begins AC-by-AC evaluation" },
+        { "ref": "R1.S2", "assertion": "Given a SPECDIR missing execution_plan.json or spec.md, verify stops without evaluating or archiving, and the message names the exact missing file" },
+        { "ref": "AC1", "assertion": "With spec, plan, and state present and consistent, loadSpecdir returns the checklist, coverage.acs, and task states with no error" },
+        { "ref": "AC2", "assertion": "Without execution_plan.json or spec.md, verify stops and the message names the missing file; nothing is evaluated or archived" }
+      ]
+    },
+    {
+      "task_id": "T2-ground-check",
+      "source_ids": ["R2", "R2.S1", "R2.S2"],
+      "dependencies": ["T1-load-inputs"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Deterministic re-run + verdict logic with clear AC3/AC4 criteria, reusing plan-executor's resume pattern; no open trade-offs.",
+      "instructions": "Implement the deterministic ground check for done tasks (R2, R2.S1, R2.S2), reusing plan-executor's resume pattern (re-run the stored test_cmd and compare exit code). Consume from T1-load-inputs the loaded per-task state and coverage.acs map. For every task in status done whose satisfies_acs covers an [auto] AC, re-run its stored test_cmd: if the re-run exits green, count that AC as green in the report (R2.S1); if the re-run fails, do not count that AC as green and record the task, the test_cmd, and the failure output as drift in the report — the working tree changed after the task was marked done (R2.S2). Deliver the ground-check function plus tests and fixtures exercising AC3 and AC4.",
+      "expected_output_schema": "Function in scripts/verify-tools.mjs that, given T1-load-inputs's loaded state, re-runs each done task's stored test_cmd covering an [auto] AC and returns a green/drift verdict per AC (drift entries include task_id, test_cmd, and failure output). Tests/fixtures verifying AC3 (green re-run counts the AC green) and AC4 (failing re-run reports drift with task/command/output, AC not green).",
+      "satisfies_acs": ["AC3", "AC4"],
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R2.S1", "assertion": "A done task with a stored test_cmd that satisfies an [auto] AC, re-run green, counts that AC as green in the report" },
+        { "ref": "R2.S2", "assertion": "A done task whose stored test_cmd fails on re-run leaves its AC not green and the report names the task, command, and failure output as drift" },
+        { "ref": "AC3", "assertion": "Re-running a done task's test_cmd green counts its AC as green" },
+        { "ref": "AC4", "assertion": "Re-running a done task's test_cmd and getting a failure reports drift with task/command/failure and the AC is not green" }
+      ]
+    },
+    {
+      "task_id": "T3-manual-confirm",
+      "source_ids": ["R3", "R3.S1", "R3.S2"],
+      "dependencies": ["T1-load-inputs"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded interactive-confirmation bookkeeping with a clear AC5 pass/fail rule; the main-thread-only constraint is fixed by the spec, not an open design choice.",
+      "instructions": "Implement the one-by-one human confirmation of [manual] ACs (R3, R3.S1, R3.S2), consuming the AC checklist loaded by T1-load-inputs. For each [manual] AC, present its probe text to the user and require explicit confirmation before counting it green (R3.S1); an explicit rejection, or the session ending without an answer, leaves that AC not green and blocks archiving (R3.S2). This confirmation loop MUST stay in the main conversation thread with the user and MUST NOT be resolved unilaterally by a subagent — write this constraint explicitly into the SKILL.md protocol section so a future exec never delegates it. Deliver the confirmation bookkeeping function (tracks confirmed/rejected/unanswered per AC) plus the SKILL.md protocol section and tests/fixtures exercising AC5.",
+      "expected_output_schema": "Function in scripts/verify-tools.mjs tracking confirmed/rejected/unanswered status per [manual] AC from T1-load-inputs's checklist, plus the SKILL.md section documenting the main-thread-only confirmation protocol. Tests/fixtures verifying AC5 (an unconfirmed or rejected [manual] AC is not green and blocks archiving).",
+      "satisfies_acs": ["AC5"],
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R3.S1", "assertion": "A [manual] AC presented with its probe and explicitly confirmed by the user counts as green in the report" },
+        { "ref": "R3.S2", "assertion": "A [manual] AC the user does not confirm (rejects, or the session ends unanswered) does not count green and blocks archiving" },
+        { "ref": "AC5", "assertion": "An unconfirmed [manual] AC is excluded from the green count and archiving is blocked" }
+      ]
+    },
+    {
+      "task_id": "T4-degraded-manual",
+      "source_ids": ["R4", "R4.S1"],
+      "dependencies": ["T1-load-inputs", "T3-manual-confirm"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded detection-and-routing logic reusing T3's confirmation primitive over the whole checklist; no open trade-offs.",
+      "instructions": "Implement the full degradation to manual confirmation when execution_state.json is missing (R4, R4.S1), consuming T1-load-inputs's loaded checklist and T3-manual-confirm's confirmation primitive. When the SPECDIR has spec.md and execution_plan.json but no execution_state.json, route every AC in the checklist — both [auto] and [manual] — through T3-manual-confirm's one-by-one confirmation instead of attempting any test_cmd re-run, and record in the report that verification was manual due to missing state. Deliver the detection-and-routing logic plus tests and fixtures exercising AC6.",
+      "expected_output_schema": "Function detecting a missing execution_state.json and routing the entire checklist (auto + manual ACs) through T3-manual-confirm's confirmation primitive, with the report flagging manual-due-to-missing-state. Tests/fixtures verifying AC6 (all ACs presented for confirmation, none derived from a re-run).",
+      "satisfies_acs": ["AC6"],
+      "estimated_tokens": 20000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R4.S1", "assertion": "A SPECDIR with spec.md and execution_plan.json but no execution_state.json presents every AC, auto and manual, for explicit human confirmation without re-running any test, and the report notes the manual-due-to-missing-state reason" },
+        { "ref": "AC6", "assertion": "Without execution_state.json, the report presents all ACs as pending human confirmation, none derived from a re-run" }
+      ]
+    },
+    {
+      "task_id": "T5-incomplete-coverage",
+      "source_ids": ["R5", "R5.S1", "R5.S2"],
+      "dependencies": ["T1-load-inputs", "T2-ground-check"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded deterministic status check over coverage.acs/satisfies_acs with clear AC7 criteria; no open trade-offs.",
+      "instructions": "Implement the not-green status for [auto] ACs whose covering tasks are incomplete (R5, R5.S1, R5.S2), consuming T1-load-inputs's coverage.acs map and T2-ground-check's per-task status handling. For an [auto] AC whose covering task(s) are not all in status done: if any covering task is blocked or skipped, do not count the AC green and report the task, its status, and its incident if any (R5.S1/AC7); if a covering task is pending or running, do not count the AC green and report that the plan's execution has not finished (R5.S2). Deliver the status-check logic plus tests and fixtures exercising AC7.",
+      "expected_output_schema": "Function that, given T1-load-inputs's coverage.acs and T2-ground-check's task statuses, marks an [auto] AC not green whenever its covering task(s) aren't all done, reporting the task/status/incident (blocked/skipped) or the not-finished reason (pending/running). Tests/fixtures verifying AC7 (blocked/skipped covering task keeps the AC not green and names task/status/incident).",
+      "satisfies_acs": ["AC7"],
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R5.S1", "assertion": "An [auto] AC whose only covering task is blocked or skipped is not counted green and the report names the task, its status, and its incident" },
+        { "ref": "R5.S2", "assertion": "An [auto] AC whose covering task is pending or running is not counted green and the report states the plan's execution hasn't finished" },
+        { "ref": "AC7", "assertion": "A blocked or skipped covering task keeps its AC not green and the report names task/status/incident" }
+      ]
+    },
+    {
+      "task_id": "T6-token-deviation",
+      "source_ids": ["R6", "R6.S1", "R6.S2"],
+      "dependencies": ["T1-load-inputs"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded, informative-only numeric computation with clear AC8 criteria; no open trade-offs.",
+      "instructions": "Implement the token-deviation report (R6, R6.S1, R6.S2), consuming T1-load-inputs's per-task state. For each task with both actual_tokens and estimated_tokens recorded, compute the deviation. A task with actual_tokens <= 2x estimated_tokens does not appear in the deviated-tasks list (R6.S1). A task with actual_tokens > 2x estimated_tokens is listed in the final report with both figures and an explicit suggestion to review its estimate or task definition, without blocking archiving (R6.S2/AC8). Deliver the deviation-calculation logic plus tests and fixtures exercising AC8.",
+      "expected_output_schema": "Function computing per-task token deviation from T1-load-inputs's state, returning the list of tasks exceeding the 2x threshold with actual/estimated figures and a review suggestion; tasks within range are omitted. Tests/fixtures verifying AC8 (a task exceeding 2x appears with figures and suggestion, and archiving is unaffected).",
+      "satisfies_acs": ["AC8"],
+      "estimated_tokens": 20000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R6.S1", "assertion": "A task with actual_tokens at or below 2x its estimated_tokens does not appear in the deviated-tasks list" },
+        { "ref": "R6.S2", "assertion": "A task with actual_tokens above 2x its estimated_tokens is listed in the final report with both figures and a suggestion to review the estimate or task definition, and this does not block archiving" },
+        { "ref": "AC8", "assertion": "A task exceeding the 2x threshold appears in the report with actual/estimated figures and a review suggestion; archiving still proceeds if the rest of the checklist is green" }
+      ]
+    },
+    {
+      "task_id": "T7-report-archive",
+      "source_ids": ["R7", "R7.S1", "R7.S2", "R7.S3"],
+      "dependencies": ["T2-ground-check", "T3-manual-confirm", "T4-degraded-manual", "T5-incomplete-coverage", "T6-token-deviation"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded git-mv-and-commit logic and report assembly with clear AC9/AC10/AC11 criteria fixed by the spec; no open design trade-offs.",
+      "instructions": "Implement the final report and conditional archiving (R7, R7.S1, R7.S2, R7.S3), assembling the per-AC green/not-green verdicts and reasons from T2-ground-check, T3-manual-confirm, and T4-degraded-manual, the blocked/pending reasons from T5-incomplete-coverage, and the informative deviated-tasks list from T6-token-deviation. When the whole checklist is green (R7.S1): git mv the SPECDIR to docs/specs/archived/<slug>/, create a commit on the current branch, and confirm the final path in the report (AC9). When at least one AC is not green (R7.S2): run no git mv or commit, and the report lists exactly which ACs are not green and why (AC10). When docs/specs/archived/<slug>/ already exists (R7.S3): refuse the git mv, leave both the source and destination directories untouched, and name the collision in the report (AC11). Deliver the report-assembly and archive logic plus tests and fixtures exercising AC9, AC10, and AC11, plus the SKILL.md final-report/archive section.",
+      "expected_output_schema": "Function assembling the final report from T2-ground-check, T3-manual-confirm, T4-degraded-manual, T5-incomplete-coverage, and T6-token-deviation, plus conditional git-mv-and-commit archiving to docs/specs/archived/<slug>/ only when every AC is green. Tests/fixtures verifying AC9 (fully green checklist archives with commit and reported path), AC10 (any not-green AC skips archiving and the report lists the not-green ACs with reasons), and AC11 (pre-existing destination directory blocks the move, both directories intact, collision named).",
+      "satisfies_acs": ["AC9", "AC10", "AC11"],
+      "estimated_tokens": 35000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R7.S1", "assertion": "A fully green checklist (auto-confirmed by re-run or manually confirmed) moves the whole SPECDIR to docs/specs/archived/<slug>/ with git mv, commits on the current branch, and the report confirms the final path" },
+        { "ref": "R7.S2", "assertion": "A SPECDIR with at least one not-green AC runs no git mv or commit, and the final report lists exactly the not-green ACs with their reason" },
+        { "ref": "R7.S3", "assertion": "A pre-existing docs/specs/archived/<slug>/ rejects the git mv, leaves source and destination untouched, and the report names the collision" },
+        { "ref": "AC9", "assertion": "docs/specs/archived/<slug>/ exists with the SPECDIR's full content, a commit on the current branch, and docs/specs/<slug>/ no longer exists" },
+        { "ref": "AC10", "assertion": "With any AC not green, no git mv or commit happens and the report lists exactly the not-green ACs with their reason" },
+        { "ref": "AC11", "assertion": "With docs/specs/archived/<slug>/ already existing, the move is refused, both directories stay intact, and the report names the collision" }
+      ]
+    },
+    {
+      "task_id": "T8-e2e",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["T1-load-inputs", "T2-ground-check", "T3-manual-confirm", "T4-degraded-manual", "T5-incomplete-coverage", "T6-token-deviation", "T7-report-archive"],
+      "agent_type": "reviewer",
+      "subagent": "general-purpose",
+      "model": "opus",
+      "justification": "End-to-end integration requiring judgment over multiple cross-cutting observables (git state, report content, simulated human confirmation) and their interactions; needs review judgment, not just a bounded check.",
+      "instructions": "Verify the integrated walkthrough (R-E2E, R-E2E.S1) end to end. Build a fixture docs/specs/<slug>/ with a spec and an execution_state.json for 3 tasks: two done tasks covering [auto] ACs (one with a green test_cmd re-run, one also green but with actual_tokens > 2x estimated_tokens), and one [manual] AC in the spec confirmed by the simulated user. Using T1-load-inputs, T2-ground-check, T3-manual-confirm, T4-degraded-manual, T5-incomplete-coverage, T6-token-deviation, and T7-report-archive, invoke verify end to end and confirm: the report shows the 2 green auto ACs, the deviated task with its figures and suggestion, and the confirmed manual AC; the full checklist is green; and the SPECDIR is moved to docs/specs/archived/<slug>/ with a commit on the current branch. Deliver the E2E fixture plus the integrating test exercising AC-E2E.",
+      "expected_output_schema": "E2E fixture (spec + execution_plan.json + execution_state.json for 3 tasks: 2 auto-done + 1 deviated + 1 manual AC in spec) and an integrating test that drives verify end to end and checks: report contains the 2 green auto ACs, the deviated task with figures/suggestion, and the confirmed manual AC; the checklist is fully green; and docs/specs/<slug>/ is archived to docs/specs/archived/<slug>/ with a commit. Verifies AC-E2E.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1-load-inputs"],
+      "R2": ["T2-ground-check"],
+      "R3": ["T3-manual-confirm"],
+      "R4": ["T4-degraded-manual"],
+      "R5": ["T5-incomplete-coverage"],
+      "R6": ["T6-token-deviation"],
+      "R7": ["T7-report-archive"],
+      "R-E2E": ["T8-e2e"]
+    },
+    "acs": {
+      "AC1": ["T1-load-inputs"],
+      "AC2": ["T1-load-inputs"],
+      "AC3": ["T2-ground-check"],
+      "AC4": ["T2-ground-check"],
+      "AC5": ["T3-manual-confirm"],
+      "AC6": ["T4-degraded-manual"],
+      "AC7": ["T5-incomplete-coverage"],
+      "AC8": ["T6-token-deviation"],
+      "AC9": ["T7-report-archive"],
+      "AC10": ["T7-report-archive"],
+      "AC11": ["T7-report-archive"],
+      "AC-E2E": ["T8-e2e"]
+    }
+  }
+}
