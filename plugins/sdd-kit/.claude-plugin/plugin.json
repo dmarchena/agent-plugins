@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "sdd-kit",
-  "version": "0.1.1",
-  "description": "Spec-driven development kit: skills for spec.md and the execution plan.",
+  "version": "0.2.0",
+  "description": "Spec-driven development kit: skills for the spec.md, the execution plan, and executing it (spec → plan → exec).",
   "author": {
     "name": "dmarchena",
     "email": "dvmarchena@gmail.com"
