@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-plugins.local/sdd-kit/plan-executor/execution_state.schema.json",
+  "title": "Execution State",
+  "description": "Estado de ejecución persistente y reanudable que mantiene la skill plan-executor en docs/specs/<slug>/execution_state.json. Se actualiza solo en fronteras de tarea. El execution_plan.json permanece inmutable; el consumo real (actual_tokens, deviation) vive aquí, no en el plan.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["plan_id", "source_spec", "branch", "started_at", "tasks", "pause"],
+  "properties": {
+    "plan_id": {
+      "type": "string",
+      "description": "plan_id del execution_plan.json que se está ejecutando."
+    },
+    "source_spec": {
+      "type": "string",
+      "description": "Ruta al spec.md, copiada del plan."
+    },
+    "branch": {
+      "type": ["string", "null"],
+      "description": "Rama git ia/<slug> donde van los commits de tarea; null hasta crearla."
+    },
+    "started_at": {
+      "type": "string",
+      "description": "Marca ISO-8601 del inicio de la ejecución."
+    },
+    "tasks": {
+      "type": "object",
+      "description": "Mapa task_id -> estado de la tarea.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "estimated_tokens", "actual_tokens", "deviation", "test_cmd", "commit", "incidencia"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["pending", "running", "done", "blocked", "skipped"],
+            "description": "Estado de la tarea en el ciclo de ejecución."
+          },
+          "estimated_tokens": {
+            "type": "integer",
+            "description": "estimated_tokens copiado del plan (para calcular desviación)."
+          },
+          "actual_tokens": {
+            "type": ["integer", "null"],
+            "description": "Tokens reales consumidos por el subagente; null hasta ejecutar."
+          },
+          "deviation": {
+            "type": ["integer", "null"],
+            "description": "actual_tokens - estimated_tokens; null hasta ejecutar."
+          },
+          "test_cmd": {
+            "type": ["string", "null"],
+            "description": "Comando exacto para re-correr el test de la tarea; null hasta tenerlo."
+          },
+          "commit": {
+            "type": ["string", "null"],
+            "description": "Hash corto del commit propio de la tarea en la rama del plan; null si no se commiteó."
+          },
+          "incidencia": {
+            "type": ["string", "null"],
+            "description": "Motivo si la tarea no llegó a verde limpio (p. ej. 'sin evidencia de rojo', 'rerun-failed'); null si no hay."
+          }
+        }
+      }
+    },
+    "pause": {
+      "description": "Registro de pausa por umbral de presupuesto (R6.S2); null si no se ha pausado.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reason", "real_tokens", "estimated_tokens", "at_task"],
+          "properties": {
+            "reason": { "type": "string", "description": "Motivo de la pausa." },
+            "real_tokens": { "type": "integer", "description": "Consumo real acumulado en la pausa." },
+            "estimated_tokens": { "type": "integer", "description": "Estimado acumulado de las tareas ya ejecutadas." },
+            "at_task": { "type": "string", "description": "task_id en cuya frontera se pausó." }
+          }
+        }
+      ]
+    }
+  }
+}

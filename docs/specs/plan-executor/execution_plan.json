@@ -1,23 +1,29 @@
 {
-  "plan_id": "plan-executor-impl-001",
+  "plan_id": "plan-executor-exec-plan",
   "project_name": "plan-executor (sdd-kit, fase exec)",
-  "global_objective": "Implementar una skill que ejecuta execution_plan.json producido por plan-writer, tarea a tarea, con un ciclo TDD con verificación determinista y orquestación de DAG.",
+  "global_objective": "Construir la skill sdd-kit que ejecuta un execution_plan.json tarea a tarea mediante un ciclo TDD con ejecutor unico y verificacion determinista por el orquestador, con orquestacion del DAG, git por tarea, estado persistente/reanudable y contencion de coste.",
   "source_spec": "docs/specs/plan-executor/spec.md",
   "confidence": "low",
-  "estimated_tokens_total": 85000,
+  "estimated_tokens_total": 300000,
   "tasks": [
     {
-      "task_id": "T1-plan-validation",
-      "source_ids": ["R1", "R1.S1", "R1.S2"],
+      "task_id": "T1-load-validate",
+      "source_ids": [
+        "R1",
+        "R1.S1",
+        "R1.S2"
+      ],
       "dependencies": [],
       "agent_type": "code_writer",
       "subagent": "general-purpose",
       "model": "sonnet",
-      "justification": "Implementar el parser y validador del execution_plan.json requiere juicio sobre errores estructurales; sonnet para criterios de aceptación claros (AC1, R1.S2).",
-      "instructions": "Implementar carga y validación del execution_plan.json según R1.S1 y R1.S2. Debe validar conformidad con schema de plan-writer, cobertura completa de requisitos/ACs, y rechazar planes inválidos sin crear rama o estado. Mensaje de error debe nombrar el campo/ID que falla y remitir a plan-writer (AC1).",
-      "expected_output_schema": "Módulo de validación que expone: función validarPlan(specPath, planPath) que retorna {valido: bool, errores: []}; aborta si es inválido sin crear artefactos.",
-      "satisfies_acs": ["AC1"],
-      "estimated_tokens": 9000,
+      "justification": "Implementacion acotada con AC1 claro: validar plan+cobertura (reutiliza check-plan) y detectar ejecutables; sin trade-offs abiertos.",
+      "instructions": "Implementar la carga y validacion del plan (R1, R1.S1, R1.S2). Antes de ejecutar nada, validar execution_plan.json contra el schema de plan-writer y comprobar cobertura completa de requisitos/ACs (reutilizar la logica de plan-tools.mjs check-plan). Con plan valido (R1.S1): identificar las tareas sin dependencias pendientes como ejecutables y devolver ese conjunto para que la orquestacion anuncie las tandas. Con plan invalido (R1.S2): detenerse SIN crear rama, estado ni subagentes, y emitir un mensaje que nombre el campo/tarea que no valida o el ID de requisito/AC sin cubrir, remitiendo a plan-writer. Entregar el modulo/subcomando en scripts/ siguiendo el patron de sdd-kit, mas tests y fixture de plan invalido que ejerciten AC1. Escribir primero el test (rojo), luego la implementacion (verde).",
+      "expected_output_schema": "Subcomando/modulo en scripts/ que dado docs/specs/<slug>/ valida plan+cobertura y retorna, o bien el conjunto de task_ids ejecutables, o bien un error tipado que nombra el fallo concreto; sin efectos secundarios en el caso invalido. Incluye tests automaticos y fixture de plan invalido que verifican AC1 (no hay rama nueva ni execution_state.json y el mensaje contiene el ID/campo que falla + mencion a plan-writer).",
+      "satisfies_acs": [
+        "AC1"
+      ],
+      "estimated_tokens": 30000,
       "actual_tokens": null,
       "deviation": null,
       "test_contract": [
@@ -27,48 +33,59 @@
         },
         {
           "ref": "R1.S2",
-          "assertion": "Plan inválido (schema incorrecto o cobertura incompleta) es rechazado sin crear rama ni execution_state.json"
+          "assertion": "Plan inválido (schema incorrecto o cobertura incompleta) es rechazado sin crear rama ni estado"
         },
         {
           "ref": "AC1",
-          "assertion": "Mensaje de error contiene el campo o ID de requisito/AC que falla"
+          "assertion": "Mensaje de error nombra el campo o ID de requisito/AC que falla"
         }
       ]
     },
     {
-      "task_id": "T2-tdd-orchestrator",
-      "source_ids": ["R2", "R2.S1", "R2.S2", "R2.S3"],
-      "dependencies": ["T1-plan-validation"],
+      "task_id": "T2-tdd-cycle",
+      "source_ids": [
+        "R2",
+        "R2.S1",
+        "R2.S2",
+        "R2.S3"
+      ],
+      "dependencies": [
+        "T1-load-validate"
+      ],
       "agent_type": "code_writer",
       "subagent": "general-purpose",
       "model": "sonnet",
-      "justification": "Implementar el ciclo TDD por tarea con un único subagente ejecutor es implementación acotada con criterios claros (AC2, AC3, AC4); sonnet.",
-      "instructions": "Implementar el orquestador TDD que delega cada tarea a su subagente (model y type del plan), consumiendo la salida de T1-plan-validation (validador de plan). Para R2.S1, subagente entrega test+impl+salida rojo→verde. Para R2.S2 (sin contrato), brief indica derivar del spec.md usando source_ids/satisfies_acs. Para R2.S3, registrar incidencia 'sin evidencia de rojo' si test pasa sin implementar. Consumo de tokens y comando de test deben incluirse en reporte.",
-      "expected_output_schema": "Orquestador TDD que expone: delegarTarea(tarea, plan, spec) → Promise<{testFile, impl, rojo_output, verde_output, test_cmd, tokens}>; reintenta una vez si falla.",
-      "satisfies_acs": ["AC2", "AC3", "AC4"],
-      "estimated_tokens": 18000,
+      "justification": "Protocolo TDD del ejecutor + deteccion de incidencia con AC2/AC3/AC4 claros; la conducta la fija el spec, sin decisiones abiertas.",
+      "instructions": "Implementar el ciclo TDD por tarea con ejecutor unico (R2, R2.S1, R2.S2, R2.S3). Consume de T1-load-validate el conjunto de tareas ejecutables ya validadas. Definir en la SKILL.md el brief que recibe el subagente subagent/model que fija el plan: seguir test->rojo->implementacion->verde y entregar (R2.S1) test(s) nuevos que materializan el contrato de las instructions, la implementacion, la salida del test en rojo ANTES y en verde DESPUES, el comando exacto de re-run y el consumo de tokens. Cuando la tarea no traiga contrato (R2.S2), el brief indica derivar el contrato de los escenarios del spec.md referenciados por source_ids/satisfies_acs, y el test debe citar esos IDs. Implementar ademas la deteccion de 'sin evidencia de rojo' (R2.S3): si el test pasa sin implementar, registrar la incidencia y NO dar la tarea por verde. El reporte de evidencia rojo/verde lo persistira T5-state. Entregar la seccion de SKILL.md + la logica de deteccion determinista con tests y fixtures que ejerciten AC2, AC3 y AC4 (test en rojo primero).",
+      "expected_output_schema": "Seccion de SKILL.md que especifica el brief del ejecutor TDD (contrato-del-plan vs fallback-al-spec, evidencia rojo->verde, comando de re-run, reporte de tokens) + logica de deteccion de incidencia 'sin evidencia de rojo'. Tests+fixtures que verifican AC2 (existen test e implementacion nuevos y se produce evidencia de rojo y de verde y el comando de test), AC3 (el test generado en modo fallback cita los IDs de escenario/AC del spec), AC4 (test que pasa sin implementar -> incidencia 'sin evidencia de rojo', no completada).",
+      "satisfies_acs": [
+        "AC2",
+        "AC3",
+        "AC4"
+      ],
+      "estimated_tokens": 40000,
       "actual_tokens": null,
       "deviation": null,
       "test_contract": [
         {
           "ref": "R2.S1",
-          "assertion": "Tarea con contrato de test genera fichero test, implementación, evidencia rojo→verde y comando de test"
+          "assertion": "Tarea con contrato de test produce fichero de test, implementación y evidencia rojo→verde con su comando de test"
         },
         {
           "ref": "R2.S2",
-          "assertion": "Tarea sin contrato usa spec.md (source_ids/satisfies_acs) y test referencia esos IDs"
+          "assertion": "Tarea sin contrato deriva del spec por source_ids/satisfies_acs y el test referencia esos IDs"
         },
         {
           "ref": "R2.S3",
-          "assertion": "Test que pasa sin implementación registra incidencia 'sin evidencia de rojo' y no como completada"
+          "assertion": "Test que pasa sin implementación queda registrado como incidencia sin evidencia de rojo, no como completada"
         },
         {
           "ref": "AC2",
-          "assertion": "Fichero de test y implementación nuevos existen tras ejecutar tarea con contrato"
+          "assertion": "Existen fichero de test e implementación nuevos tras ejecutar una tarea con contrato"
         },
         {
           "ref": "AC3",
-          "assertion": "Fichero de test generado sin contrato referencia los IDs de escenario/AC del spec"
+          "assertion": "El test generado sin contrato referencia los IDs de escenario/AC del spec"
         },
         {
           "ref": "AC4",
@@ -77,174 +94,256 @@
       ]
     },
     {
-      "task_id": "T3-deterministic-verification",
-      "source_ids": ["R3", "R3.S1", "R3.S2"],
-      "dependencies": ["T2-tdd-orchestrator"],
+      "task_id": "T3-verify",
+      "source_ids": [
+        "R3",
+        "R3.S1",
+        "R3.S2"
+      ],
+      "dependencies": [
+        "T2-tdd-cycle"
+      ],
       "agent_type": "code_writer",
       "subagent": "general-purpose",
       "model": "sonnet",
-      "justification": "Verificación determinista sin subagente revisor requiere re-run de tests e inspección de salida; sonnet con criterios claros (AC5, AC6).",
-      "instructions": "Implementar verificación sin lanzar revisor, consumiendo la salida del orquestador TDD de T2-tdd-orchestrator: exigir evidencia rojo→verde y re-correr comando de test en el orquestador. R3.S1: si re-run pasa, marca done y crea commit. R3.S2: si re-run contradice (falla después de verde reportado), no marca done y registra resultado fallido.",
-      "expected_output_schema": "Verificador que expone: verificarTarea(tarea, rojo_output, verde_output, test_cmd) → {completada: bool, re_run_output, commit_hash}; mantiene trazabilidad de rojo→verde.",
-      "satisfies_acs": ["AC5", "AC6"],
-      "estimated_tokens": 9000,
+      "justification": "Logica determinista de re-run+decision con AC5/AC6 claros; sin subagente revisor ni juicio abierto.",
+      "instructions": "Implementar la verificacion determinista por el orquestador (R3, R3.S1, R3.S2), sin subagente revisor. Consume de T2-tdd-cycle el reporte del ejecutor (evidencia rojo->verde + comando de test). El orquestador re-corre el comando: si sale verde (R3.S1) marca la tarea completada y crea un commit propio (test+implementacion) en la rama del plan; si sale rojo (R3.S2) NO la marca completada, cuenta como intento fallido (lo consume T6a-failure) y registra la salida del test fallido. Entregar la logica determinista de re-run+decision con tests y fixtures que ejerciten AC5 y AC6 (rojo primero).",
+      "expected_output_schema": "Logica determinista de verificacion que, dado el reporte del ejecutor, re-corre el comando de test y decide done+commit (verde) o intento-fallido+registro de salida (rojo), sin lanzar subagente revisor. Tests+fixtures que verifican AC5 (cada tarea done tiene commit propio y su test re-corre en verde) y AC6 (reporte de verde falso -> no done y estado con la salida del test fallido).",
+      "satisfies_acs": [
+        "AC5",
+        "AC6"
+      ],
+      "estimated_tokens": 30000,
       "actual_tokens": null,
       "deviation": null,
       "test_contract": [
         {
           "ref": "R3.S1",
-          "assertion": "Tarea con verde confirmado crea commit propio en rama del plan"
+          "assertion": "Tarea con verde confirmado por re-run del orquestador obtiene commit propio en la rama del plan"
         },
         {
           "ref": "R3.S2",
-          "assertion": "Re-run que contradice el reporte no marca done y registra test fallido"
+          "assertion": "Re-run que contradice el verde reportado no marca la tarea como done y registra el test fallido"
         },
         {
           "ref": "AC5",
-          "assertion": "Tarea done tiene commit propio en rama y test pasa al re-correr"
+          "assertion": "Tarea done tiene commit propio y su test pasa al re-correrlo"
         },
         {
           "ref": "AC6",
-          "assertion": "Reporte falso de verde no marca tarea como done e incluye salida del test fallido"
+          "assertion": "Reporte falso de verde no marca done e incluye la salida del test fallido"
         }
       ]
     },
     {
-      "task_id": "T4-dag-orchestration",
-      "source_ids": ["R4", "R4.S1", "R4.S2"],
-      "dependencies": ["T1-plan-validation"],
+      "task_id": "T4-dag-git",
+      "source_ids": [
+        "R4",
+        "R4.S1",
+        "R4.S2"
+      ],
+      "dependencies": [
+        "T1-load-validate"
+      ],
       "agent_type": "code_writer",
       "subagent": "general-purpose",
       "model": "sonnet",
-      "justification": "Orquestración del DAG con paralelismo (máx 3) y secuenciación según dependencias; criterios claros (AC7, AC8); sonnet.",
-      "instructions": "Implementar ejecución en paralelo de tareas independientes (max 3 simultáneas) y secuenciación de dependientes según DAG, consumiendo el plan validado de T1-plan-validation. R4.S1: lanzar tandas sin exceder límite. R4.S2: crear rama ia/<slug> (o reutilizar) y todos los commits van a esa rama, no a main.",
-      "expected_output_schema": "Orquestador DAG que expone: lanzarTandas(plan, subagentes) → AsyncIterable<{tanda: [task_id], resultados: {}}>; retorna tandas de max 3.",
-      "satisfies_acs": ["AC7", "AC8"],
-      "estimated_tokens": 13000,
+      "justification": "Calculo de tandas (readiness, <=3) + rama git con AC8 auto claro; el protocolo de lanzamiento en tanda unica es prose acotada por el spec.",
+      "instructions": "Implementar la orquestacion del DAG y git (R4, R4.S1, R4.S2). Consume de T1-load-validate el plan validado y el conjunto de tareas ejecutables. R4.S1: lanzar las tareas de una tanda (sin dependencias pendientes entre si) en UNA sola accion, maximo 3 simultaneas, y no lanzar ninguna antes de que TODAS sus dependencies esten completadas (calcular readiness sobre el estado). R4.S2: al empezar (plan validado, repo en rama principal) crear o reutilizar la rama ia/<slug> y dirigir a ella todos los commits de tarea. Entregar la seccion de SKILL.md con el protocolo de lanzamiento en tanda unica (AC7 es [manual], se verifica en la transcripcion) + la logica determinista de calculo de tandas y de creacion/reutilizacion de rama, con tests y fixtures que ejerciten AC8.",
+      "expected_output_schema": "Logica determinista de calculo de tandas ejecutables (<=3, readiness sobre dependencias) y de creacion/reutilizacion de la rama ia/<slug>, mas la seccion de SKILL.md que fija el lanzamiento de la tanda en una sola accion. Tests+fixtures que verifican AC8 (existe la rama ia/<slug> y la rama principal no recibe commits de tarea); AC7 queda documentado como verificacion manual sobre la transcripcion.",
+      "satisfies_acs": [
+        "AC7",
+        "AC8"
+      ],
+      "estimated_tokens": 35000,
       "actual_tokens": null,
       "deviation": null,
       "test_contract": [
         {
           "ref": "R4.S1",
-          "assertion": "Tareas sin dependencias pendientes se lanzan en la misma tanda, máximo 3 simultáneas"
+          "assertion": "Tareas sin dependencias pendientes se lanzan en la misma tanda sin exceder tres simultáneas"
         },
         {
           "ref": "R4.S2",
-          "assertion": "Se crea rama ia/<slug> y todos los commits de tarea van a esa rama, no a main"
+          "assertion": "Se crea o reutiliza la rama del plan y todo commit de tarea va a esa rama, nunca a la principal"
         },
         {
           "ref": "AC7",
-          "assertion": "Tareas independientes de una tanda se lanzan en una única acción sin exceder 3"
+          "assertion": "Las tareas independientes de una tanda se lanzan en una única acción sin exceder tres"
         },
         {
           "ref": "AC8",
-          "assertion": "Partiendo de rama principal existe rama ia/<slug> y main no recibe commits de tarea"
+          "assertion": "Partiendo de la rama principal, existe la rama del plan y la principal no recibe commits de tarea"
         }
       ]
     },
     {
-      "task_id": "T5-persistent-state",
-      "source_ids": ["R5", "R5.S1"],
-      "dependencies": ["T2-tdd-orchestrator", "T3-deterministic-verification"],
+      "task_id": "T5-state",
+      "source_ids": [
+        "R5",
+        "R5.S1"
+      ],
+      "dependencies": [
+        "T2-tdd-cycle",
+        "T3-verify"
+      ],
       "agent_type": "code_writer",
       "subagent": "general-purpose",
       "model": "sonnet",
-      "justification": "Estructura y persistencia de execution_state.json con status, tokens, desviación; criterios claros (AC9); sonnet.",
-      "instructions": "Implementar execution_state.json actualizado en cada frontera de tarea, consumiendo las salidas de T2-tdd-orchestrator (test results y tokens) y T3-deterministic-verification (verificación de tarea). R5.S1: registrar status, actual_tokens, deviation, comando de test, incidencias. El execution_plan.json permanece byte-idéntico. Nunca escribir tarea a medias como completada.",
-      "expected_output_schema": "Gestor de estado que expone: escribirEstado(plan, tarea, status, tokens, deviation, incidencia?) → void; no modifica plan.json.",
-      "satisfies_acs": ["AC9"],
-      "estimated_tokens": 7000,
+      "justification": "Schema+escritor de estado con AC9 claro (campos fijados por spec) e inmutabilidad del plan; implementacion acotada.",
+      "instructions": "Implementar el estado persistente y el registro de consumo (R5, R5.S1). Consume de T2-tdd-cycle el resultado del ejecutor y de T3-verify la verificacion de cada tarea. Definir el schema propio de docs/specs/<slug>/execution_state.json (status pending|running|done|blocked|skipped, actual_tokens, deviation vs estimated_tokens, comando de test, incidencias, motivo de pausa) y escribirlo SOLO en fronteras de tarea (ninguna tarea a medias figura como completada). Garantizar que execution_plan.json queda byte-identico al original (la skill no lo modifica). Entregar el schema + el escritor de estado con tests y fixtures que ejerciten AC9.",
+      "expected_output_schema": "Schema de execution_state.json + escritor que, al terminar cada tarea, registra status/actual_tokens/deviation/comando de test/incidencias en frontera de tarea, sin dejar tareas a medias como completadas. Tests+fixtures que verifican AC9 (el estado contiene esos campos por tarea y execution_plan.json es byte-identico al original).",
+      "satisfies_acs": [
+        "AC9"
+      ],
+      "estimated_tokens": 30000,
       "actual_tokens": null,
       "deviation": null,
       "test_contract": [
         {
           "ref": "R5.S1",
-          "assertion": "Al terminar cualquier tarea, execution_state.json contiene status, actual_tokens, deviation, comando de test y execution_plan.json es byte-idéntico"
+          "assertion": "Al terminar cualquier tarea, el estado persistente registra status, tokens reales, desviación y comando de test, y el plan permanece byte-idéntico"
         },
         {
           "ref": "AC9",
-          "assertion": "Tarea completada ha guardado status, actual_tokens, deviation en state.json sin modificar plan.json"
+          "assertion": "Tarea completada guarda status, tokens reales y desviación en el estado sin modificar el plan"
         }
       ]
     },
     {
-      "task_id": "T6-failure-handling",
-      "source_ids": ["R6", "R6.S1", "R6.S2"],
-      "dependencies": ["T3-deterministic-verification", "T5-persistent-state"],
+      "task_id": "T6a-failure",
+      "source_ids": [
+        "R6",
+        "R6.S1"
+      ],
+      "dependencies": [
+        "T3-verify",
+        "T5-state"
+      ],
       "agent_type": "code_writer",
       "subagent": "general-purpose",
       "model": "sonnet",
-      "justification": "Lógica de reintentos (1 único), bloqueos, pausas por presupuesto; criterios claros (AC10, AC11); sonnet.",
-      "instructions": "Implementar gestión de fallos consumiendo resultados de T3-deterministic-verification (tarea fallida o no) y T5-persistent-state (tokens acumulados). R6.S1: tarea fallida se reintenta una vez incluyendo diagnóstico; si falla, queda blocked, dependientes skipped, ramas sanas continúan. R6.S2: si consumo real acumulado > 2× estimado ejecutado, pausa en frontera de tarea, registra motivo y cifras en state.json, pregunta al usuario.",
-      "expected_output_schema": "Gestor de fallos que expone: reintentar(tarea, diagnostico) → bool; pausarSiExcedeBudget(plan, state) → {pausado: bool, exceso: num}.",
-      "satisfies_acs": ["AC10", "AC11"],
-      "estimated_tokens": 11000,
+      "justification": "Reintento-unico + propagacion de fallo sobre el DAG con AC10 claro; logica acotada sin trade-offs abiertos.",
+      "instructions": "Implementar la contencion de fallos por rama del DAG (R6, R6.S1). Consume de T3-verify el resultado de verificacion fallido y de T5-state el estado. Un unico reintento informado por tarea: al fallar el primer intento, reintentar una vez incluyendo el diagnostico del fallo en el brief; si el reintento tambien falla, marcar la tarea blocked, propagar skipped a sus dependientes directas y transitivas, y dejar continuar las ramas del DAG que no dependen de ella. El informe final lista bloqueadas/omitidas con su motivo. Entregar la logica de reintento+propagacion con tests y fixtures que ejerciten AC10.",
+      "expected_output_schema": "Logica determinista de reintento-unico y propagacion de fallo sobre el DAG (blocked + skip transitivo de dependientes, ramas sanas continuan) reflejada en el estado y el informe final. Tests+fixtures que verifican AC10 (tarea fixture que falla dos veces -> estado con esa tarea blocked, dependientes skipped, independientes done).",
+      "satisfies_acs": [
+        "AC10"
+      ],
+      "estimated_tokens": 30000,
       "actual_tokens": null,
       "deviation": null,
       "test_contract": [
         {
           "ref": "R6.S1",
-          "assertion": "Tarea que falla dos veces queda blocked, dependientes quedan skipped, independientes continúan done"
-        },
-        {
-          "ref": "R6.S2",
-          "assertion": "Consumo real > 2× estimado acumulado pausa antes de siguiente tanda con motivo y cifras en state"
+          "assertion": "Tarea que falla tras el único reintento queda bloqueada, sus dependientes quedan omitidos y las ramas sanas del DAG continúan"
         },
         {
           "ref": "AC10",
-          "assertion": "Tarea bloqueada tras dos fallos tiene dependientes skipped y branches sanas done"
-        },
-        {
-          "ref": "AC11",
-          "assertion": "Estado registra pausa por umbral 2× con consumo real vs estimado antes de última tanda"
+          "assertion": "Tarea bloqueada tras dos fallos deja dependientes omitidos y ramas sanas completadas"
         }
       ]
     },
     {
-      "task_id": "T7-resumption",
-      "source_ids": ["R7", "R7.S1", "R7.S2"],
-      "dependencies": ["T5-persistent-state"],
+      "task_id": "T6b-budget",
+      "source_ids": [
+        "R6",
+        "R6.S2"
+      ],
+      "dependencies": [
+        "T3-verify",
+        "T5-state"
+      ],
       "agent_type": "code_writer",
       "subagent": "general-purpose",
       "model": "sonnet",
-      "justification": "Reanudación desde estado: validar terreno, re-correr tests, continuar DAG; criterios claros (AC12, AC13); sonnet.",
-      "instructions": "Implementar reanudación desde estado persistente de T5-persistent-state. R7.S1: segunda invocación carga execution_state.json, re-corre tests de done, si todos pasan continúa con pendientes. R7.S2: si algún test done falla al re-correr, detiene antes de lanzar nuevas tareas y nombra el test roto.",
-      "expected_output_schema": "Reanudador que expone: cargarEstado(statePath) → {pendientes: [], done: [], bloqueadas: []}; validarTerreno(plan, state) → {valido: bool, test_fallido?: str}.",
-      "satisfies_acs": ["AC12", "AC13"],
-      "estimated_tokens": 9000,
+      "justification": "Umbral acumulado + pausa en frontera con AC11 claro; deliverable independiente del de propagacion de fallo (por eso tarea aparte).",
+      "instructions": "Implementar la pausa por presupuesto (R6, R6.S2). Consume de T5-state el registro de actual_tokens acumulado y de T3-verify la frontera de tarea. Cuando el consumo real acumulado supere 2x la suma de estimated_tokens de las tareas ya ejecutadas, pausar en la siguiente frontera de tarea (nunca a mitad), anotar en el estado el motivo y las cifras (real vs estimado) y preguntar al usuario si refinar el plan o continuar. Entregar la logica de umbral+pausa con tests y fixtures que ejerciten AC11.",
+      "expected_output_schema": "Logica determinista de umbral acumulado (real > 2x estimado ejecutado) que pausa en frontera de tarea y registra motivo+cifras en el estado antes de lanzar mas tandas. Tests+fixtures que verifican AC11 (plan de estimaciones minusculas -> el estado registra la pausa por umbral con motivo y cifras antes de la ultima tanda).",
+      "satisfies_acs": [
+        "AC11"
+      ],
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R6.S2",
+          "assertion": "Consumo real acumulado por encima del doble del estimado pausa en frontera de tarea y registra motivo y cifras"
+        },
+        {
+          "ref": "AC11",
+          "assertion": "El estado registra la pausa por umbral del doble con consumo real frente a estimado antes de la siguiente tanda"
+        }
+      ]
+    },
+    {
+      "task_id": "T7-resume",
+      "source_ids": [
+        "R7",
+        "R7.S1",
+        "R7.S2"
+      ],
+      "dependencies": [
+        "T5-state"
+      ],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Reanudacion (re-verificar done, continuar o parar) con AC12/AC13 claros; implementacion acotada sobre el estado en disco.",
+      "instructions": "Implementar la reanudacion (R7, R7.S1, R7.S2). Consume de T5-state el execution_state.json en disco. Al reinvocar sobre el mismo plan: re-correr los comandos de test de las tareas done; si todas siguen verdes (R7.S1), continuar ejecutando solo las pendientes segun el DAG; si alguna falla (R7.S2), detenerse antes de lanzar tareas nuevas y reportar que tarea/test rompio, dejando la decision al usuario. Entregar la logica de reanudacion con tests y fixtures que ejerciten AC12 y AC13.",
+      "expected_output_schema": "Logica de reanudacion que re-verifica los tests de las tareas done y decide continuar (todas verdes) o detener nombrando el test roto. Tests+fixtures que verifican AC12 (segunda invocacion sobre estado a medias -> tests done re-corridos y solo pendientes ejecutadas) y AC13 (test done roto manualmente -> para sin lanzar tareas nuevas y nombra el test roto).",
+      "satisfies_acs": [
+        "AC12",
+        "AC13"
+      ],
+      "estimated_tokens": 30000,
       "actual_tokens": null,
       "deviation": null,
       "test_contract": [
         {
           "ref": "R7.S1",
-          "assertion": "Segunda invocación re-corre tests de tareas done y solo ejecuta pendientes si todos pasan"
+          "assertion": "Segunda invocación re-corre los tests de las tareas done y solo ejecuta las pendientes si todos pasan"
         },
         {
           "ref": "R7.S2",
-          "assertion": "Test done que falla al reanudar detiene la skill sin lanzar tareas nuevas"
+          "assertion": "Un test de tarea done que falla al reanudar detiene la ejecución sin lanzar tareas nuevas y nombra el test roto"
         },
         {
           "ref": "AC12",
-          "assertion": "Tests de tareas done se re-corren correctamente y solo pendientes se ejecutan"
+          "assertion": "Los tests de tareas done se re-corren y solo se ejecutan las pendientes"
         },
         {
           "ref": "AC13",
-          "assertion": "Test done roto al reanudar detiene sin lanzar nuevas tareas"
+          "assertion": "Un test done roto al reanudar detiene la skill sin lanzar tareas nuevas"
         }
       ]
     },
     {
-      "task_id": "T8-e2e-integration-test",
-      "source_ids": ["R-E2E", "R-E2E.S1"],
-      "dependencies": ["T1-plan-validation", "T2-tdd-orchestrator", "T3-deterministic-verification", "T4-dag-orchestration", "T5-persistent-state", "T6-failure-handling", "T7-resumption"],
-      "agent_type": "terminal_operator",
+      "task_id": "T8-e2e",
+      "source_ids": [
+        "R-E2E",
+        "R-E2E.S1"
+      ],
+      "dependencies": [
+        "T1-load-validate",
+        "T2-tdd-cycle",
+        "T3-verify",
+        "T4-dag-git",
+        "T5-state",
+        "T6a-failure",
+        "T6b-budget",
+        "T7-resume"
+      ],
+      "agent_type": "reviewer",
       "subagent": "general-purpose",
-      "model": "haiku",
-      "justification": "Test integrador final que corre el flujo completo sobre un plan fixture de 3 tareas; verificación determinista, no nueva implementación; haiku para operación mecánica.",
-      "instructions": "Crear y ejecutar test fixture E2E consumiendo componentes de T1-plan-validation, T2-tdd-orchestrator, T3-deterministic-verification, T4-dag-orchestration, T5-persistent-state, T6-failure-handling y T7-resumption. Plan fixture: 3 tareas (2 independientes, 1 que depende de ambas). Verificar: rama ia/<slug> con 3 commits, state.json con 3 done y tokens/deviation rellenos, todos los tests pasan en re-run final, mensaje final incluye tareas completadas/bloqueadas, tokens reales vs estimados, ACs cubiertos (AC-E2E).",
-      "expected_output_schema": "Script de test que ejecuta el fixture y reporta: rama creada, commits count, state.json válido, todos tests verdes, resumen final con real vs estimado.",
-      "satisfies_acs": ["AC-E2E"],
-      "estimated_tokens": 6000,
+      "model": "opus",
+      "justification": "Integracion de extremo a extremo con juicio sobre multiples observables cruzados (git, estado, informe) y sus interacciones; requiere criterio, no solo un check acotado.",
+      "instructions": "Verificar el recorrido integrador de extremo a extremo (R-E2E, R-E2E.S1). Consume los entregables de T1-load-validate, T2-tdd-cycle, T3-verify, T4-dag-git, T5-state, T6a-failure, T6b-budget y T7-resume. Construir un fixture docs/specs/<slug>/ con spec y un plan valido de 3 tareas (dos independientes y una que depende de ambas), partiendo de la rama principal, invocar la skill y dejarla terminar. Comprobar que: existe la rama ia/<slug> con exactamente 3 commits de tarea (test+implementacion cada uno), las dos independientes se lanzaron en la misma tanda y la dependiente despues, execution_state.json marca las 3 done con actual_tokens/deviation rellenos, y un re-run final deja todos los tests en verde; y que el mensaje final incluye tareas completadas/bloqueadas, tokens reales vs estimados (total y por tarea) y los ACs que las tareas declaran satisfacer. Entregar el fixture E2E + el test/verificacion integradora que ejercita AC-E2E.",
+      "expected_output_schema": "Fixture E2E de 3 tareas (2 independientes + 1 dependiente) y test integrador que ejecuta la skill de principio a fin y comprueba: rama ia/<slug> con 3 commits de tarea, tandas correctas (2 en paralelo, 1 despues), estado con las 3 done y consumos rellenos, re-run final verde, e informe final con real vs estimado (total y por tarea) y ACs cubiertos. Verifica AC-E2E.",
+      "satisfies_acs": [
+        "AC-E2E"
+      ],
+      "estimated_tokens": 50000,
       "actual_tokens": null,
       "deviation": null,
       "test_contract": null
@@ -252,45 +351,75 @@
   ],
   "coverage": {
     "requirements": {
-      "R1": ["T1-plan-validation"],
-      "R1.S1": ["T1-plan-validation"],
-      "R1.S2": ["T1-plan-validation"],
-      "R2": ["T2-tdd-orchestrator"],
-      "R2.S1": ["T2-tdd-orchestrator"],
-      "R2.S2": ["T2-tdd-orchestrator"],
-      "R2.S3": ["T2-tdd-orchestrator"],
-      "R3": ["T3-deterministic-verification"],
-      "R3.S1": ["T3-deterministic-verification"],
-      "R3.S2": ["T3-deterministic-verification"],
-      "R4": ["T4-dag-orchestration"],
-      "R4.S1": ["T4-dag-orchestration"],
-      "R4.S2": ["T4-dag-orchestration"],
-      "R5": ["T5-persistent-state"],
-      "R5.S1": ["T5-persistent-state"],
-      "R6": ["T6-failure-handling"],
-      "R6.S1": ["T6-failure-handling"],
-      "R6.S2": ["T6-failure-handling"],
-      "R7": ["T7-resumption"],
-      "R7.S1": ["T7-resumption"],
-      "R7.S2": ["T7-resumption"],
-      "R-E2E": ["T8-e2e-integration-test"],
-      "R-E2E.S1": ["T8-e2e-integration-test"]
+      "R1": [
+        "T1-load-validate"
+      ],
+      "R2": [
+        "T2-tdd-cycle"
+      ],
+      "R3": [
+        "T3-verify"
+      ],
+      "R4": [
+        "T4-dag-git"
+      ],
+      "R5": [
+        "T5-state"
+      ],
+      "R6": [
+        "T6a-failure",
+        "T6b-budget"
+      ],
+      "R7": [
+        "T7-resume"
+      ],
+      "R-E2E": [
+        "T8-e2e"
+      ]
     },
     "acs": {
-      "AC1": ["T1-plan-validation"],
-      "AC2": ["T2-tdd-orchestrator"],
-      "AC3": ["T2-tdd-orchestrator"],
-      "AC4": ["T2-tdd-orchestrator"],
-      "AC5": ["T3-deterministic-verification"],
-      "AC6": ["T3-deterministic-verification"],
-      "AC7": ["T4-dag-orchestration"],
-      "AC8": ["T4-dag-orchestration"],
-      "AC9": ["T5-persistent-state"],
-      "AC10": ["T6-failure-handling"],
-      "AC11": ["T6-failure-handling"],
-      "AC12": ["T7-resumption"],
-      "AC13": ["T7-resumption"],
-      "AC-E2E": ["T8-e2e-integration-test"]
+      "AC1": [
+        "T1-load-validate"
+      ],
+      "AC2": [
+        "T2-tdd-cycle"
+      ],
+      "AC3": [
+        "T2-tdd-cycle"
+      ],
+      "AC4": [
+        "T2-tdd-cycle"
+      ],
+      "AC5": [
+        "T3-verify"
+      ],
+      "AC6": [
+        "T3-verify"
+      ],
+      "AC7": [
+        "T4-dag-git"
+      ],
+      "AC8": [
+        "T4-dag-git"
+      ],
+      "AC9": [
+        "T5-state"
+      ],
+      "AC10": [
+        "T6a-failure"
+      ],
+      "AC11": [
+        "T6b-budget"
+      ],
+      "AC12": [
+        "T7-resume"
+      ],
+      "AC13": [
+        "T7-resume"
+      ],
+      "AC-E2E": [
+        "T8-e2e"
+      ]
     }
   }
 }
