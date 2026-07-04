@@ -1,36 +1,75 @@
-# spec-writer
+# sdd-kit
 
-An interview-driven skill that turns a rough feature idea into a complete,
-testable `spec.md` **before** any planning or coding happens.
+A spec-driven development kit: a multi-skill plugin that carries a feature
+from a rough idea to an executable task graph **before** any code gets
+written, via a fixed chain — **spec → plan → exec → verify** — where each
+stage's output is the next stage's input.
 
-## Purpose
+This plugin currently ships the first two stages:
 
-Asking "give me your requirements" produces vague, gappy answers. This skill
-runs a structured, one-question-at-a-time interview and only then writes a
-single well-formed spec. It deliberately **stops at the spec** — it does not
-produce an implementation plan, a task breakdown, or code.
+- **[`spec-writer`](skills/spec-writer/SKILL.md)** — interview → `spec.md`.
+- **[`plan-writer`](skills/plan-writer/SKILL.md)** — `spec.md` →
+  `execution_plan.json`.
 
-The output follows a fixed template (`assets/spec-template.md`): purpose,
-scope/non-goals, functional requirements with Given/When/Then scenarios and
-stable IDs (`R1`, `R1.S1`), a technical section, and a flat acceptance-criteria
-checklist tagged `[auto]`/`[manual]`. Keeping every spec in this shape lets a
-later planning or verification step rely on the structure without re-learning it.
+The remaining stages (`exec-runner` executing the plan, and a `verify` step
+running the spec's acceptance criteria against the result) are future work;
+this plugin only covers the spec and plan artifacts.
 
-## How to use it
+## The chain: spec → plan → exec → verify
 
-- **Trigger:** ask to draft/flesh out a spec — e.g. "ayúdame a definir la spec
-  de…", "quiero especificar esta feature", "hazme preguntas hasta sacar los
-  requisitos", or any request to nail requirements/acceptance criteria before
-  implementing (spec-driven development, avoiding vibe-coding).
-- **Optional argument:** a one-line description of the feature.
-- **What happens:** the agent interviews you (scope, requirements, edge cases,
-  technical constraints, acceptance criteria), calibrating depth **lite** vs
-  **full**, then writes `spec.md` and asks you to confirm.
-- **Do not use it** for writing plans, architecture decisions, or code.
+1. **spec** (`spec-writer`) — runs a structured, one-question-at-a-time
+   interview and writes a single `spec.md`: purpose, scope/non-goals,
+   functional requirements with Given/When/Then scenarios, a technical
+   section, and a flat acceptance-criteria checklist. It deliberately stops
+   here — no plan, no code.
+2. **plan** (`plan-writer`) — reads that `spec.md` and derives
+   `execution_plan.json`: a DAG of atomic, agent-assigned tasks with
+   dependencies, granular instructions, an output contract, and full
+   traceability back to the spec's requirements and acceptance criteria. A
+   deterministic script validates the result — it does not execute any
+   task or touch the spec.
+3. **exec** *(future)* — an orchestrator runs the plan's tasks in
+   dependency order, dispatching each to its assigned subagent/model.
+4. **verify** *(future)* — checks the executed work against the spec's
+   acceptance-criteria checklist.
+
+## Shared ID format
+
+Both skills key off the same requirement/scenario ID scheme so later stages
+can reference structure instead of re-quoting prose:
+
+- `R<n>` — a functional requirement, with a `Depende de:` line stating its
+  behavioral dependencies (or `—` if independent).
+- `R<n>.S<m>` — a Given/When/Then scenario under that requirement.
+- `AC<n>` — a flat acceptance-criteria entry, each pointing back to the
+  scenario it checks, tagged `[auto]`/`[manual]`.
+
+`spec-writer` produces these IDs; `plan-writer` consumes them — to
+partition independent requirements into parallel tasks, to sequence
+dependent ones, and to guarantee every `R<n>` and `AC<n>` is covered by at
+least one task before writing a plan.
+
+## Skills
+
+| Skill | Input → Output | Details |
+|-------|-----------------|---------|
+| `spec-writer` | feature idea (interview) → `spec.md` | [skills/spec-writer/SKILL.md](skills/spec-writer/SKILL.md) |
+| `plan-writer` | `spec.md` → `execution_plan.json` | [skills/plan-writer/SKILL.md](skills/plan-writer/SKILL.md) |
+
+`plan-writer` additionally ships:
+- `skills/plan-writer/assets/execution_plan.schema.json` — the published
+  JSON Schema for a valid plan.
+- `skills/plan-writer/assets/agent-roles.md` — the `agent_type` →
+  `subagent` → `model` catalog used to staff each task.
+- `scripts/plan-tools.mjs` — a deterministic validator
+  (`inspect-spec <spec.md>`, `check-plan <spec.md> <plan.json>`) that both
+  the skill and CI rely on as the source of truth for "valid input" /
+  "valid plan".
 
 ## Agent compatibility
 
-This plugin is Markdown-only and agent-agnostic. It targets Claude Code's skill
-format (`SKILL.md` + `assets/`), but its instructions assume no Claude-specific
-runtime beyond a general "coding agent that can ask the user questions and write
-files"; the `SKILL.md` body documents the full interview procedure.
+This plugin is Markdown-only and agent-agnostic. It targets Claude Code's
+skill format (`SKILL.md` + `assets/`), but each skill's instructions assume
+no Claude-specific runtime beyond a general "coding agent that can read/write
+files, run a script, and (for `spec-writer`) ask the user questions" — the
+`SKILL.md` body of each skill documents its full procedure.
