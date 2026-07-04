@@ -35,7 +35,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/plan-tools.mjs inspect-spec <spec.md>
   validator says is missing (e.g. no `R<n>` IDs found, or no `## Acceptance
   Criteria` section). Do not write any plan, not even a partial one.
 - **Exit code 0** → show the user the detected counts, in the form "N
-  requisitos, M ACs detectados", before moving on.
+  requirements, M ACs detected", before moving on.
 
 ## Decompose into atomic tasks
 
