@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Runner de tests para el validador plan-tools.mjs (skill plan-writer).
-// Node ESM puro, solo stdlib (node:path, node:url, node:child_process).
+// Test runner for the plan-tools.mjs validator (plan-writer skill).
+// Pure Node ESM, stdlib only (node:path, node:url, node:child_process).
 //
-// Ejecuta cada fixture como proceso hijo del validador y asevera exit code +
-// substring esperado en stdout/stderr. Imprime una línea ✔/✘ por caso y un
-// resumen final; exit 1 si algún caso falla, 0 si todos pasan.
+// Runs each fixture as a child process of the validator and asserts exit code
+// + expected substring in stdout/stderr. Prints a checkmark/cross line per
+// case and a final summary; exit 1 if any case fails, 0 if all pass.
 
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -14,90 +14,90 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
 const PLAN_TOOLS = path.join(__dirname, '..', 'scripts', 'plan-tools.mjs');
 
-// Tabla declarativa de casos: nombre, subcomando + ficheros (relativos a
-// fixtures/), exit code esperado, y substring esperado en stdout o stderr.
+// Declarative table of cases: name, subcommand + files (relative to
+// fixtures/), expected exit code, and expected substring in stdout or stderr.
 const CASES = [
   {
-    name: 'valid: inspect-spec detecta requisitos y ACs',
+    name: 'valid: inspect-spec detects requirements and ACs',
     args: ['inspect-spec', 'valid/spec.md'],
     expectExit: 0,
     stream: 'stdout',
-    substr: '4 requisitos, 5 ACs detectados',
+    substr: '4 requirements, 5 ACs detected',
   },
   {
-    name: 'valid: check-plan acepta un plan bien formado',
+    name: 'valid: check-plan accepts a well-formed plan',
     args: ['check-plan', 'valid/spec.md', 'valid/plan.json'],
     expectExit: 0,
     stream: 'stdout',
-    substr: 'plan válido: 4 tareas',
+    substr: 'valid plan: 4 tasks',
   },
   {
-    name: 'missing-ac-section: falta la sección Acceptance Criteria',
+    name: 'missing-ac-section: missing the Acceptance Criteria section',
     args: ['inspect-spec', 'missing-ac-section/spec.md'],
     expectExit: 1,
     stream: 'stderr',
-    substr: 'falta la sección Acceptance Criteria',
+    substr: 'missing the Acceptance Criteria section',
   },
   {
-    name: 'no-r-ids: no se encontraron IDs R<n>',
+    name: 'no-r-ids: no R<n> IDs found',
     args: ['inspect-spec', 'no-r-ids/spec.md'],
     expectExit: 1,
     stream: 'stderr',
-    substr: 'no se encontraron IDs R<n>',
+    substr: 'no R<n> IDs found',
   },
   {
-    name: 'cyclic: detecta el ciclo de dependencias',
+    name: 'cyclic: detects the dependency cycle',
     args: ['check-plan', 'valid/spec.md', 'cyclic/plan.json'],
     expectExit: 1,
     stream: 'stderr',
-    substr: 'ciclo:',
+    substr: 'cycle:',
   },
   {
-    name: 'uncovered-id: AC sin cubrir',
+    name: 'uncovered-id: uncovered AC',
     args: ['check-plan', 'valid/spec.md', 'uncovered-id/plan.json'],
     expectExit: 1,
     stream: 'stderr',
-    substr: 'AC sin cubrir:',
+    substr: 'uncovered AC:',
   },
   {
-    name: 'invalid-schema: falta un campo requerido (model)',
+    name: 'invalid-schema: missing a required field (model)',
     args: ['check-plan', 'valid/spec.md', 'invalid-schema/plan.json'],
     expectExit: 1,
     stream: 'stderr',
-    substr: 'esquema:',
+    substr: 'schema:',
   },
   {
-    name: 'bad-instructions-deps: instructions no referencia task previo',
+    name: 'bad-instructions-deps: instructions does not reference a previous task',
     args: ['check-plan', 'valid/spec.md', 'bad-instructions-deps/plan.json'],
     expectExit: 1,
     stream: 'stderr',
-    substr: 'instructions no referencia task previo:',
+    substr: 'instructions does not reference a previous task:',
   },
   {
-    name: 'bad-instructions-nodeps: tarea sin dependencias referencia task_id',
+    name: 'bad-instructions-nodeps: task with no dependencies references a task_id',
     args: ['check-plan', 'valid/spec.md', 'bad-instructions-nodeps/plan.json'],
     expectExit: 1,
     stream: 'stderr',
-    substr: 'tarea sin dependencias referencia task_id:',
+    substr: 'task with no dependencies references a task_id:',
   },
   {
-    name: 'empty-output-schema: expected_output_schema vacío rechazado',
+    name: 'empty-output-schema: empty expected_output_schema rejected',
     args: ['check-plan', 'valid/spec.md', 'empty-output-schema/plan.json'],
     expectExit: 1,
     stream: 'stderr',
-    substr: 'esquema:',
+    substr: 'schema:',
   },
   {
-    name: 'bad-test-contract: ref de test_contract inexistente en el spec',
+    name: 'bad-test-contract: test_contract ref does not exist in the spec',
     args: ['check-plan', 'valid/spec.md', 'bad-test-contract/plan.json'],
     expectExit: 1,
     stream: 'stderr',
-    substr: 'test_contract.ref inexistente en spec:',
+    substr: 'test_contract.ref does not exist in spec:',
   },
 ];
 
-// Los argumentos que terminan en .md/.json son rutas de fixtures relativas;
-// el resto (el subcomando) se pasa tal cual.
+// Arguments ending in .md/.json are relative fixture paths; the rest
+// (the subcommand) is passed through as-is.
 function resolveArgs(args) {
   return args.map((a) =>
     a.endsWith('.md') || a.endsWith('.json') ? path.join(FIXTURES_DIR, a) : a
@@ -122,10 +122,10 @@ for (const testCase of CASES) {
     failures++;
     console.log(`✘ ${testCase.name}`);
     console.log(
-      `  esperado: exit ${testCase.expectExit}, ${testCase.stream} contiene "${testCase.substr}"`
+      `  expected: exit ${testCase.expectExit}, ${testCase.stream} contains "${testCase.substr}"`
     );
     console.log(
-      `  obtenido: exit ${result.status}, stdout=${JSON.stringify(
+      `  got: exit ${result.status}, stdout=${JSON.stringify(
         result.stdout
       )}, stderr=${JSON.stringify(result.stderr)}`
     );
@@ -134,9 +134,9 @@ for (const testCase of CASES) {
 
 console.log('');
 if (failures > 0) {
-  console.log(`✘ ${failures}/${CASES.length} casos fallidos`);
+  console.log(`✘ ${failures}/${CASES.length} cases failed`);
   process.exit(1);
 } else {
-  console.log(`✔ ${CASES.length}/${CASES.length} casos correctos`);
+  console.log(`✔ ${CASES.length}/${CASES.length} cases passed`);
   process.exit(0);
 }

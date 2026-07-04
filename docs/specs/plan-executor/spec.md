@@ -122,7 +122,7 @@ secuenciar las dependientes según el DAG, y trabajar en una rama git propia del
 #### R4.S2 — Rama propia
 - GIVEN la invocación de la skill con el repo en la rama principal
 - WHEN comienza la ejecución (plan ya validado)
-- THEN crea (o reutiliza, si existe de una ejecución previa) la rama `ia/<slug>` y todos los
+- THEN crea (o reutiliza, si existe de una ejecución previa) la rama `feat/<slug>` y todos los
   commits de tareas van a esa rama
 
 ### R5 — Estado persistente y registro de consumo
@@ -195,7 +195,7 @@ mixtas, dejando código testeado, historia git por tarea, estado completo y un i
 - GIVEN un `docs/specs/<slug>/` con spec y un plan válido de 3 tareas: dos independientes y una
   que depende de ambas, con el repo en la rama principal
 - WHEN se invoca la skill y se deja terminar
-- THEN existe la rama `ia/<slug>` con exactamente 3 commits de tarea (test + implementación
+- THEN existe la rama `feat/<slug>` con exactamente 3 commits de tarea (test + implementación
   cada uno), las dos independientes se lanzaron en la misma tanda y la dependiente después,
   `execution_state.json` marca las 3 completadas con `actual_tokens`/`deviation` rellenos,
   todos los tests pasan en un re-run final
@@ -217,7 +217,7 @@ mixtas, dejando código testeado, historia git por tarea, estado completo y un i
   (`pending|running|done|blocked|skipped`), `actual_tokens`, `deviation`, comando de test,
   incidencias y motivo de pausa si lo hay.
 - **Restricciones adicionales:** los `subagent`/`model` por tarea son los que fija el plan (la
-  skill no los re-decide); commits sin pedir confirmación en la rama `ia/<slug>`.
+  skill no los re-decide); commits sin pedir confirmación en la rama `feat/<slug>`.
 
 ## Acceptance Criteria
 
@@ -237,7 +237,7 @@ mixtas, dejando código testeado, historia git por tarea, estado completo y un i
 - [ ] AC7 → R4.S1 [manual] — en la transcripción de la sesión, las tareas independientes de una
   tanda se lanzan en una única acción y nunca más de 3; requiere leer la transcripción porque
   el observable (cómo se lanzaron los subagentes) no queda en disco.
-- [ ] AC8 → R4.S2 [auto] — partiendo de la rama principal: existe la rama `ia/<slug>` y la rama
+- [ ] AC8 → R4.S2 [auto] — partiendo de la rama principal: existe la rama `feat/<slug>` y la rama
   principal no recibe ningún commit de tarea.
 - [ ] AC9 → R5.S1 [auto] — al terminar cualquier tarea: `execution_state.json` contiene status,
   `actual_tokens`, `deviation` y comando de test de esa tarea, y `execution_plan.json` es

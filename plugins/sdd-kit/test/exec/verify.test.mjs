@@ -1,4 +1,4 @@
-// Test unitario de exec/verify.mjs.
+// Unit test for exec/verify.mjs.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -14,9 +14,9 @@ test('rerun: exit 1 -> passed false', () => {
   assert.equal(res.passed, false);
 });
 
-test('rerun: captura stdout en output', () => {
-  const res = rerun('echo hola');
-  assert.ok(res.output.includes('hola'));
+test('rerun: captures stdout in output', () => {
+  const res = rerun('echo hello');
+  assert.ok(res.output.includes('hello'));
 });
 
 test('classifyEvidence: rojo_passed=false, verde_passed=true -> red-green', () => {
@@ -31,7 +31,7 @@ test('classifyEvidence: rojo_passed=false, verde_passed=false -> not-green', () 
   assert.equal(classifyEvidence({ rojo_passed: false, verde_passed: false }), 'not-green');
 });
 
-test('confirm: evidence red-green con testCmd que pasa -> done true, reason null', () => {
+test('confirm: evidence red-green with a passing testCmd -> done true, reason null', () => {
   const evidence = { rojo_passed: false, verde_passed: true };
   const res = confirm({ id: 'T1' }, evidence, 'exit 0');
   assert.equal(res.done, true);
@@ -39,14 +39,14 @@ test('confirm: evidence red-green con testCmd que pasa -> done true, reason null
   assert.ok(typeof res.rerun_output === 'string');
 });
 
-test('confirm: evidence red-green con testCmd que falla -> done false, reason rerun-failed', () => {
+test('confirm: evidence red-green with a failing testCmd -> done false, reason rerun-failed', () => {
   const evidence = { rojo_passed: false, verde_passed: true };
   const res = confirm({ id: 'T1' }, evidence, 'exit 1');
   assert.equal(res.done, false);
   assert.equal(res.reason, 'rerun-failed');
 });
 
-test('confirm: evidence sin rojo (rojo_passed=true) -> done false, reason no-red, sin re-run', () => {
+test('confirm: evidence without red (rojo_passed=true) -> done false, reason no-red, no re-run', () => {
   const evidence = { rojo_passed: true, verde_passed: true };
   const res = confirm({ id: 'T1' }, evidence, 'exit 1');
   assert.equal(res.done, false);

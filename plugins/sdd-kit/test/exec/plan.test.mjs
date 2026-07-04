@@ -12,7 +12,7 @@ const VALID_SPEC = path.join(FIXTURES_DIR, 'valid', 'spec.md');
 const VALID_PLAN = path.join(FIXTURES_DIR, 'valid', 'plan.json');
 const CYCLIC_PLAN = path.join(FIXTURES_DIR, 'cyclic', 'plan.json');
 
-test('loadPlan: par válido devuelve valid:true y el plan parseado', () => {
+test('loadPlan: valid pair returns valid:true and the parsed plan', () => {
   const result = loadPlan(VALID_SPEC, VALID_PLAN);
   assert.equal(result.valid, true);
   assert.equal(result.error, null);
@@ -20,7 +20,7 @@ test('loadPlan: par válido devuelve valid:true y el plan parseado', () => {
   assert.ok(result.plan.plan_id);
 });
 
-test('loadPlan: plan rechazado por el validador devuelve valid:false con error', () => {
+test('loadPlan: plan rejected by the validator returns valid:false with an error', () => {
   const result = loadPlan(VALID_SPEC, CYCLIC_PLAN);
   assert.equal(result.valid, false);
   assert.notEqual(result.error, '');
@@ -39,32 +39,32 @@ function makePlan() {
   };
 }
 
-test('readyBatch: sin tareas hechas, solo T1 está lista', () => {
+test('readyBatch: with no tasks done, only T1 is ready', () => {
   const plan = makePlan();
   assert.deepEqual(readyBatch(plan, []), ['T1']);
 });
 
-test('readyBatch: con T1 hecho, T2 y T3 están listas', () => {
+test('readyBatch: with T1 done, T2 and T3 are ready', () => {
   const plan = makePlan();
   assert.deepEqual(readyBatch(plan, ['T1']), ['T2', 'T3']);
 });
 
-test('readyBatch: con T1 y T2 hechos, solo T3 está lista', () => {
+test('readyBatch: with T1 and T2 done, only T3 is ready', () => {
   const plan = makePlan();
   assert.deepEqual(readyBatch(plan, ['T1', 'T2']), ['T3']);
 });
 
-test('readyBatch: max=1 trunca el resultado', () => {
+test('readyBatch: max=1 truncates the result', () => {
   const plan = makePlan();
   assert.deepEqual(readyBatch(plan, ['T1'], { max: 1 }), ['T2']);
 });
 
-test('readyBatch: excluded quita tareas del resultado', () => {
+test('readyBatch: excluded removes tasks from the result', () => {
   const plan = makePlan();
   assert.deepEqual(readyBatch(plan, ['T1'], { excluded: new Set(['T2']) }), ['T3']);
 });
 
-test('allDependents: T1 tiene como dependientes transitivos a T2, T3 y T4', () => {
+test('allDependents: T1 has T2, T3 and T4 as transitive dependents', () => {
   const plan = makePlan();
   const dependents = allDependents(plan, 'T1');
   assert.ok(dependents.includes('T2'));

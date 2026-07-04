@@ -1,5 +1,5 @@
-// Test unitario de exec/git.mjs. Trabaja SIEMPRE contra un repo git temporal
-// aislado (fs.mkdtempSync) — nunca contra el repo real del proyecto.
+// Unit test for exec/git.mjs. Always works against an isolated temporary git
+// repo (fs.mkdtempSync) — never against the project's real repo.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,43 +12,43 @@ import { currentBranch, ensureBranch, commitTask } from '../../scripts/exec/git.
 function git(args, cwd) {
   const res = spawnSync('git', args, { cwd, encoding: 'utf8' });
   if (res.status !== 0) {
-    throw new Error(`git ${args.join(' ')} fallo: ${res.stderr}`);
+    throw new Error(`git ${args.join(' ')} failed: ${res.stderr}`);
   }
   return res.stdout.trim();
 }
 
 const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'exec-git-'));
 
-test('setup: repo temporal con commit inicial en rama "work"', () => {
+test('setup: temporary repo with an initial commit on the "work" branch', () => {
   git(['init'], repo);
   git(['config', 'user.email', 'test@example.com'], repo);
   git(['config', 'user.name', 'Test'], repo);
-  fs.writeFileSync(path.join(repo, 'README.md'), 'inicial\n');
+  fs.writeFileSync(path.join(repo, 'README.md'), 'initial\n');
   git(['add', '-A'], repo);
   git(['commit', '-m', 'init'], repo);
-  // Renombra la rama inicial (main/master/lo que sea por config global) a
-  // "work", una rama neutra que no dispara el guard de commitTask.
+  // Renames the initial branch (main/master/whatever the global config uses)
+  // to "work", a neutral branch that doesn't trip commitTask's guard.
   git(['checkout', '-b', 'work'], repo);
   assert.equal(currentBranch(repo), 'work');
 });
 
-test('ensureBranch crea ia/demo la primera vez', () => {
+test('ensureBranch creates feat/demo the first time', () => {
   const result = ensureBranch('demo', repo);
-  assert.deepEqual(result, { branch: 'ia/demo', created: true });
-  assert.equal(currentBranch(repo), 'ia/demo');
+  assert.deepEqual(result, { branch: 'feat/demo', created: true });
+  assert.equal(currentBranch(repo), 'feat/demo');
 });
 
-test('ensureBranch reutiliza ia/demo la segunda vez', () => {
-  // Nos movemos a "work" para forzar que ensureBranch tenga que hacer checkout.
+test('ensureBranch reuses feat/demo the second time', () => {
+  // Move to "work" to force ensureBranch to perform a checkout.
   git(['checkout', 'work'], repo);
   const result = ensureBranch('demo', repo);
-  assert.deepEqual(result, { branch: 'ia/demo', created: false });
-  assert.equal(currentBranch(repo), 'ia/demo');
+  assert.deepEqual(result, { branch: 'feat/demo', created: false });
+  assert.equal(currentBranch(repo), 'feat/demo');
 });
 
-test('commitTask commitea en una rama no principal y devuelve el hash', () => {
-  assert.equal(currentBranch(repo), 'ia/demo');
-  fs.writeFileSync(path.join(repo, 'feature.txt'), 'contenido T1\n');
+test('commitTask commits on a non-main branch and returns the hash', () => {
+  assert.equal(currentBranch(repo), 'feat/demo');
+  fs.writeFileSync(path.join(repo, 'feature.txt'), 'T1 content\n');
   const hash = commitTask('T1', 'test+impl T1', repo);
   assert.ok(typeof hash === 'string' && hash.length > 0);
   const log = git(['log', '--oneline'], repo);
@@ -56,19 +56,19 @@ test('commitTask commitea en una rama no principal y devuelve el hash', () => {
   assert.ok(log.includes(hash));
 });
 
-test('commitTask lanza Error si la rama actual es main', () => {
+test('commitTask throws an Error if the current branch is main', () => {
   git(['checkout', '-B', 'main'], repo);
   assert.equal(currentBranch(repo), 'main');
-  assert.throws(() => commitTask('T1', 'no deberia commitear', repo));
+  assert.throws(() => commitTask('T1', 'should not commit', repo));
 });
 
-test('commitTask lanza Error si la rama actual es master', () => {
+test('commitTask throws an Error if the current branch is master', () => {
   git(['checkout', '-B', 'master'], repo);
   assert.equal(currentBranch(repo), 'master');
-  assert.throws(() => commitTask('T1', 'no deberia commitear', repo));
+  assert.throws(() => commitTask('T1', 'should not commit', repo));
 });
 
-test('cleanup: borra el repo temporal', () => {
+test('cleanup: removes the temporary repo', () => {
   fs.rmSync(repo, { recursive: true, force: true });
   assert.equal(fs.existsSync(repo), false);
 });

@@ -1,8 +1,8 @@
-// exec/verify.mjs — T3: re-run determinista + evidencia rojo→verde para la
-// skill plan-executor. Node ESM puro, solo stdlib (node:child_process). Sin
-// dependencias npm.
+// exec/verify.mjs — T3: deterministic re-run + red→green evidence for the
+// plan-executor skill. Pure Node ESM, stdlib only (node:child_process). No
+// npm dependencies.
 //
-// Convención: los módulos lib no imprimen; devuelven datos.
+// Convention: lib modules do not print; they return data.
 
 import { spawnSync } from 'node:child_process';
 

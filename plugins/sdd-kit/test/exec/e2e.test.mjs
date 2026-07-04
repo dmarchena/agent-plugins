@@ -1,13 +1,14 @@
 // test/exec/e2e.test.mjs — T8-e2e (R-E2E / R-E2E.S1 / AC-E2E)
 //
-// Recorrido integrador de la fase exec de extremo a extremo. La skill delega el
-// ciclo TDD en subagentes LLM (no reproducibles en un test), así que aquí se
-// STUBBEA al ejecutor: por cada tarea del fixture se escriben un test y una
-// implementación triviales que pasan, y se conduce el CLI exec-tools.mjs con la
-// misma secuencia que prescribe SKILL.md (init → next → complete… → report).
-// Se verifica la glue real: tandas del DAG (2 en paralelo, 1 después), un commit
-// de tarea por tarea en la rama ia/<slug>, estado con las 3 done y consumos
-// rellenos, re-run final verde e informe con real vs estimado y ACs cubiertos.
+// End-to-end integration walkthrough of the exec phase. The skill delegates the
+// TDD cycle to LLM subagents (not reproducible in a test), so here the
+// executor is STUBBED: for each task in the fixture a trivial passing test and
+// implementation are written, and the exec-tools.mjs CLI is driven through the
+// same sequence prescribed by SKILL.md (init -> next -> complete... -> report).
+// It verifies the real glue: DAG batches (2 in parallel, 1 afterwards), one
+// commit per task on the feat/<slug> branch, state with all 3 done and their
+// consumption filled in, a final green re-run, and a report with actual vs
+// estimated tokens and covered ACs.
 
 import { test } from 'node:test';
 import assert from 'node:assert';
@@ -21,81 +22,81 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI = path.resolve(__dirname, '..', '..', 'scripts', 'exec-tools.mjs');
 const SLUG = 'e2e-demo';
 
-// --- fixture: spec de 3 requisitos (R1, R2 independientes; R3 depende de ambos) ---
+// --- fixture: spec with 3 requirements (R1, R2 independent; R3 depends on both) ---
 
-const SPEC = `# Spec: Fixture E2E
+const SPEC = `# Spec: E2E Fixture
 
 ## Purpose
 
-Fixture mínimo para el recorrido integrador de la fase exec.
+Minimal fixture for the exec phase's integration walkthrough.
 
 ## Scope
 
 **In scope:**
-- Tres requisitos: dos independientes y uno dependiente.
+- Three requirements: two independent and one dependent.
 
 **Out of scope (non-goals):**
-- Nada más.
+- Nothing else.
 
 ## Functional Requirements
 
-### R1 — Primer requisito independiente
+### R1 — First independent requirement
 
 Depende de: —
 
-The system SHALL entregar la parte A.
+The system SHALL deliver part A.
 
 #### R1.S1 — Happy path
-- GIVEN nada
-- WHEN se ejecuta la tarea A
-- THEN la parte A queda hecha
+- GIVEN nothing
+- WHEN task A runs
+- THEN part A is done
 
-### R2 — Segundo requisito independiente
+### R2 — Second independent requirement
 
 Depende de: —
 
-The system SHALL entregar la parte B.
+The system SHALL deliver part B.
 
 #### R2.S1 — Happy path
-- GIVEN nada
-- WHEN se ejecuta la tarea B
-- THEN la parte B queda hecha
+- GIVEN nothing
+- WHEN task B runs
+- THEN part B is done
 
-### R3 — Requisito dependiente
+### R3 — Dependent requirement
 
 Depende de: R1, R2
 
-The system SHALL entregar la parte C que combina A y B.
+The system SHALL deliver part C, which combines A and B.
 
 #### R3.S1 — Happy path
-- GIVEN A y B hechas
-- WHEN se ejecuta la tarea C
-- THEN la parte C queda hecha
+- GIVEN A and B are done
+- WHEN task C runs
+- THEN part C is done
 
 ## Technical Requirements
 
-- **Stack / framework:** N/A (fixture de test).
-- **Integraciones:** N/A
-- **Rendimiento:** N/A
-- **Seguridad / privacidad:** N/A
-- **Datos / almacenamiento:** N/A
-- **Restricciones adicionales:** N/A
+- **Stack / framework:** N/A (test fixture).
+- **Integrations:** N/A
+- **Performance:** N/A
+- **Security / privacy:** N/A
+- **Data / storage:** N/A
+- **Additional constraints:** N/A
 
 ## Acceptance Criteria
 
-- [ ] AC1 → R1.S1 [auto] — la parte A queda hecha
-- [ ] AC2 → R2.S1 [auto] — la parte B queda hecha
-- [ ] AC3 → R3.S1 [auto] — la parte C queda hecha
+- [ ] AC1 → R1.S1 [auto] — part A is done
+- [ ] AC2 → R2.S1 [auto] — part B is done
+- [ ] AC3 → R3.S1 [auto] — part C is done
 
 ## Assumptions & Open Questions
 
-- Ninguna.
+- None.
 `;
 
 const PLAN = {
   plan_id: 'e2e-demo-plan',
-  project_name: 'Fixture E2E',
-  global_objective: 'Recorrido integrador de la fase exec con 3 tareas.',
+  project_name: 'E2E Fixture',
+  global_objective: 'Integration walkthrough of the exec phase with 3 tasks.',
   source_spec: 'spec.md',
   confidence: 'low',
   estimated_tokens_total: 3000,
@@ -107,15 +108,15 @@ const PLAN = {
       agent_type: 'code_writer',
       subagent: 'general-purpose',
       model: 'sonnet',
-      justification: 'Entrega acotada de la parte A con AC claro.',
-      instructions: 'Implementa la parte A referenciando el escenario R1.S1 del spec.',
-      expected_output_schema: 'Parte A implementada y su test en verde',
+      justification: 'Bounded delivery of part A with a clear AC.',
+      instructions: 'Implement part A, referencing scenario R1.S1 from the spec.',
+      expected_output_schema: 'Part A implemented and its test passing',
       satisfies_acs: ['AC1'],
       estimated_tokens: 1000,
       actual_tokens: null,
       deviation: null,
       test_contract: [
-        { ref: 'R1.S1', assertion: 'La parte A queda hecha y su test pasa' },
+        { ref: 'R1.S1', assertion: 'Part A is done and its test passes' },
       ],
     },
     {
@@ -125,15 +126,15 @@ const PLAN = {
       agent_type: 'code_writer',
       subagent: 'general-purpose',
       model: 'sonnet',
-      justification: 'Entrega acotada de la parte B con AC claro.',
-      instructions: 'Implementa la parte B referenciando el escenario R2.S1 del spec.',
-      expected_output_schema: 'Parte B implementada y su test en verde',
+      justification: 'Bounded delivery of part B with a clear AC.',
+      instructions: 'Implement part B, referencing scenario R2.S1 from the spec.',
+      expected_output_schema: 'Part B implemented and its test passing',
       satisfies_acs: ['AC2'],
       estimated_tokens: 1000,
       actual_tokens: null,
       deviation: null,
       test_contract: [
-        { ref: 'R2.S1', assertion: 'La parte B queda hecha y su test pasa' },
+        { ref: 'R2.S1', assertion: 'Part B is done and its test passes' },
       ],
     },
     {
@@ -143,15 +144,15 @@ const PLAN = {
       agent_type: 'code_writer',
       subagent: 'general-purpose',
       model: 'sonnet',
-      justification: 'Combina las salidas de task-a y task-b; depende de ambas.',
-      instructions: 'Implementa la parte C referenciando R3.S1; combina las salidas de task-a y task-b.',
-      expected_output_schema: 'Parte C implementada y su test en verde',
+      justification: 'Combines the outputs of task-a and task-b; depends on both.',
+      instructions: 'Implement part C, referencing R3.S1; combines the outputs of task-a and task-b.',
+      expected_output_schema: 'Part C implemented and its test passing',
       satisfies_acs: ['AC3'],
       estimated_tokens: 1000,
       actual_tokens: null,
       deviation: null,
       test_contract: [
-        { ref: 'R3.S1', assertion: 'La parte C queda hecha y su test pasa' },
+        { ref: 'R3.S1', assertion: 'Part C is done and its test passes' },
       ],
     },
   ],
@@ -167,13 +168,13 @@ function git(repo, args) {
   return execFileSync('git', args, { cwd: repo, encoding: 'utf8' }).trim();
 }
 
-// Invoca el CLI y devuelve el JSON parseado de stdout.
+// Invokes the CLI and returns the parsed JSON from stdout.
 function cli(repo, args) {
   const out = execFileSync('node', [CLI, ...args], { cwd: repo, encoding: 'utf8' });
   return JSON.parse(out);
 }
 
-// Stub del ejecutor: escribe impl + test que pasan y devuelve el comando de re-run.
+// Executor stub: writes a passing impl + test and returns the re-run command.
 function simulateExecutor(repo, taskId, ref) {
   fs.mkdirSync(path.join(repo, 'impl'), { recursive: true });
   fs.mkdirSync(path.join(repo, 't'), { recursive: true });
@@ -183,13 +184,13 @@ function simulateExecutor(repo, taskId, ref) {
     `import { test } from 'node:test';\n`
     + `import assert from 'node:assert';\n`
     + `import { done } from '../impl/${taskId}.mjs';\n`
-    + `test('${taskId} satisface ${ref}', () => { assert.strictEqual(done, true); });\n`,
+    + `test('${taskId} satisfies ${ref}', () => { assert.strictEqual(done, true); });\n`,
   );
   return `node --test t/${taskId}.test.mjs`;
 }
 
-// Ejecuta una tarea como lo haría la skill: stub del ejecutor + complete con
-// evidencia rojo→verde correcta (--rojo fail = el test falla antes de implementar).
+// Runs a task the way the skill would: executor stub + complete with correct
+// red->green evidence (--rojo fail = the test fails before implementing).
 function runTask(repo, specDir, taskId, ref) {
   const testCmd = simulateExecutor(repo, taskId, ref);
   return cli(repo, [
@@ -203,10 +204,10 @@ function runTask(repo, specDir, taskId, ref) {
 
 // --- test ---------------------------------------------------------------------
 
-test('AC-E2E: recorrido integrador de 3 tareas (2 paralelas + 1 dependiente)', () => {
+test('AC-E2E: integration walkthrough of 3 tasks (2 parallel + 1 dependent)', () => {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'exec-e2e-'));
   try {
-    // Fixture en docs/specs/<slug>/ y repo git en la rama principal.
+    // Fixture under docs/specs/<slug>/ and a git repo on the main branch.
     const specDir = path.join('docs', 'specs', SLUG);
     const absSpecDir = path.join(repo, specDir);
     fs.mkdirSync(absSpecDir, { recursive: true });
@@ -220,81 +221,81 @@ test('AC-E2E: recorrido integrador de 3 tareas (2 paralelas + 1 dependiente)', (
     git(repo, ['commit', '-qm', 'fixture']);
     const mainHead = git(repo, ['rev-parse', 'HEAD']);
 
-    // 1. init: valida el plan, crea rama + estado, primera tanda = las 2 independientes.
+    // 1. init: validates the plan, creates branch + state, first batch = the 2 independent tasks.
     const init = cli(repo, ['init', specDir]);
-    assert.strictEqual(init.ok, true, 'init debe validar el plan');
-    assert.strictEqual(init.branch, `ia/${SLUG}`);
+    assert.strictEqual(init.ok, true, 'init must validate the plan');
+    assert.strictEqual(init.branch, `feat/${SLUG}`);
     assert.strictEqual(init.branch_created, true);
     assert.strictEqual(init.total_tasks, 3);
     assert.deepStrictEqual([...init.first_batch].sort(), ['task-a', 'task-b'],
-      'la primera tanda son las 2 tareas independientes (2 en paralelo)');
+      'the first batch is the 2 independent tasks (2 in parallel)');
 
-    // 2. next: confirma la tanda ejecutable.
+    // 2. next: confirms the runnable batch.
     const batch1 = cli(repo, ['next', specDir]);
     assert.strictEqual(batch1.status, 'run');
     assert.deepStrictEqual([...batch1.batch].sort(), ['task-a', 'task-b']);
 
-    // 3. Ejecuta las 2 independientes; cada complete verifica y commitea.
+    // 3. Runs the 2 independent tasks; each complete verifies and commits.
     const doneA = runTask(repo, specDir, 'task-a', 'R1.S1');
     const doneB = runTask(repo, specDir, 'task-b', 'R2.S1');
     for (const [d, id] of [[doneA, 'task-a'], [doneB, 'task-b']]) {
-      assert.strictEqual(d.status, 'done', `${id} debe quedar done`);
-      assert.ok(d.commit, `${id} debe tener commit`);
+      assert.strictEqual(d.status, 'done', `${id} must end up done`);
+      assert.ok(d.commit, `${id} must have a commit`);
       assert.strictEqual(d.deviation, 200, `${id} deviation = 1200 - 1000`);
     }
 
-    // 4. next: ahora la dependiente entra en tanda (1 después de las 2).
+    // 4. next: now the dependent task enters the batch (1 after the 2).
     const batch2 = cli(repo, ['next', specDir]);
     assert.strictEqual(batch2.status, 'run');
     assert.deepStrictEqual(batch2.batch, ['task-c'],
-      'task-c solo es ejecutable tras completarse sus dos dependencias');
+      'task-c is only runnable once both its dependencies are completed');
 
-    // 5. Ejecuta la dependiente.
+    // 5. Runs the dependent task.
     const doneC = runTask(repo, specDir, 'task-c', 'R3.S1');
     assert.strictEqual(doneC.status, 'done');
     assert.ok(doneC.commit);
 
-    // 6. next: no quedan tareas → complete.
+    // 6. next: no tasks left -> complete.
     const end = cli(repo, ['next', specDir]);
     assert.strictEqual(end.status, 'complete');
     assert.strictEqual(end.counts.done, 3);
 
-    // 7. Rama ia/<slug> con exactamente 3 commits de tarea; main intacta.
-    assert.strictEqual(git(repo, ['rev-parse', '--abbrev-ref', 'HEAD']), `ia/${SLUG}`);
+    // 7. feat/<slug> branch with exactly 3 task commits; main untouched.
+    assert.strictEqual(git(repo, ['rev-parse', '--abbrev-ref', 'HEAD']), `feat/${SLUG}`);
     const taskCommits = git(repo, ['rev-list', '--count', 'HEAD', '^main']);
-    assert.strictEqual(taskCommits, '3', 'exactamente 3 commits de tarea sobre main');
-    assert.strictEqual(git(repo, ['rev-parse', 'main']), mainHead, 'main no recibe commits');
-    // Cada commit de tarea contiene su test + su implementación.
+    assert.strictEqual(taskCommits, '3', 'exactly 3 task commits on top of main');
+    assert.strictEqual(git(repo, ['rev-parse', 'main']), mainHead, 'main receives no commits');
+    // Each task commit contains its test + its implementation.
     for (const id of ['task-a', 'task-b', 'task-c']) {
       const files = git(repo, ['log', '--all', '--pretty=format:', '--name-only',
         '--diff-filter=A', '--', `t/${id}.test.mjs`, `impl/${id}.mjs`]);
-      assert.ok(files.includes(`t/${id}.test.mjs`), `${id}: test versionado`);
-      assert.ok(files.includes(`impl/${id}.mjs`), `${id}: impl versionada`);
+      assert.ok(files.includes(`t/${id}.test.mjs`), `${id}: test committed`);
+      assert.ok(files.includes(`impl/${id}.mjs`), `${id}: impl committed`);
     }
 
-    // 8. Estado: 3 done con consumos rellenos; plan byte-idéntico al original.
+    // 8. State: 3 done with consumption filled in; plan byte-identical to the original.
     const state = JSON.parse(fs.readFileSync(path.join(absSpecDir, 'execution_state.json'), 'utf8'));
     for (const id of ['task-a', 'task-b', 'task-c']) {
       assert.strictEqual(state.tasks[id].status, 'done');
       assert.strictEqual(state.tasks[id].actual_tokens, 1200);
       assert.strictEqual(state.tasks[id].deviation, 200);
-      assert.ok(state.tasks[id].test_cmd, `${id}: test_cmd registrado`);
+      assert.ok(state.tasks[id].test_cmd, `${id}: test_cmd recorded`);
     }
     const planOnDisk = fs.readFileSync(path.join(absSpecDir, 'execution_plan.json'), 'utf8');
-    assert.strictEqual(planOnDisk, JSON.stringify(PLAN, null, 2), 'execution_plan.json inmutable');
+    assert.strictEqual(planOnDisk, JSON.stringify(PLAN, null, 2), 'execution_plan.json is immutable');
 
-    // 9. Re-run final: todos los tests de las tareas done siguen en verde.
+    // 9. Final re-run: all tests of the done tasks are still green.
     for (const id of ['task-a', 'task-b', 'task-c']) {
       assert.doesNotThrow(
         () => execFileSync('node', ['--test', `t/${id}.test.mjs`], { cwd: repo, stdio: 'pipe' }),
-        `${id}: re-run final debe salir verde`,
+        `${id}: final re-run must come out green`,
       );
     }
 
-    // 10. Informe final: real vs estimado (total y por tarea) y ACs cubiertos.
+    // 10. Final report: actual vs estimated (total and per task) and covered ACs.
     const report = cli(repo, ['report', specDir]);
     assert.strictEqual(report.status, 'report');
-    assert.strictEqual(report.branch, `ia/${SLUG}`);
+    assert.strictEqual(report.branch, `feat/${SLUG}`);
     assert.strictEqual(report.counts.done, 3);
     assert.strictEqual(report.counts.blocked, 0);
     assert.strictEqual(report.counts.skipped, 0);
@@ -306,7 +307,7 @@ test('AC-E2E: recorrido integrador de 3 tareas (2 paralelas + 1 dependiente)', (
       assert.strictEqual(pt.deviation, 200);
     }
     assert.deepStrictEqual(report.acs_satisfechos, ['AC1', 'AC2', 'AC3']);
-    assert.strictEqual(report.pause, null, 'sin pausa de presupuesto');
+    assert.strictEqual(report.pause, null, 'no budget pause');
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }

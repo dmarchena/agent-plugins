@@ -1,5 +1,5 @@
-// exec/plan.mjs — T1 carga+validación, T4.S1 tandas del DAG
-// Node ESM puro, solo stdlib. Sin dependencias externas. No imprime: devuelve datos.
+// exec/plan.mjs — T1 load+validation, T4.S1 DAG batches
+// Pure Node ESM, stdlib only. No external dependencies. Does not print: returns data.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,8 +10,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PLAN_TOOLS_PATH = path.join(__dirname, '..', 'plan-tools.mjs');
 
 /**
- * Carga y valida un plan contra su spec usando el validador existente
- * (scripts/plan-tools.mjs check-plan) por subproceso.
+ * Loads and validates a plan against its spec using the existing validator
+ * (scripts/plan-tools.mjs check-plan) via a subprocess.
  *
  * @param {string} specPath
  * @param {string} planPath
@@ -43,9 +43,9 @@ function toSet(value) {
 }
 
 /**
- * Devuelve los task_id listos para ejecutar: todas sus dependencies están en
- * doneIds, no están en doneIds ni en excluded, en el orden de plan.tasks,
- * truncado a opts.max.
+ * Returns the task_ids ready to run: all their dependencies are in doneIds,
+ * they are not in doneIds nor in excluded, in plan.tasks order, truncated to
+ * opts.max.
  *
  * @param {object} plan
  * @param {string[]|Set<string>} doneIds
@@ -68,15 +68,15 @@ export function readyBatch(plan, doneIds, opts = {}) {
 }
 
 /**
- * Devuelve los dependientes transitivos de taskId: tareas que dependen
- * directa o indirectamente de ella.
+ * Returns the transitive dependents of taskId: tasks that depend directly or
+ * indirectly on it.
  *
  * @param {object} plan
  * @param {string} taskId
  * @returns {string[]}
  */
 export function allDependents(plan, taskId) {
-  const dependentsOf = new Map(); // id -> [ids que dependen de él]
+  const dependentsOf = new Map(); // id -> [ids that depend on it]
   for (const task of plan.tasks) {
     for (const dep of task.dependencies) {
       if (!dependentsOf.has(dep)) dependentsOf.set(dep, []);

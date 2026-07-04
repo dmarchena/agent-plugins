@@ -1,12 +1,12 @@
-// exec/budget.mjs — T6 umbral 2x + bloqueo/skip transitivo
-// Node ESM puro, solo stdlib + plan.mjs/state.mjs. Sin dependencias externas. No imprime: devuelve datos.
+// exec/budget.mjs — T6 2x threshold + transitive block/skip
+// Pure Node ESM, stdlib only + plan.mjs/state.mjs. No external dependencies. Does not print: returns data.
 
 import { allDependents } from './plan.mjs';
 import { recordResult, markSkipped } from './state.mjs';
 
 /**
- * Comprueba si el consumo real de tokens de las tareas ya ejecutadas excede
- * el doble de lo estimado para esas mismas tareas.
+ * Checks whether the actual token consumption of already-executed tasks
+ * exceeds double the estimate for those same tasks.
  *
  * @param {object} state
  * @returns {{ exceeded: boolean, real: number, estimated: number }}
@@ -29,8 +29,8 @@ export function exceeds(state) {
 }
 
 /**
- * Marca taskId como 'blocked' (preservando sus campos ya registrados) y
- * marca en cascada como 'skipped' todos sus dependientes transitivos.
+ * Marks taskId as 'blocked' (preserving its already-recorded fields) and
+ * cascades to mark all of its transitive dependents as 'skipped'.
  *
  * @param {object} plan
  * @param {object} state

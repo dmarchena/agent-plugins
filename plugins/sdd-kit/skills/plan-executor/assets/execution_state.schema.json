@@ -17,7 +17,7 @@
     },
     "branch": {
       "type": ["string", "null"],
-      "description": "Rama git ia/<slug> donde van los commits de tarea; null hasta crearla."
+      "description": "Rama git feat/<slug> donde van los commits de tarea; null hasta crearla."
     },
     "started_at": {
       "type": "string",

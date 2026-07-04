@@ -1,14 +1,14 @@
-// Estado persistente y reanudable de la skill plan-executor.
-// Node ESM puro, solo stdlib (node:fs). Sin dependencias npm, sin red.
-// Forma del estado: plugins/sdd-kit/skills/plan-executor/assets/execution_state.schema.json.
-// Convención: los módulos lib no imprimen; devuelven/mutan datos.
+// Persistent, resumable state for the plan-executor skill.
+// Pure Node ESM, stdlib only (node:fs). No npm dependencies, no network.
+// State shape: plugins/sdd-kit/skills/plan-executor/assets/execution_state.schema.json.
+// Convention: lib modules do not print; they return/mutate data.
 
 import fs from 'node:fs';
 
 /**
- * Inicializa el estado de ejecución a partir de un execution_plan.json ya validado.
- * @param {object} plan - plan con plan_id, source_spec y tasks[].task_id/estimated_tokens.
- * @returns {object} estado inicial conforme a execution_state.schema.json.
+ * Initializes the execution state from an already-validated execution_plan.json.
+ * @param {object} plan - plan with plan_id, source_spec and tasks[].task_id/estimated_tokens.
+ * @returns {object} initial state conforming to execution_state.schema.json.
  */
 export function initState(plan) {
   const tasks = {};
@@ -34,7 +34,7 @@ export function initState(plan) {
 }
 
 /**
- * Registra el resultado de una tarea en el estado.
+ * Records the result of a task in the state.
  * @param {object} state
  * @param {string} taskId
  * @param {{status: string, actual_tokens?: number|null, test_cmd?: string|null, commit?: string|null, incidencia?: string|null}} result
@@ -54,7 +54,7 @@ export function recordResult(
 }
 
 /**
- * Marca como 'skipped' cada task_id dado.
+ * Marks each given task_id as 'skipped'.
  * @param {object} state
  * @param {string[]} taskIds
  */
@@ -65,7 +65,7 @@ export function markSkipped(state, taskIds) {
 }
 
 /**
- * Registra una pausa por umbral de presupuesto.
+ * Records a pause triggered by the budget threshold.
  * @param {object} state
  * @param {{reason: string, real_tokens: number, estimated_tokens: number, at_task: string}} pause
  */
@@ -74,7 +74,7 @@ export function recordPause(state, { reason, real_tokens, estimated_tokens, at_t
 }
 
 /**
- * Fija la rama git asociada a la ejecución.
+ * Sets the git branch associated with the execution.
  * @param {object} state
  * @param {string} branch
  */
@@ -83,7 +83,7 @@ export function setBranch(state, branch) {
 }
 
 /**
- * Escribe el estado a disco de forma atómica (tmp + rename).
+ * Writes the state to disk atomically (tmp + rename).
  * @param {string} statePath
  * @param {object} state
  */
@@ -94,7 +94,7 @@ export function persist(statePath, state) {
 }
 
 /**
- * Lee y parsea el estado desde disco.
+ * Reads and parses the state from disk.
  * @param {string} statePath
  * @returns {object} state
  */

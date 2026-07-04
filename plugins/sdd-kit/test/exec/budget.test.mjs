@@ -14,12 +14,12 @@ const samplePlan3 = {
   ],
 };
 
-test('exceeds: no excedido cuando real <= 2x estimated de las tareas ejecutadas', () => {
+test('exceeds: not exceeded when real <= 2x estimated of the executed tasks', () => {
   const state = initState(samplePlan3);
 
   recordResult(state, 'task-a', { status: 'done', actual_tokens: 1200 });
   recordResult(state, 'task-b', { status: 'done', actual_tokens: 1300 });
-  // task-c queda pending, sin actual_tokens: no debe contar.
+  // task-c stays pending, no actual_tokens: must not count.
 
   const result = exceeds(state);
 
@@ -28,12 +28,12 @@ test('exceeds: no excedido cuando real <= 2x estimated de las tareas ejecutadas'
   assert.equal(result.exceeded, false);
 });
 
-test('exceeds: excedido cuando real > 2x estimated de las tareas ejecutadas', () => {
+test('exceeds: exceeded when real > 2x estimated of the executed tasks', () => {
   const state = initState(samplePlan3);
 
   recordResult(state, 'task-a', { status: 'done', actual_tokens: 3000 });
   recordResult(state, 'task-b', { status: 'done', actual_tokens: 3000 });
-  // task-c sin ejecutar: no cuenta en real ni en estimated.
+  // task-c not executed: does not count toward real or estimated.
 
   const result = exceeds(state);
 
@@ -53,7 +53,7 @@ const samplePlanChain = {
   ],
 };
 
-test('blockAndSkip: bloquea la tarea y salta en cascada a sus dependientes transitivos', () => {
+test('blockAndSkip: blocks the task and cascades a skip to its transitive dependents', () => {
   const state = initState(samplePlanChain);
 
   recordResult(state, 'T1', {
@@ -71,9 +71,9 @@ test('blockAndSkip: bloquea la tarea y salta en cascada a sus dependientes trans
   assert.equal(state.tasks['T1'].status, 'blocked');
   assert.equal(state.tasks['T2'].status, 'skipped');
   assert.equal(state.tasks['T3'].status, 'skipped');
-  assert.equal(state.tasks['T4'].status, 'pending'); // rama sin relación intacta
+  assert.equal(state.tasks['T4'].status, 'pending'); // unrelated branch untouched
 
-  // Los campos previos de T1 no se pierden al bloquear.
+  // T1's previous fields are not lost when blocking.
   assert.equal(state.tasks['T1'].actual_tokens, 2500);
   assert.equal(state.tasks['T1'].test_cmd, 'node --test test/t1.test.mjs');
   assert.equal(state.tasks['T1'].commit, 'abc1234');

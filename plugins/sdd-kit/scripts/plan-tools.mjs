@@ -1,19 +1,19 @@
 #!/usr/bin/env node
-// Validador determinista para la skill plan-writer.
-// Node ESM puro, solo stdlib (node:fs, node:path). Sin dependencias npm, sin red.
+// Deterministic validator for the plan-writer skill.
+// Pure Node ESM, stdlib only (node:fs, node:path). No npm dependencies, no network.
 //
-// Uso:
+// Usage:
 //   node plan-tools.mjs inspect-spec <spec.md>
 //   node plan-tools.mjs check-plan <spec.md> <plan.json>
 //
-// Convención: éxito -> exit 0, mensajes por stdout.
-//             fallo  -> exit 1, mensaje de error por stderr (nombrando el ID/campo causante).
+// Convention: success -> exit 0, messages on stdout.
+//             failure -> exit 1, error message on stderr (naming the offending ID/field).
 
 import fs from 'node:fs';
 import path from 'node:path';
 
 // ---------------------------------------------------------------------------
-// Utilidades genéricas
+// Generic utilities
 // ---------------------------------------------------------------------------
 
 function fail(message) {
@@ -25,7 +25,7 @@ function readFileOrFail(filePath, label) {
   try {
     return fs.readFileSync(filePath, 'utf8');
   } catch (err) {
-    fail(`no se pudo leer ${label}: ${filePath} (${err.message})`);
+    fail(`could not read ${label}: ${filePath} (${err.message})`);
   }
 }
 
@@ -37,15 +37,15 @@ function isInteger(v) {
   return Number.isInteger(v);
 }
 
-// Root de un ID de escenario: la parte antes de ".S". Si no es un escenario
-// (ya es un ID de requisito), se devuelve tal cual.
+// Root of a scenario ID: the part before ".S". If it's not a scenario
+// (it's already a requirement ID), it is returned as-is.
 function rootOf(id) {
   const idx = id.indexOf('.S');
   return idx === -1 ? id : id.slice(0, idx);
 }
 
 // ---------------------------------------------------------------------------
-// Parseo de spec.md (común a inspect-spec y check-plan)
+// spec.md parsing (shared by inspect-spec and check-plan)
 // ---------------------------------------------------------------------------
 
 const REQ_HEADER_RE = /^###\s+(R-E2E|R\d+)\b/;
@@ -126,23 +126,23 @@ function cmdInspectSpec(specPath) {
   const spec = parseSpec(specText);
 
   if (spec.requirements.size === 0) {
-    fail('no se encontraron IDs R<n>');
+    fail('no R<n> IDs found');
   }
   if (spec.scenarios.size === 0) {
-    fail('no se encontraron escenarios');
+    fail('no scenarios found');
   }
   if (!spec.hasACSectionHeader) {
-    fail('falta la sección Acceptance Criteria');
+    fail('missing the Acceptance Criteria section');
   }
 
   process.stdout.write(
-    `${spec.requirements.size} requisitos, ${spec.acs.size} ACs detectados\n`
+    `${spec.requirements.size} requirements, ${spec.acs.size} ACs detected\n`
   );
   process.exit(0);
 }
 
 // ---------------------------------------------------------------------------
-// check-plan: validación de esquema
+// check-plan: schema validation
 // ---------------------------------------------------------------------------
 
 const VALID_AGENT_TYPES = new Set([
@@ -155,7 +155,7 @@ const VALID_AGENT_TYPES = new Set([
 ]);
 const VALID_MODELS = new Set(['haiku', 'sonnet', 'opus']);
 
-// Devuelve null si el esquema es válido, o la ruta del campo que falla.
+// Returns null if the schema is valid, or the path of the failing field.
 function validateSchema(plan) {
   if (typeof plan !== 'object' || plan === null || Array.isArray(plan)) {
     return 'plan_id';
@@ -215,13 +215,13 @@ function validateSchema(plan) {
 }
 
 // ---------------------------------------------------------------------------
-// check-plan: checks individuales
+// check-plan: individual checks
 // ---------------------------------------------------------------------------
 
 function checkDuplicateTaskIds(tasks) {
   const seen = new Set();
   for (const t of tasks) {
-    if (seen.has(t.task_id)) return `task_id duplicado: ${t.task_id}`;
+    if (seen.has(t.task_id)) return `duplicate task_id: ${t.task_id}`;
     seen.add(t.task_id);
   }
   return null;
@@ -231,17 +231,17 @@ function checkDependenciesExist(tasks, taskIds) {
   for (const t of tasks) {
     for (const dep of t.dependencies) {
       if (!taskIds.has(dep)) {
-        return `dependencia a task inexistente: ${dep}`;
+        return `dependency on nonexistent task: ${dep}`;
       }
     }
   }
   return null;
 }
 
-// DFS con pila de visita para detectar ciclos en el DAG de dependencias.
+// DFS with a visit stack to detect cycles in the dependency DAG.
 function findCycle(tasks) {
   const graph = new Map(tasks.map((t) => [t.task_id, t.dependencies]));
-  const state = new Map(); // 0/undefined = no visitado, 1 = en pila, 2 = terminado
+  const state = new Map(); // 0/undefined = unvisited, 1 = on stack, 2 = done
   const stack = [];
 
   function dfs(node) {
@@ -249,7 +249,7 @@ function findCycle(tasks) {
     stack.push(node);
 
     for (const dep of graph.get(node) || []) {
-      if (!graph.has(dep)) continue; // ya reportado por checkDependenciesExist
+      if (!graph.has(dep)) continue; // already reported by checkDependenciesExist
       const s = state.get(dep) || 0;
       if (s === 1) {
         const idx = stack.indexOf(dep);
@@ -282,19 +282,19 @@ function checkInstructions(tasks, taskIds) {
     const instructions = t.instructions;
 
     if (!ID_REFERENCE_RE.test(instructions)) {
-      return `instructions sin referencia a IDs: ${t.task_id}`;
+      return `instructions has no reference to IDs: ${t.task_id}`;
     }
 
     if (t.dependencies.length > 0) {
       const mentionsDep = t.dependencies.some((depId) => instructions.includes(depId));
       if (!mentionsDep) {
-        return `instructions no referencia task previo: ${t.task_id}`;
+        return `instructions does not reference a previous task: ${t.task_id}`;
       }
     } else {
       const otherTaskIds = [...taskIds].filter((id) => id !== t.task_id);
       const mentionsOther = otherTaskIds.some((id) => instructions.includes(id));
       if (mentionsOther) {
-        return `tarea sin dependencias referencia task_id: ${t.task_id}`;
+        return `task with no dependencies references a task_id: ${t.task_id}`;
       }
     }
   }
@@ -315,7 +315,7 @@ function checkRequirementCoverage(spec, tasks) {
   const covered = coveredRequirements(tasks);
   for (const reqId of spec.requirements.keys()) {
     if (!covered.has(reqId)) {
-      return `requisito sin cubrir: ${reqId}`;
+      return `uncovered requirement: ${reqId}`;
     }
   }
   return null;
@@ -328,13 +328,13 @@ function checkACCoverage(spec, tasks) {
   }
   for (const acId of spec.acs) {
     if (!covered.has(acId)) {
-      return `AC sin cubrir: ${acId}`;
+      return `uncovered AC: ${acId}`;
     }
   }
   return null;
 }
 
-// Para cada requisito R, qué task_ids lo cubren (via source_ids / root de escenario).
+// For each requirement R, which task_ids cover it (via source_ids / scenario root).
 function tasksCoveringRequirement(tasks) {
   const map = new Map(); // reqId -> Set<task_id>
   for (const t of tasks) {
@@ -358,7 +358,7 @@ function checkSpecDependencyConsistency(spec, tasks) {
         const dependencyCoverers = coveringMap.get(reqDep) || new Set();
         const satisfied = task.dependencies.some((d) => dependencyCoverers.has(d));
         if (!satisfied) {
-          return `dependencia de spec no reflejada: ${taskId} requiere ${reqDep}`;
+          return `spec dependency not reflected: ${taskId} requires ${reqDep}`;
         }
       }
     }
@@ -374,14 +374,14 @@ function checkParallelizableTasks(spec, tasks) {
   if (independentReqs >= 2) {
     const parallelTasks = tasks.filter((t) => t.dependencies.length === 0).length;
     if (parallelTasks < 2) {
-      return 'faltan tareas paralelizables (dependencies: [])';
+      return 'missing parallelizable tasks (dependencies: [])';
     }
   }
   return null;
 }
 
-// Reglas de negocio de test_contract: solo code_writer lleva contrato, y sus
-// refs deben existir en el spec (escenario R<n>.S<m> o AC AC<n>).
+// test_contract business rules: only code_writer carries a contract, and its
+// refs must exist in the spec (scenario R<n>.S<m> or AC AC<n>).
 function checkTestContract(spec, tasks) {
   const validRefs = new Set([...spec.scenarios, ...spec.acs]);
 
@@ -390,15 +390,15 @@ function checkTestContract(spec, tasks) {
     const hasContract = Array.isArray(t.test_contract) && t.test_contract.length > 0;
 
     if (isCodeWriter && !hasContract) {
-      return `test_contract vacío en tarea code_writer: ${t.task_id}`;
+      return `empty test_contract in code_writer task: ${t.task_id}`;
     }
     if (!isCodeWriter && t.test_contract !== null) {
-      return `test_contract debe ser null para agent_type=${t.agent_type}: ${t.task_id}`;
+      return `test_contract must be null for agent_type=${t.agent_type}: ${t.task_id}`;
     }
     if (hasContract) {
       for (const tc of t.test_contract) {
         if (!validRefs.has(tc.ref)) {
-          return `test_contract.ref inexistente en spec: ${t.task_id} -> ${tc.ref}`;
+          return `test_contract.ref does not exist in spec: ${t.task_id} -> ${tc.ref}`;
         }
       }
     }
@@ -407,7 +407,7 @@ function checkTestContract(spec, tasks) {
 }
 
 // ---------------------------------------------------------------------------
-// check-plan: orquestación
+// check-plan: orchestration
 // ---------------------------------------------------------------------------
 
 function cmdCheckPlan(specPath, planPath) {
@@ -419,12 +419,12 @@ function cmdCheckPlan(specPath, planPath) {
   try {
     plan = JSON.parse(planText);
   } catch {
-    fail('plan.json no es JSON válido');
+    fail('plan.json is not valid JSON');
   }
 
   const schemaError = validateSchema(plan);
   if (schemaError) {
-    fail(`esquema: ${schemaError}`);
+    fail(`schema: ${schemaError}`);
   }
 
   const tasks = plan.tasks;
@@ -435,7 +435,7 @@ function cmdCheckPlan(specPath, planPath) {
     () => checkDependenciesExist(tasks, taskIds),
     () => {
       const cycle = findCycle(tasks);
-      return cycle ? `ciclo: ${cycle.join(' -> ')}` : null;
+      return cycle ? `cycle: ${cycle.join(' -> ')}` : null;
     },
     () => checkInstructions(tasks, taskIds),
     () => checkRequirementCoverage(spec, tasks),
@@ -451,7 +451,7 @@ function cmdCheckPlan(specPath, planPath) {
   }
 
   process.stdout.write(
-    `plan válido: ${tasks.length} tareas, todos los requisitos y ACs cubiertos\n`
+    `valid plan: ${tasks.length} tasks, all requirements and ACs covered\n`
   );
   process.exit(0);
 }
@@ -465,16 +465,16 @@ function main() {
 
   if (subcommand === 'inspect-spec') {
     const [specPath] = args;
-    if (!specPath) fail('uso: plan-tools.mjs inspect-spec <spec.md>');
+    if (!specPath) fail('usage: plan-tools.mjs inspect-spec <spec.md>');
     cmdInspectSpec(specPath);
   } else if (subcommand === 'check-plan') {
     const [specPath, planPath] = args;
     if (!specPath || !planPath) {
-      fail('uso: plan-tools.mjs check-plan <spec.md> <plan.json>');
+      fail('usage: plan-tools.mjs check-plan <spec.md> <plan.json>');
     }
     cmdCheckPlan(specPath, planPath);
   } else {
-    fail('subcomando desconocido: uso: plan-tools.mjs <inspect-spec|check-plan> <args>');
+    fail('unknown subcommand: usage: plan-tools.mjs <inspect-spec|check-plan> <args>');
   }
 }
 

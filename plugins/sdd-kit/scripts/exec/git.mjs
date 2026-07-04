@@ -1,8 +1,8 @@
-// exec/git.mjs — T4.S2: rama y commit por tarea para la skill plan-executor.
-// Node ESM puro, solo stdlib (node:child_process). Sin dependencias npm.
+// exec/git.mjs — T4.S2: per-task branch and commit for the plan-executor skill.
+// Pure Node ESM, stdlib only (node:child_process). No npm dependencies.
 //
-// Convención: los módulos lib no imprimen; devuelven datos (salvo el guard de
-// commitTask, que lanza Error si se intenta commitear en main/master).
+// Convention: lib modules don't print; they return data (except commitTask's
+// guard, which throws if a commit is attempted on main/master).
 
 import { spawnSync } from 'node:child_process';
 
@@ -16,7 +16,7 @@ export function currentBranch(cwd = process.cwd()) {
 }
 
 export function ensureBranch(slug, cwd = process.cwd()) {
-  const branch = `ia/${slug}`;
+  const branch = `feat/${slug}`;
   const verify = run(['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`], cwd);
   const exists = verify.status === 0;
   if (exists) {
@@ -30,7 +30,7 @@ export function ensureBranch(slug, cwd = process.cwd()) {
 export function commitTask(taskId, message, cwd = process.cwd()) {
   const branch = currentBranch(cwd);
   if (branch === 'main' || branch === 'master') {
-    throw new Error(`commitTask: no se puede commitear en la rama principal (${branch})`);
+    throw new Error(`commitTask: cannot commit on the main branch (${branch})`);
   }
   run(['add', '-A'], cwd);
   run(['commit', '-m', message], cwd);

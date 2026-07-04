@@ -28,7 +28,7 @@ function makeState() {
   };
 }
 
-test('resumeGround: todas las done con test_cmd pasan -> ok:true', () => {
+test('resumeGround: all done tasks with test_cmd pass -> ok:true', () => {
   const state = makeState();
   const rerun = () => ({ passed: true, output: '' });
 
@@ -37,7 +37,7 @@ test('resumeGround: todas las done con test_cmd pasan -> ok:true', () => {
   assert.deepEqual(result, { ok: true, brokenTask: null, brokenTest: null });
 });
 
-test('resumeGround: T2 rota -> ok:false, brokenTask T2, brokenTest test T2', () => {
+test('resumeGround: T2 is broken -> ok:false, brokenTask T2, brokenTest test T2', () => {
   const state = makeState();
   const rerun = (testCmd) => ({ passed: testCmd !== 'test T2', output: '' });
 
@@ -46,7 +46,7 @@ test('resumeGround: T2 rota -> ok:false, brokenTask T2, brokenTest test T2', () 
   assert.deepEqual(result, { ok: false, brokenTask: 'T2', brokenTest: 'test T2' });
 });
 
-test('resumeGround: para en la primera rota (orden de plan.tasks), no sigue re-corriendo', () => {
+test('resumeGround: stops at the first broken one (plan.tasks order), does not keep re-running', () => {
   const state = makeState();
   const calls = [];
   const rerun = (testCmd) => {
@@ -63,7 +63,7 @@ test('resumeGround: para en la primera rota (orden de plan.tasks), no sigue re-c
   assert.equal(result.brokenTest, 'test T1');
 });
 
-test('resumeGround: sin tareas done con test_cmd -> ok:true sin llamar a rerun', () => {
+test('resumeGround: no done tasks with test_cmd -> ok:true without calling rerun', () => {
   const state = {
     tasks: {
       T1: { status: 'pending', test_cmd: null },

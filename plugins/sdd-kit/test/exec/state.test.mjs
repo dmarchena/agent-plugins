@@ -24,7 +24,7 @@ const samplePlan = {
   ],
 };
 
-test('initState: crea estado inicial con todas las tareas pending', () => {
+test('initState: creates initial state with all tasks pending', () => {
   const state = initState(samplePlan);
 
   assert.equal(state.plan_id, 'plan-test-001');
@@ -50,7 +50,7 @@ test('initState: crea estado inicial con todas las tareas pending', () => {
   }
 });
 
-test('recordResult: con actual_tokens fija los campos y calcula deviation', () => {
+test('recordResult: with actual_tokens sets the fields and computes deviation', () => {
   const state = initState(samplePlan);
 
   recordResult(state, 'task-a', {
@@ -70,7 +70,7 @@ test('recordResult: con actual_tokens fija los campos y calcula deviation', () =
   assert.equal(entry.incidencia, null);
 });
 
-test('recordResult: con actual_tokens null deja deviation en null', () => {
+test('recordResult: with actual_tokens null leaves deviation null', () => {
   const state = initState(samplePlan);
 
   recordResult(state, 'task-b', { status: 'done' });
@@ -84,7 +84,7 @@ test('recordResult: con actual_tokens null deja deviation en null', () => {
   assert.equal(entry.incidencia, null);
 });
 
-test('markSkipped: marca "skipped" cada id dado', () => {
+test('markSkipped: marks each given id as "skipped"', () => {
   const state = initState(samplePlan);
 
   markSkipped(state, ['task-b', 'task-c']);
@@ -94,34 +94,34 @@ test('markSkipped: marca "skipped" cada id dado', () => {
   assert.equal(state.tasks['task-a'].status, 'pending');
 });
 
-test('recordPause: fija state.pause con las cifras dadas', () => {
+test('recordPause: sets state.pause with the given figures', () => {
   const state = initState(samplePlan);
 
   recordPause(state, {
-    reason: 'umbral de presupuesto superado',
+    reason: 'budget threshold exceeded',
     real_tokens: 5000,
     estimated_tokens: 2000,
     at_task: 'task-b',
   });
 
   assert.deepEqual(state.pause, {
-    reason: 'umbral de presupuesto superado',
+    reason: 'budget threshold exceeded',
     real_tokens: 5000,
     estimated_tokens: 2000,
     at_task: 'task-b',
   });
 });
 
-test('setBranch: fija state.branch', () => {
+test('setBranch: sets state.branch', () => {
   const state = initState(samplePlan);
-  setBranch(state, 'ia/plan-test-001');
-  assert.equal(state.branch, 'ia/plan-test-001');
+  setBranch(state, 'feat/plan-test-001');
+  assert.equal(state.branch, 'feat/plan-test-001');
 });
 
-test('persist + read: roundtrip conserva el estado', () => {
+test('persist + read: roundtrip preserves the state', () => {
   const state = initState(samplePlan);
   recordResult(state, 'task-a', { status: 'done', actual_tokens: 900 });
-  setBranch(state, 'ia/plan-test-001');
+  setBranch(state, 'feat/plan-test-001');
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'exec-state-'));
   const statePath = path.join(tmpDir, 'execution_state.json');

@@ -1,12 +1,13 @@
 #!/usr/bin/env node
-// CLI de la fase exec (skill plan-executor). Cablea los módulos deterministas de
-// scripts/exec/ en subcomandos que la SKILL.md invoca en runtime. Toda la lógica
-// determinista (validar, tandas del DAG, estado, verificación por re-run, git,
-// presupuesto, reanudación) vive en los módulos; aquí solo se orquesta y se
-// imprime para que el agente que sigue la skill decida el siguiente paso.
+// CLI for the exec phase (plan-executor skill). Wires the deterministic
+// modules under scripts/exec/ into subcommands invoked at runtime by
+// SKILL.md. All the deterministic logic (validation, DAG batches, state,
+// re-run verification, git, budget, resume) lives in the modules; this file
+// only orchestrates and prints so the agent following the skill can decide
+// the next step.
 //
-// Node ESM puro, solo stdlib. El plan es INMUTABLE: nunca se escribe
-// execution_plan.json; el estado vive en execution_state.json junto a él.
+// Pure Node ESM, stdlib only. The plan is IMMUTABLE: execution_plan.json is
+// never written; state lives in execution_state.json next to it.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -23,7 +24,7 @@ import { resumeGround } from './exec/resume.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// --- utilidades de paths -----------------------------------------------------
+// --- path utilities -----------------------------------------------------
 
 function paths(specDir) {
   return {
@@ -40,11 +41,11 @@ function die(msg, code = 1) {
 }
 
 function out(obj) {
-  // Salida estable en JSON para que la skill la lea sin ambigüedad.
+  // Stable JSON output so the skill can read it unambiguously.
   process.stdout.write(JSON.stringify(obj, null, 2) + '\n');
 }
 
-// Parser mínimo de --flags (valor en el token siguiente).
+// Minimal --flags parser (value in the next token).
 function parseFlags(argv) {
   const flags = {};
   const pos = [];
@@ -76,25 +77,25 @@ function counts(state) {
   return c;
 }
 
-// --- subcomandos -------------------------------------------------------------
+// --- subcommands -------------------------------------------------------------
 
-// init <specDir>: valida el plan y arranca la ejecución (estado + rama).
-// Plan inválido => no crea rama ni estado (R1.S2/AC1).
+// init <specDir>: validates the plan and starts execution (state + branch).
+// Invalid plan => no branch or state is created (R1.S2/AC1).
 function cmdInit(specDir) {
   const p = paths(specDir);
   const { valid, error, plan } = loadPlan(p.spec, p.plan);
   if (!valid) {
-    die('PLAN_INVALIDO: ' + error + '\nCorrige el plan con plan-writer antes de ejecutar.', 2);
+    die('INVALID_PLAN: ' + error + '\nFix the plan with plan-writer before executing.', 2);
   }
   const state = initState(plan);
-  const { branch, created } = ensureBranch(p.slug); // crea/reutiliza ia/<slug>
+  const { branch, created } = ensureBranch(p.slug); // creates/reuses feat/<slug>
   setBranch(state, branch);
   persist(p.state, state);
   const batch = readyBatch(plan, [], { max: 3 });
   out({ ok: true, plan_id: plan.plan_id, branch, branch_created: created, first_batch: batch, total_tasks: plan.tasks.length });
 }
 
-// next <specDir>: siguiente tanda ejecutable (<=3), o pausa por presupuesto, o fin.
+// next <specDir>: next runnable batch (<=3), or a budget pause, or done.
 function cmdNext(specDir) {
   const p = paths(specDir);
   const { plan } = loadPlan(p.spec, p.plan);
@@ -104,7 +105,7 @@ function cmdNext(specDir) {
   if (budget.exceeded) {
     const { done } = doneAndExcluded(state);
     const nextId = readyBatch(plan, done, { max: 1, excluded: doneAndExcluded(state).excluded })[0] || null;
-    recordPause(state, { reason: 'presupuesto: real > 2x estimado ejecutado', real_tokens: budget.real, estimated_tokens: budget.estimated, at_task: nextId });
+    recordPause(state, { reason: 'budget: actual > 2x estimated executed', real_tokens: budget.real, estimated_tokens: budget.estimated, at_task: nextId });
     persist(p.state, state);
     out({ status: 'paused', reason: 'budget', real: budget.real, estimated: budget.estimated, at_task: nextId });
     return;
@@ -115,20 +116,20 @@ function cmdNext(specDir) {
   const c = counts(state);
   if (batch.length === 0) {
     if (c.pending === 0 && c.running === 0) out({ status: 'complete', counts: c });
-    else out({ status: 'stalled', counts: c, note: 'no hay tareas ejecutables (dependencias bloqueadas/omitidas)' });
+    else out({ status: 'stalled', counts: c, note: 'no runnable tasks (dependencies blocked/skipped)' });
     return;
   }
   out({ status: 'run', batch, counts: c });
 }
 
 // complete <specDir> <taskId> --tokens N --test-cmd CMD --rojo pass|fail --verde pass|fail [--message MSG]
-// Registra el resultado de un intento del subagente y aplica verificación determinista.
+// Records the result of a subagent attempt and applies deterministic verification.
 function cmdComplete(specDir, taskId, flags) {
   const p = paths(specDir);
   const { plan } = loadPlan(p.spec, p.plan);
   const state = read(p.state);
   const task = plan.tasks.find((t) => t.task_id === taskId);
-  if (!task) die('TAREA_DESCONOCIDA: ' + taskId, 1);
+  if (!task) die('UNKNOWN_TASK: ' + taskId, 1);
 
   const testCmd = flags['test-cmd'] === true || flags['test-cmd'] === undefined ? null : String(flags['test-cmd']);
   const tokens = flags.tokens !== undefined && flags.tokens !== true ? parseInt(flags.tokens, 10) : null;
@@ -140,7 +141,7 @@ function cmdComplete(specDir, taskId, flags) {
 
   if (res.done) {
     const msg = (flags.message && flags.message !== true) ? String(flags.message)
-      : `${taskId}: test + implementación (verde verificado)`;
+      : `${taskId}: test + implementation (green verified)`;
     const hash = commitTask(taskId, msg);
     recordResult(state, taskId, { status: 'done', actual_tokens: tokens, test_cmd: testCmd, commit: hash });
     persist(p.state, state);
@@ -148,16 +149,16 @@ function cmdComplete(specDir, taskId, flags) {
     return;
   }
 
-  // No verde: registra incidencia. 'no-red' => decisión de usuario; 'rerun-failed'/'not-green' => intento fallido (R6).
-  const incidencia = res.reason === 'no-red' ? 'sin evidencia de rojo'
-    : res.reason === 'rerun-failed' ? 'rerun del orquestador falló tras verde reportado'
-      : 'el subagente no reportó verde';
+  // Not green: records an incident. 'no-red' => user decision; 'rerun-failed'/'not-green' => failed attempt (R6).
+  const incidencia = res.reason === 'no-red' ? 'no red evidence'
+    : res.reason === 'rerun-failed' ? 'orchestrator rerun failed after reported green'
+      : 'subagent did not report green';
   recordResult(state, taskId, { status: 'pending', actual_tokens: tokens, test_cmd: testCmd, incidencia });
   persist(p.state, state);
   out({ status: 'not-done', task_id: taskId, reason: res.reason, incidencia, rerun_output: res.rerun_output });
 }
 
-// block <specDir> <taskId>: tras agotar el reintento, bloquea y omite dependientes (R6.S1).
+// block <specDir> <taskId>: after exhausting the retry, blocks and skips dependents (R6.S1).
 function cmdBlock(specDir, taskId) {
   const p = paths(specDir);
   const { plan } = loadPlan(p.spec, p.plan);
@@ -167,11 +168,11 @@ function cmdBlock(specDir, taskId) {
   out({ status: 'blocked', ...r });
 }
 
-// resume <specDir>: verifica el terreno (re-run de tests done) antes de continuar (R7).
+// resume <specDir>: verifies the ground (re-run of done tests) before continuing (R7).
 function cmdResume(specDir) {
   const p = paths(specDir);
   const { valid, error, plan } = loadPlan(p.spec, p.plan);
-  if (!valid) die('PLAN_INVALIDO: ' + error, 2);
+  if (!valid) die('INVALID_PLAN: ' + error, 2);
   const state = read(p.state);
   const ground = resumeGround(plan, state, { rerun });
   if (!ground.ok) {
@@ -183,7 +184,7 @@ function cmdResume(specDir) {
   out({ status: 'resumed', next_batch: batch, counts: counts(state) });
 }
 
-// report <specDir>: informe final (completadas/bloqueadas/omitidas, tokens real vs estimado, ACs).
+// report <specDir>: final report (done/blocked/skipped, actual vs estimated tokens, ACs).
 function cmdReport(specDir) {
   const p = paths(specDir);
   const { plan } = loadPlan(p.spec, p.plan);
@@ -218,7 +219,7 @@ function main() {
     case 'resume': return cmdResume(pos[0]);
     case 'report': return cmdReport(pos[0]);
     default:
-      die('Uso: exec-tools.mjs <init|next|complete|block|resume|report> <specDir> [...]', 1);
+      die('Usage: exec-tools.mjs <init|next|complete|block|resume|report> <specDir> [...]', 1);
   }
 }
 

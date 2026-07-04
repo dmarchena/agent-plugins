@@ -1,14 +1,15 @@
-// exec/resume.mjs — T7: reanudación (re-run de tareas 'done') para la skill
-// plan-executor. Node ESM puro, sin dependencias npm.
+// exec/resume.mjs — T7: resume (re-run of 'done' tasks) for the
+// plan-executor skill. Pure Node ESM, no npm dependencies.
 //
-// Convención: los módulos lib no imprimen; devuelven datos. `rerun` se recibe
-// por inyección (normalmente el de verify.mjs) para poder testear con un doble.
+// Convention: lib modules do not print; they return data. `rerun` is
+// received via injection (normally the one from verify.mjs) so it can be
+// tested with a test double.
 
 /**
- * Vuelve a ejecutar el test_cmd de cada tarea 'done' del plan, en el orden en
- * que aparecen en plan.tasks, y para en la primera que falle.
- * @param {object} plan - plan con tasks[].task_id en orden determinista.
- * @param {object} state - estado con state.tasks[id] = { status, test_cmd, ... }.
+ * Re-runs the test_cmd of every 'done' task in the plan, in the order they
+ * appear in plan.tasks, stopping at the first one that fails.
+ * @param {object} plan - plan with tasks[].task_id in deterministic order.
+ * @param {object} state - state with state.tasks[id] = { status, test_cmd, ... }.
  * @param {{rerun: (testCmd: string) => {passed: boolean, output: string}}} deps
  * @returns {{ok: boolean, brokenTask: string|null, brokenTest: string|null}}
  */
