@@ -78,9 +78,9 @@
     }
   },
   "pause": {
-    "reason": "presupuesto: real > 2x estimado ejecutado",
-    "real_tokens": 392814,
-    "estimated_tokens": 180000,
-    "at_task": "T8-e2e"
+    "reason": "budget: actual > 2x estimated executed",
+    "real_tokens": 458592,
+    "estimated_tokens": 220000,
+    "at_task": null
   }
 }
