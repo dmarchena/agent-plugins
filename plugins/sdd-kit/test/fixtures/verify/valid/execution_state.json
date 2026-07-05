@@ -1,0 +1,27 @@
+{
+  "plan_id": "fixture-plan-001",
+  "source_spec": "spec.md",
+  "branch": "feat/fixture",
+  "started_at": "2026-01-01T00:00:00.000Z",
+  "pause": null,
+  "tasks": {
+    "T1": {
+      "status": "done",
+      "estimated_tokens": 1000,
+      "actual_tokens": 900,
+      "deviation": -100,
+      "test_cmd": "node --test test/fixture.test.mjs",
+      "commit": "abc1234",
+      "incidencia": null
+    },
+    "T2": {
+      "status": "pending",
+      "estimated_tokens": 500,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    }
+  }
+}

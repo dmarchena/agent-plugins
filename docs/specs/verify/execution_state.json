@@ -1,0 +1,86 @@
+{
+  "plan_id": "verify-exec-plan",
+  "source_spec": "docs/specs/verify/spec.md",
+  "branch": "ia/verify",
+  "started_at": "2026-07-04T23:30:36.717Z",
+  "tasks": {
+    "T1-load-inputs": {
+      "status": "done",
+      "estimated_tokens": 30000,
+      "actual_tokens": 84126,
+      "deviation": 54126,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-tools.test.mjs",
+      "commit": "1ddcc31",
+      "incidencia": null
+    },
+    "T2-ground-check": {
+      "status": "done",
+      "estimated_tokens": 25000,
+      "actual_tokens": 42886,
+      "deviation": 17886,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-ground-check.test.mjs",
+      "commit": "16c05c7",
+      "incidencia": null
+    },
+    "T3-manual-confirm": {
+      "status": "done",
+      "estimated_tokens": 25000,
+      "actual_tokens": 60011,
+      "deviation": 35011,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-manual-confirm.test.mjs",
+      "commit": "d2f7488",
+      "incidencia": null
+    },
+    "T4-degraded-manual": {
+      "status": "done",
+      "estimated_tokens": 20000,
+      "actual_tokens": 45591,
+      "deviation": 25591,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-degraded-manual.test.mjs",
+      "commit": "6412e31",
+      "incidencia": null
+    },
+    "T5-incomplete-coverage": {
+      "status": "done",
+      "estimated_tokens": 25000,
+      "actual_tokens": 47406,
+      "deviation": 22406,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-incomplete-coverage.test.mjs",
+      "commit": "04368e1",
+      "incidencia": null
+    },
+    "T6-token-deviation": {
+      "status": "done",
+      "estimated_tokens": 20000,
+      "actual_tokens": 49299,
+      "deviation": 29299,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-token-deviation.test.mjs",
+      "commit": "ceb3229",
+      "incidencia": null
+    },
+    "T7-report-archive": {
+      "status": "done",
+      "estimated_tokens": 35000,
+      "actual_tokens": 63495,
+      "deviation": 28495,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-report-archive.test.mjs",
+      "commit": "90b20b1",
+      "incidencia": null
+    },
+    "T8-e2e": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 65778,
+      "deviation": 25778,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-e2e.test.mjs",
+      "commit": "671cacf",
+      "incidencia": null
+    }
+  },
+  "pause": {
+    "reason": "presupuesto: real > 2x estimado ejecutado",
+    "real_tokens": 392814,
+    "estimated_tokens": 180000,
+    "at_task": "T8-e2e"
+  }
+}

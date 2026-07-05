@@ -1,0 +1,15 @@
+{
+  "plan_id": "fixture-plan-001",
+  "source_spec": "spec.md",
+  "tasks": [
+    { "task_id": "T1" },
+    { "task_id": "T2" }
+  ],
+  "coverage": {
+    "acs": {
+      "AC1": ["T1"],
+      "AC2": ["T2"],
+      "AC3": ["T1"]
+    }
+  }
+}
