@@ -32,12 +32,12 @@
       "incidencia": null
     },
     "R3-filter": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 250000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 48399,
+      "deviation": -201601,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/verify.test.mjs",
+      "commit": "647b997",
       "incidencia": null
     },
     "e2e": {
