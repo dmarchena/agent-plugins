@@ -57,15 +57,35 @@ test('no duplicate anchors within each skill', () => {
   }
 });
 
-test('every anchor is a literal substring of its skill\'s current SKILL.md', () => {
+test('every anchor is reachable: literal in SKILL.md, or in a referenced asset', () => {
+  // R1-slim (docs/specs/sdd-kit-token-reduction) may have since moved some
+  // reference content out of a SKILL.md body into skills/<skill>/assets/,
+  // per R1.S2: that's still a pass as long as the SKILL.md references the
+  // asset by path and the anchor is verbatim inside it. See
+  // test/skill-slimming.test.mjs for the dedicated AC1-3 guard.
   const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
   for (const skill of EXPECTED_SKILLS) {
-    const skillPath = path.join(SKILLS_DIR, skill, 'SKILL.md');
+    const skillDir = path.join(SKILLS_DIR, skill);
+    const skillPath = path.join(skillDir, 'SKILL.md');
     const content = fs.readFileSync(skillPath, 'utf8');
+    const assetsDir = path.join(skillDir, 'assets');
+    const assetFiles = fs.existsSync(assetsDir)
+      ? fs
+          .readdirSync(assetsDir, { withFileTypes: true })
+          .filter((e) => e.isFile())
+          .map((e) => path.join(assetsDir, e.name))
+      : [];
+
     for (const anchor of manifest[skill]) {
+      const inBody = content.includes(anchor);
+      const inReferencedAsset = assetFiles.some((assetPath) => {
+        const rel = path.relative(skillDir, assetPath).split(path.sep).join('/');
+        if (!content.includes(rel)) return false;
+        return fs.readFileSync(assetPath, 'utf8').includes(anchor);
+      });
       assert.ok(
-        content.includes(anchor),
-        `${skill}: anchor not found verbatim in SKILL.md: ${JSON.stringify(anchor)}`,
+        inBody || inReferencedAsset,
+        `${skill}: anchor not found verbatim in SKILL.md or a referenced asset: ${JSON.stringify(anchor)}`,
       );
     }
   }

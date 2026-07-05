@@ -23,12 +23,12 @@
       "incidencia": null
     },
     "R2-batch": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 300000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 157637,
+      "deviation": -142363,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/complete-batch.test.mjs",
+      "commit": "e1b78d0",
       "incidencia": null
     },
     "R3-filter": {

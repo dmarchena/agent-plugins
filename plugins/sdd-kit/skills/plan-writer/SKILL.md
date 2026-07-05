@@ -42,11 +42,9 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/plan-tools.mjs inspect-spec <spec.md>
 Derive one or more tasks per requirement/scenario. Each task must represent
 exactly **one verifiable deliverable**, carry a unique `task_id`, and list
 `source_ids` referencing at least one spec ID (`R<n>` or `R<n>.S<m>`) it
-derives from.
-
-When a single requirement has independent scenarios — deliverables that
-don't depend on each other — split them into **separate tasks**. Never fold
-independent deliverables into one task; a task has exactly one
+derives from. When a single requirement has independent scenarios —
+deliverables that don't depend on each other —
+split them into **separate tasks**. Never fold independent deliverables into one task; a task has exactly one
 `expected_output_schema`, so if a requirement would need more than one,
 that's the signal to split it.
 
@@ -61,22 +59,12 @@ by following the spec's dependency lines directly.
 
 ## Assign an agent per task
 
-Read `assets/agent-roles.md` — it's the fixed catalog of `agent_type` →
-`subagent` → `model` mappings. For every task, assign:
-
-- `agent_type` — the abstract, portable role (`researcher`,
-  `terminal_operator`, `code_writer`, `doc_writer`, `reviewer`, `architect`).
-- `subagent` — its concrete Claude Code mapping (e.g. `Explore`,
-  `general-purpose`, `Plan`).
-- `model` — `haiku`, `sonnet`, or `opus`.
-- `justification` — one line explaining the pick.
-
-Apply the most-austere-that-qualifies rule: mechanical, low-judgment work
-(search, inventory, extraction, mechanical checks) → `haiku`; bounded
-implementation with clear acceptance criteria → `sonnet`; design, critical
-review, or trade-off decisions → `opus`. Don't default everything to the
-same model — the catalog exists precisely so each task gets sized to what
-it actually needs.
+Read `assets/agent-roles.md` — the fixed catalog of `agent_type` →
+`subagent` → `model` mappings. For every task assign `agent_type`,
+`subagent`, `model`, and a one-line `justification`, applying the
+most-austere-that-qualifies rule: mechanical, low-judgment work
+→ `haiku`; bounded implementation with clear acceptance criteria →
+`sonnet`; design, critical review, or trade-off decisions → `opus`.
 
 ## Write granular instructions
 
@@ -88,57 +76,28 @@ whose output it consumes. A task with `dependencies: []` must not reference
 any `task_id` as prior context — don't invent dependencies that aren't
 there just to sound thorough.
 
-## Output contract per task
+## Output contract, test contract, and token budget per task
 
-Every task needs:
+Every task also needs `expected_output_schema`, `satisfies_acs` (≥1
+`AC<n>`), a `test_contract`, and `estimated_tokens`. See
+`assets/task-fields-detail.md` for the exact shape of each field. In short:
 
-- `expected_output_schema` — a non-empty string describing the exact
-  artifact or format the task produces (not just "the code" — be specific
-  enough that the executor and a later verifier can both recognize done).
-- `satisfies_acs` — an array with at least one `AC<n>` from the spec that
-  this task's output satisfies.
-
-## Test contract per task
-
-Every task also needs a `test_contract` field — the external source of truth
-the exec stage's TDD executor materializes its tests from, which is what
-makes a per-task review subagent unnecessary:
-
-- **`agent_type: code_writer` tasks** — a non-empty array of cases, each
-  `{ ref, assertion }`:
-  - `ref` — an existing ID from the source spec (`R<n>.S<m>` or `AC<n>`)
-    that this task derives from; it must match one of the spec's real IDs,
-    never an invented one.
-  - `assertion` — an observable assertion in prose: what should be
-    checkable, not how to check it. Same rule as `instructions`: reference
-    spec IDs, never copy the spec's text verbatim. Code and test-file names
-    are forbidden in `assertion`.
-- **Any other `agent_type`** — `test_contract: null`.
-
-Derive the cases from the scenarios (`R<n>.S<m>`) and ACs the task already
-lists in `satisfies_acs` — don't invent cases unrelated to what the task
-covers.
+- `test_contract` for `agent_type: code_writer` tasks is a non-empty array
+  of `{ ref, assertion }` derived from the scenarios/ACs already in
+  `satisfies_acs` — never invented; any other `agent_type` gets
+  `test_contract: null`.
+- `estimated_tokens`/`estimated_tokens_total` are a baseline for later
+  deviation measurement, not a commitment — the plan is immutable once the
+  exec stage starts, so `actual_tokens`/`deviation` stay `null` here; real
+  consumption is recorded in the exec stage's `execution_state.json`.
 
 ## Traceability / coverage (hard gate)
 
 Every `R<n>` and every `AC<n>` in the spec must end up covered by at least
-one task. Materialize this in the plan's `coverage` field (maps of
-requirement ID → covering `task_id`s, and AC ID → covering `task_id`s).
-
-This is a hard gate, not a nice-to-have: if any ID would be left uncovered,
-STOP and report exactly which ID before writing anything. Never write a
-plan that silently drops a requirement or AC.
-
-## Token budget estimate
-
-Give every task an `estimated_tokens` integer, and the plan an
-`estimated_tokens_total`. Set `confidence: "low"` on the plan — this is a
-baseline for measuring deviation later, not a commitment. Set
-`actual_tokens` and `deviation` to `null` on every task and leave them
-there: the plan is immutable once the exec stage starts, so these fields
-never get filled in on the plan itself. Real token consumption and
-deviation are recorded separately, in the exec stage's
-`execution_state.json` — not in this plan.
+one task, materialized in the plan's `coverage` field (requirement ID → and
+AC ID → covering `task_id`s). This is a hard gate, not a nice-to-have: if
+any ID would be left uncovered, STOP and report exactly which ID before
+writing anything. Never write a plan that silently drops a requirement or AC.
 
 ## Write and validate safely
 
@@ -163,15 +122,11 @@ coverage) and confirm.
 
 ## Autonomy
 
-Operate autonomously: read the spec and write the plan without stepping
-the user through it question by question. Only stop for a structural
-failure (ingestion, a dependency cycle, a coverage gap, or schema
-validation) or for a genuine ambiguity that can't be resolved from the
-spec's own content. Do not re-interview the user — the spec already
-carries everything this skill needs.
+Operate autonomously: read the spec and write the plan without stepping the
+user through it question by question. Only stop for a structural failure
+(ingestion, a dependency cycle, a coverage gap, or schema validation) or a
+genuine ambiguity that can't be resolved from the spec's own content.
+Do not re-interview the user — the spec already carries everything this skill needs.
 
----
-
-The exact shape of a valid plan is defined by
-`assets/execution_plan.schema.json`; the `plan-tools.mjs check-plan`
-validator, not this document, is the source of truth for "valid plan".
+The exact shape of a valid plan is defined by `assets/execution_plan.schema.json`;
+the `plan-tools.mjs check-plan` validator, not this document, is the source of truth for "valid plan".
