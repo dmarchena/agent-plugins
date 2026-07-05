@@ -14,12 +14,12 @@
       "incidencia": null
     },
     "R1-slim": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 500000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 210373,
+      "deviation": -289627,
+      "test_cmd": "node --test plugins/sdd-kit/test/skill-slimming.test.mjs",
+      "commit": "7476ff0",
       "incidencia": null
     },
     "R2-batch": {
