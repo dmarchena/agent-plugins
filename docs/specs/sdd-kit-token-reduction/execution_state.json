@@ -5,12 +5,12 @@
   "started_at": "2026-07-05T23:03:41.714Z",
   "tasks": {
     "R1-anchors": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 120000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 79587,
+      "deviation": -40413,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/rule-anchors.test.mjs",
+      "commit": "e8bb957",
       "incidencia": null
     },
     "R1-slim": {

@@ -154,19 +154,28 @@ function setupRepo(prefix) {
   return { repo, specDir, absSpecDir };
 }
 
-// Writes a task's test+impl. Trivial pass/fail toggle via `shouldPass`.
+// Writes a task's impl + a re-run check. Trivial pass/fail toggle via
+// `shouldPass`. The check is a plain script (not `node:test`) on purpose:
+// this test file is itself run under `node --test`, which sets
+// NODE_TEST_CONTEXT in the environment; exec-tools.mjs's rerun() inherits it
+// when it spawns the task's --test-cmd, and if that command were itself
+// `node --test ...`, Node's own recursion guard would detect the nested test
+// run and silently SKIP it (exit 0) instead of actually executing it —
+// masking a genuine failure as green. A plain exit-code check sidesteps that
+// entirely and still exercises the real thing being tested here: whether
+// exec-tools.mjs's re-run verification honors the test command's exit code.
 function writeTaskFiles(repo, taskId, ref, shouldPass) {
   fs.mkdirSync(path.join(repo, 'impl'), { recursive: true });
   fs.mkdirSync(path.join(repo, 't'), { recursive: true });
   fs.writeFileSync(path.join(repo, 'impl', `${taskId}.mjs`), `export const done = ${shouldPass};\n`);
   fs.writeFileSync(
-    path.join(repo, 't', `${taskId}.test.mjs`),
-    `import { test } from 'node:test';\n`
-    + `import assert from 'node:assert';\n`
-    + `import { done } from '../impl/${taskId}.mjs';\n`
-    + `test('${taskId} satisfies ${ref}', () => { assert.strictEqual(done, true); });\n`,
+    path.join(repo, 't', `${taskId}.check.mjs`),
+    `import { done } from '../impl/${taskId}.mjs';\n`
+    + `// ${taskId} satisfies ${ref}\n`
+    + `if (done !== true) { console.error('FAIL: ${taskId} (${ref}) expected done=true, got', done); process.exit(1); }\n`
+    + `console.log('PASS: ${taskId} (${ref})');\n`,
   );
-  return `node --test t/${taskId}.test.mjs`;
+  return `node t/${taskId}.check.mjs`;
 }
 
 function stateOf(absSpecDir) {
@@ -215,11 +224,11 @@ test('AC4: closing a batch in 1 invocation yields the same per-task commit+state
       fs.writeFileSync(batchFile, JSON.stringify([
         {
           task_id: 'task-a', tokens: 1200, test_cmd: testCmdA2, rojo: 'fail', verde: 'pass',
-          files: ['impl/task-a.mjs', 't/task-a.test.mjs'],
+          files: ['impl/task-a.mjs', 't/task-a.check.mjs'],
         },
         {
           task_id: 'task-b', tokens: 1100, test_cmd: testCmdB2, rojo: 'fail', verde: 'pass',
-          files: ['impl/task-b.mjs', 't/task-b.test.mjs'],
+          files: ['impl/task-b.mjs', 't/task-b.check.mjs'],
         },
       ], null, 2));
 
@@ -256,8 +265,8 @@ test('AC4: closing a batch in 1 invocation yields the same per-task commit+state
       assert.strictEqual(taskCommits, '2', 'exactly one commit per task');
       for (const id of ['task-a', 'task-b']) {
         const files = git(batch.repo, ['log', '--all', '--pretty=format:', '--name-only',
-          '--diff-filter=A', '--', `t/${id}.test.mjs`, `impl/${id}.mjs`]);
-        assert.ok(files.includes(`t/${id}.test.mjs`), `${id}: test committed`);
+          '--diff-filter=A', '--', `t/${id}.check.mjs`, `impl/${id}.mjs`]);
+        assert.ok(files.includes(`t/${id}.check.mjs`), `${id}: test committed`);
         assert.ok(files.includes(`impl/${id}.mjs`), `${id}: impl committed`);
       }
       // The other task's files must NOT appear in this task's commit (isolation).
@@ -287,13 +296,13 @@ test('AC5: a task that fails its re-run in the batch is reported not-done withou
     fs.writeFileSync(batchFile, JSON.stringify([
       {
         task_id: 'task-a', tokens: 1200, test_cmd: testCmdA, rojo: 'fail', verde: 'pass',
-        files: ['impl/task-a.mjs', 't/task-a.test.mjs'],
+        files: ['impl/task-a.mjs', 't/task-a.check.mjs'],
       },
       {
         // The subagent claimed green, but the deterministic re-run will fail
         // because the implementation is broken (rerun-failed, R6).
         task_id: 'task-b', tokens: 1100, test_cmd: testCmdB, rojo: 'fail', verde: 'pass',
-        files: ['impl/task-b.mjs', 't/task-b.test.mjs'],
+        files: ['impl/task-b.mjs', 't/task-b.check.mjs'],
       },
     ], null, 2));
 
@@ -323,8 +332,8 @@ test('AC5: a task that fails its re-run in the batch is reported not-done withou
     const taskCommits = git(repo, ['rev-list', '--count', 'HEAD', '^main']);
     assert.strictEqual(taskCommits, '1', 'only the green task produced a commit');
     const filesA = git(repo, ['log', '--all', '--pretty=format:', '--name-only',
-      '--diff-filter=A', '--', 't/task-a.test.mjs', 'impl/task-a.mjs']);
-    assert.ok(filesA.includes('t/task-a.test.mjs'));
+      '--diff-filter=A', '--', 't/task-a.check.mjs', 'impl/task-a.mjs']);
+    assert.ok(filesA.includes('t/task-a.check.mjs'));
     assert.ok(filesA.includes('impl/task-a.mjs'));
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
