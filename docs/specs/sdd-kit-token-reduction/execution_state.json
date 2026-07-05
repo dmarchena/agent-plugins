@@ -1,0 +1,54 @@
+{
+  "plan_id": "sdd-kit-token-reduction-v1",
+  "source_spec": "docs/specs/sdd-kit-token-reduction/spec.md",
+  "branch": "feat/sdd-kit-token-reduction",
+  "started_at": "2026-07-05T23:03:41.714Z",
+  "tasks": {
+    "R1-anchors": {
+      "status": "pending",
+      "estimated_tokens": 120000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "R1-slim": {
+      "status": "pending",
+      "estimated_tokens": 500000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "R2-batch": {
+      "status": "pending",
+      "estimated_tokens": 300000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "R3-filter": {
+      "status": "pending",
+      "estimated_tokens": 250000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "e2e": {
+      "status": "pending",
+      "estimated_tokens": 300000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    }
+  },
+  "pause": null
+}
