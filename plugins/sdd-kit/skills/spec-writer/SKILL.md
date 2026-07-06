@@ -13,13 +13,9 @@ Runs a structured interview with the user to progressively fill in a standard
 `spec.md` — purpose, scope, functional requirements with testable scenarios,
 technical constraints, and acceptance criteria — then writes the finished
 file. This is the first stage of a spec → plan → exec → verify workflow; it
-deliberately stops at the spec and does not produce a plan or code.
-
-## Why an interview instead of a form
-
-Asking "give me your requirements" produces vague, gappy answers; pushing on
-them one question at a time is how real specs get extracted. Keep it cheap —
-fast to answer, light on tokens — so it scales to many small features a day.
+deliberately stops at the spec and does not produce a plan or code. See
+`assets/rationale.md` for the "why an interview" and "why this exact format"
+background.
 
 ## Calibrate depth first: lite vs full
 
@@ -49,155 +45,81 @@ same section headers, same order, every time. Read that file once, right
 before you write the final output — don't re-read or re-print it mid
 interview, it isn't needed until then.
 
-The format combines two things on purpose:
-- **Requirements + Scenarios** (Given/When/Then, SHALL/MUST/SHOULD language)
-  — a behavior contract that's testable, borrowed from how OpenSpec and
-  similar spec-driven-development tools structure requirements. Every
-  requirement and scenario carries a stable ID (`R1`, `R1.S1`) and each
-  requirement states its behavioral dependencies (`Depende de: R2 | —`) —
-  later stages reference IDs instead of re-quoting text, and the plan stage
-  partitions work from the dependency lines (independent requirements can
-  become parallel tasks; dependent ones get sequenced).
-- **A flat Acceptance Criteria checklist** — one criterion per scenario,
-  referenced by ID (never re-worded: rewording drifts), each tagged
-  `[auto]` (mechanically checkable) or `[manual]` (needs human judgment —
-  justify why), plus the observable probe to check. This is what a later
-  verification step (human or agent) runs to confirm the work is done; the
-  feature counts as satisfied when every AC is green, including the
-  end-to-end one.
+Every requirement and scenario carries a stable ID (`R1`, `R1.S1`) and each
+requirement states `Depende de: R2 | —`. The Acceptance Criteria section is a
+flat checklist, one line per scenario, each tagged `[auto]` (mechanically
+checkable) or `[manual]` (needs human judgment — justify why), plus the
+observable probe to check. See `assets/rationale.md` for why this shape is
+fixed across every spec.
 
-Keeping every spec.md in this same shape is the whole point: any future
-planning/implementation/verification step (in this or another project) can
-rely on the structure without re-learning it each time.
-
-A spec describes observable **behavior**, not implementation. If something
-could change (which library, which internal function name, which file) without
-changing what the user or system experiences, it belongs in a later design/plan
-doc, not here. When in doubt, ask "would this still be true if we rewrote the
-whole implementation?" — if yes, it belongs in the spec.
-
-The same altitude rule applies to acceptance criteria: be **exact about the
-observable** (the precise output, status code, message, produced artifact)
-but **agnostic about the mechanism** — naming the concrete test file or
-command is the plan stage's job, as is breaking requirements into task-level
-specs with their TDD tests and parallelization. The spec's IDs and dependency
-lines exist precisely so the plan can derive those task specs mechanically
-instead of re-interviewing the user.
+A spec describes observable **behavior**, not implementation — if something
+could change (which library, which internal function name, which file)
+without changing what the user experiences, it belongs in a later
+design/plan doc. Acceptance criteria follow the same rule: be **exact about
+the observable** but agnostic about the mechanism. See `assets/rationale.md`
+for the full reasoning.
 
 ## Interview process
 
 Work through these steps in order, but stay conversational — this is an
-interview, not a wizard with rigid pages.
+interview, not a wizard with rigid pages. See `assets/interview-steps.md` for
+the full per-step guidance (phrasing, edge cases, how the E2E scenario and
+acceptance checklist get assembled); the essentials that must never be
+skipped:
 
 1. **Anchor first.** Ask for the one-liner: what is this feature/change, and
-   why does it need to exist (the problem, the user, or the driver behind
-   it). This is genuinely open-ended — there's nothing sensible to offer as
-   multiple choice yet. Don't move on until this is a real answer, not just
-   a title.
-
-2. **Calibrate depth.** Run the lite/full check above.
-
-3. **Scope next.** Ask what's *out* of scope / non-goals, framed as options
-   when you can already guess likely exclusions from the one-liner (see
-   "Ask with options" below). This step is the one people skip and it's the
-   biggest source of rework later — push for at least one or two explicit
-   exclusions, even if the user says "everything's in scope."
-
-4. **Functional requirements, one capability at a time.** For each distinct
-   capability the user mentions, draft a requirement (`### R<n> — <name>`)
-   with SHALL/MUST/SHOULD language, then get the happy path and (in lite
-   mode) one edge case or failure mode — offer your best guess at the likely
-   edge case as the recommended option rather than asking "what edge cases
-   matter?" cold. Convert each into a `#### R<n>.S<m>` scenario in
-   Given/When/Then form. Every THEN must name a concrete observable — exact
-   message, status code, produced artifact, queryable state — never "shows
-   an error" or "works correctly". If an answer is vague ("it should just
-   work"), don't accept it — force specifics via options: e.g. "if it fails,
-   should it (A, recommended) show an inline error and let them retry, or
-   (B) silently roll back?". Before moving on, settle two one-liners
-   (as options where guessable): does this requirement depend on another
-   (`Depende de:`), and how would each scenario be checked mechanically —
-   that answer becomes the `[auto]` probe in the acceptance criteria, or
-   `[manual]` with a stated reason if it genuinely can't be automated.
-
-5. **Technical requirements.** Ask about stack/framework, integrations,
-   performance, security/privacy, data/storage — but only what's actually
-   relevant to this change, and only in as much depth as lite/full calls
-   for. Mark a field "N/A" rather than inventing content just to fill the
-   section. If the user indicates there are no special constraints at all,
-   mark every remaining technical field N/A in one pass instead of asking
-   about each field individually.
-
-6. **End-to-end scenario, then acceptance criteria.** Once the functional
-   requirements feel solid, draft one integrative scenario (`R-E2E`) that
-   walks the whole feature end to end — per-requirement checks can all pass
-   while the composition fails, so this is what decides "feature complete".
-   Then assemble the acceptance checklist: one line per scenario,
-   `- [ ] AC<n> → R<x>.S<y> [auto|manual] — <observable probe>`, reusing
-   the probes gathered in step 4 instead of re-asking. Maximize `[auto]`;
-   treat every `[manual]` as a cost that needs justifying. Confirm the
-   checklist explicitly with the user — this is what "done" will mean once
-   someone (or some agent) checks the work later.
-
-7. **Assumptions & open questions.** Anything the user is unsure about or
-   wants to defer, log it explicitly instead of silently guessing on their
-   behalf. Offer "resolve now" vs "flag for later" as the options here too.
-
-8. **Know when to stop.** The spec is ready when every requirement has at
-   least one scenario, scope/non-goals are explicit, and there's no
-   unresolved TBD the user actually cares about. In lite mode, don't exceed
-   what lite mode calls for just for thoroughness's sake. Summarize what you
-   have and confirm completeness before writing the file.
+   why it needs to exist. Don't move on until it's a real answer.
+2. **Calibrate depth** (above).
+3. **Scope.** Push for at least one or two explicit non-goals, even if the
+   user says "everything's in scope."
+4. **Functional requirements, one capability at a time.** Draft `### R<n>`
+   with SHALL/MUST/SHOULD language, then `#### R<n>.S<m>` scenarios in
+   Given/When/Then form. Every THEN must name a concrete observable — never
+   "shows an error" or "works correctly". Before moving on, settle two
+   one-liners: does this requirement depend on another (`Depende de:`), and
+   how would each scenario be checked mechanically (the `[auto]`/`[manual]`
+   probe).
+5. **Technical requirements** — only what's relevant; mark the rest N/A.
+6. **End-to-end scenario (`R-E2E`), then the acceptance checklist** — one
+   line per scenario. Maximize `[auto]`; treat every `[manual]` as a cost
+   that needs justifying. Confirm the checklist explicitly with the user.
+7. **Assumptions & open questions** — log anything deferred instead of
+   silently guessing.
+8. **Know when to stop.** Ready when every requirement has a scenario, scope
+   is explicit, and there's no unresolved TBD the user cares about. In lite
+   mode, don't exceed what lite mode calls for just for thoroughness's sake.
 
 ## Interview style
 
 - **Default to multiple choice, with one recommendation.** For any question
-  with a finite, guessable set of reasonable answers — scope boundaries,
-  tech choices, priority tradeoffs, which edge case matters most, what an
-  error should do — present 2-4 concrete options instead of an open
-  question, mark one as recommended, and give a one-line reason tied to
-  what you already know about this feature. This is faster for the user to
-  answer than free text, keeps the transcript unambiguous, and avoids
-  burning turns on back-and-forth clarification. If the environment
-  provides a structured multiple-choice question tool, use it; otherwise
-  present compact lettered options in plain text (A/B/C, recommended one
-  marked) and let the user just reply with a letter, "recomendada", or
-  their own alternative.
-- Reserve genuinely open questions for things that can't be enumerated: the
-  initial one-liner, exact wording of messages, specific data shapes,
-  names.
-- One question (or one set of tightly related options) at a time — don't
-  dump an unrelated multi-part questionnaire in a single message.
-- When an answer is vague, drill down with a concrete follow-up (ideally
-  itself framed as options) instead of accepting it and moving on.
-- **Reflect back short, and only what changed.** After closing out a
-  requirement or section, confirm it in 1-3 short bullet lines, not a
-  restated wall of text — the user already knows what they just told you.
-- **Don't assemble the spec until the end.** Keep your own compact running
-  notes (a short list of confirmed requirements/decisions) instead of
-  drafting or printing the full spec.md mid-interview. Repeatedly
-  regenerating the whole document is the single biggest token cost in this
-  skill and adds nothing until the interview is actually done.
-- Default to 1 happy-path scenario + 1 edge case per requirement (lite
-  mode). Only go beyond that for a requirement the user flags as high-risk
-  (payments, auth, data loss, irreversible actions) or when running in full
+  with a finite, guessable set of answers, present 2-4 concrete options,
+  mark one recommended, give a one-line reason. Reserve genuinely open
+  questions for things that can't be enumerated (the one-liner, exact
+  wording, names).
+- One question (or one tightly related set) at a time.
+- **Reflect back short, and only what changed** — 1-3 bullet lines, not a
+  restated wall of text.
+- **Don't assemble the spec until the end.** Keep compact running notes
+  instead of drafting or printing the full spec.md mid-interview —
+  repeatedly regenerating the whole document is the single biggest token
+  cost in this skill.
+- Default to 1 happy-path + 1 edge case per requirement (lite mode); go
+  beyond that only for a requirement the user flags high-risk, or in full
   mode.
+
+See `assets/interview-steps.md` for the full version with phrasing examples.
 
 ## Output — where the spec lives
 
 When the interview is complete, read `assets/spec-template.md` and write the
-finished file to **`docs/specs/<slug>/spec.md`** (creating the directory),
-where `<slug>` is a short kebab-case slug derived from the feature name —
-unless the user asks for a different location. That per-feature directory is
-the shared home for the whole chain: `plan-writer` later drops its
-`execution_plan.json` alongside, in the same `docs/specs/<slug>/`. Follow the
-template's structure exactly — this should be the first and only time the
-full document gets written out. Show the user the finished spec and ask if
-anything needs adjusting before treating it as final.
+finished file to **`docs/specs/<slug>/spec.md`** (creating the directory,
+`<slug>` a kebab-case slug from the feature name) — the shared home for the
+whole chain: `plan-writer` later drops its `execution_plan.json` alongside.
+This should be the first and only time the full document gets written out;
+show the user the finished spec and ask if anything needs adjusting.
 
 Two constraints on the written file: it must be **self-contained** — a
-verification agent with no access to this interview must be able to run the
-acceptance checklist from the file alone (no "as discussed", no references
-to the conversation) — and in lite mode it should stay lean (~120 lines as
-a guide): the spec is itself context that every later plan/verify session
-will carry.
+verification agent with no access to this interview must be able to run
+the acceptance checklist from the file alone — and in lite mode it
+should stay lean (~120 lines as a guide): the spec is itself context that
+every later plan/verify session will carry.

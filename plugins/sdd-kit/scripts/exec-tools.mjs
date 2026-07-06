@@ -17,7 +17,9 @@ import { loadPlan, readyBatch } from './exec/plan.mjs';
 import {
   initState, recordResult, recordPause, setBranch, persist, read,
 } from './exec/state.mjs';
-import { ensureBranch, commitTask, currentBranch } from './exec/git.mjs';
+import {
+  ensureBranch, commitTask, currentBranch,
+} from './exec/git.mjs';
 import { rerun, confirm } from './exec/verify.mjs';
 import { exceeds, blockAndSkip } from './exec/budget.mjs';
 import { resumeGround } from './exec/resume.mjs';
@@ -122,31 +124,41 @@ function cmdNext(specDir) {
   out({ status: 'run', batch, counts: c });
 }
 
-// complete <specDir> <taskId> --tokens N --test-cmd CMD --rojo pass|fail --verde pass|fail [--message MSG]
-// Records the result of a subagent attempt and applies deterministic verification.
-function cmdComplete(specDir, taskId, flags) {
-  const p = paths(specDir);
-  const { plan } = loadPlan(p.spec, p.plan);
-  const state = read(p.state);
+// Shared core of `complete`: verifies one task's evidence, commits it if
+// green, records its state entry. Used by both the single-task path and the
+// batch path so the two stay byte-identical (R2.S1/AC4) — this is the one
+// place that decides done vs not-done and writes to state/git; callers only
+// differ in how they gather `entry` and when they persist/print.
+//
+// entry: { taskId, tokens, testCmd, rojo, verde, message, files }
+//   files (optional) — paths to stage for this task's commit instead of the
+//   whole tree; see git.mjs#commitTask for why a batch needs this.
+function completeOne(plan, state, statePath, entry) {
+  const {
+    taskId, tokens, testCmd, rojo, verde, message, files = null,
+  } = entry;
   const task = plan.tasks.find((t) => t.task_id === taskId);
-  if (!task) die('UNKNOWN_TASK: ' + taskId, 1);
+  if (!task) return { status: 'error', task_id: taskId, error: 'UNKNOWN_TASK: ' + taskId };
 
-  const testCmd = flags['test-cmd'] === true || flags['test-cmd'] === undefined ? null : String(flags['test-cmd']);
-  const tokens = flags.tokens !== undefined && flags.tokens !== true ? parseInt(flags.tokens, 10) : null;
-  const evidence = {
-    rojo_passed: flags.rojo === 'pass',
-    verde_passed: flags.verde === 'pass',
-  };
+  const evidence = { rojo_passed: rojo === 'pass', verde_passed: verde === 'pass' };
   const res = confirm(task, evidence, testCmd);
 
   if (res.done) {
-    const msg = (flags.message && flags.message !== true) ? String(flags.message)
-      : `${taskId}: test + implementation (green verified)`;
-    const hash = commitTask(taskId, msg);
+    const msg = message || `${taskId}: test + implementation (green verified)`;
+    // Persist this task's OWN status/tokens/test_cmd before committing, so
+    // the commit captures its own flip, not the previous task's (the bug
+    // this fixes). The commit hash can't be known before the commit exists
+    // (embedding a commit's own hash inside itself isn't achievable without
+    // amend-per-task gymnastics), so it's recorded afterwards, same as
+    // before this fix — it's a convenience cache (also recoverable via
+    // `git log`, since the message includes the task_id), not the
+    // substantive audit data, so it's fine for it to trail its own commit.
+    recordResult(state, taskId, { status: 'done', actual_tokens: tokens, test_cmd: testCmd, commit: null });
+    persist(statePath, state);
+    const hash = commitTask(taskId, msg, process.cwd(), files, statePath);
     recordResult(state, taskId, { status: 'done', actual_tokens: tokens, test_cmd: testCmd, commit: hash });
-    persist(p.state, state);
-    out({ status: 'done', task_id: taskId, commit: hash, actual_tokens: tokens, deviation: state.tasks[taskId].deviation });
-    return;
+    persist(statePath, state);
+    return { status: 'done', task_id: taskId, commit: hash, actual_tokens: tokens, deviation: state.tasks[taskId].deviation };
   }
 
   // Not green: records an incident. 'no-red' => user decision; 'rerun-failed'/'not-green' => failed attempt (R6).
@@ -154,8 +166,77 @@ function cmdComplete(specDir, taskId, flags) {
     : res.reason === 'rerun-failed' ? 'orchestrator rerun failed after reported green'
       : 'subagent did not report green';
   recordResult(state, taskId, { status: 'pending', actual_tokens: tokens, test_cmd: testCmd, incidencia });
-  persist(p.state, state);
-  out({ status: 'not-done', task_id: taskId, reason: res.reason, incidencia, rerun_output: res.rerun_output });
+  persist(statePath, state);
+  return { status: 'not-done', task_id: taskId, reason: res.reason, incidencia, rerun_output: res.rerun_output };
+}
+
+// complete <specDir> <taskId> --tokens N --test-cmd CMD --rojo pass|fail --verde pass|fail [--message MSG]
+// Records the result of a subagent attempt and applies deterministic verification.
+function cmdComplete(specDir, taskId, flags) {
+  const p = paths(specDir);
+  const { plan } = loadPlan(p.spec, p.plan);
+  const state = read(p.state);
+  if (!plan.tasks.find((t) => t.task_id === taskId)) die('UNKNOWN_TASK: ' + taskId, 1);
+
+  const testCmd = flags['test-cmd'] === true || flags['test-cmd'] === undefined ? null : String(flags['test-cmd']);
+  const tokens = flags.tokens !== undefined && flags.tokens !== true ? parseInt(flags.tokens, 10) : null;
+  const message = (flags.message && flags.message !== true) ? String(flags.message) : null;
+
+  const result = completeOne(plan, state, p.state, {
+    taskId, tokens, testCmd, rojo: flags.rojo, verde: flags.verde, message, files: null,
+  });
+  out(result);
+}
+
+// complete <specDir> --batch <path/to/batch.json>
+// Closes up to 3 tasks (a ready batch, R4.S1) in a SINGLE invocation instead
+// of one `complete` per task (R2.S1). batch.json is a JSON array of:
+//   { task_id, tokens, test_cmd, rojo, verde, message?, files? }
+// (same fields as the single-task flags, snake_case since they come from a
+// file, not argv). Each entry still gets its own re-run verification, its
+// own commit (atomic — see files above) and its own state entry: this is the
+// same completeOne() the single-task path uses, just looped once per
+// process instead of once per invocation. A task that doesn't reach green
+// is reported `not-done` with its incidencia and does NOT stop, revert, or
+// block the rest of the batch (R2.S2/AC5).
+function cmdCompleteBatch(specDir, batchPath) {
+  const p = paths(specDir);
+  const { plan } = loadPlan(p.spec, p.plan);
+  const state = read(p.state);
+
+  let entries;
+  try {
+    entries = JSON.parse(fs.readFileSync(batchPath, 'utf8'));
+  } catch (e) {
+    return die('BATCH_INVALIDO: could not read/parse ' + batchPath + ': ' + e.message, 1);
+  }
+  if (!Array.isArray(entries) || entries.length === 0) die('BATCH_INVALIDO: expected a non-empty JSON array of task entries', 1);
+  if (entries.length > 3) die('BATCH_INVALIDO: a batch closes at most 3 tasks (' + entries.length + ' given)', 1);
+
+  // Validate all task_ids up front so a typo doesn't leave a partially-closed batch.
+  for (const e of entries) {
+    if (!e || typeof e.task_id !== 'string' || !plan.tasks.find((t) => t.task_id === e.task_id)) {
+      die('UNKNOWN_TASK: ' + (e && e.task_id) + ' (in batch ' + batchPath + ')', 1);
+    }
+  }
+
+  const results = [];
+  for (const e of entries) {
+    // completeOne persists internally (before AND after its commit) so each
+    // task's own flip is captured by its own commit, and a crash mid-batch
+    // still leaves the already-committed tasks correctly recorded in state.
+    const result = completeOne(plan, state, p.state, {
+      taskId: e.task_id,
+      tokens: e.tokens != null ? parseInt(e.tokens, 10) : null,
+      testCmd: e.test_cmd != null ? String(e.test_cmd) : null,
+      rojo: e.rojo,
+      verde: e.verde,
+      message: e.message || null,
+      files: Array.isArray(e.files) ? e.files : null,
+    });
+    results.push(result);
+  }
+  out({ status: 'batch', results });
 }
 
 // block <specDir> <taskId>: after exhausting the retry, blocks and skips dependents (R6.S1).
@@ -214,7 +295,8 @@ function main() {
   switch (cmd) {
     case 'init': return cmdInit(pos[0]);
     case 'next': return cmdNext(pos[0]);
-    case 'complete': return cmdComplete(pos[0], pos[1], flags);
+    case 'complete':
+      return flags.batch ? cmdCompleteBatch(pos[0], String(flags.batch)) : cmdComplete(pos[0], pos[1], flags);
     case 'block': return cmdBlock(pos[0], pos[1]);
     case 'resume': return cmdResume(pos[0]);
     case 'report': return cmdReport(pos[0]);

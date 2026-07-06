@@ -17,7 +17,6 @@ of every `done` task for `[auto]` ACs, asking the user to confirm `[manual]`
 ACs one by one, and degrading the whole checklist to manual confirmation
 when no `execution_state.json` exists. Only once every AC is green does it
 archive the SPECDIR (`git mv` + commit) to `docs/specs/archived/<slug>/`.
-See the full spec at `docs/specs/verify/spec.md`.
 
 ## Invocation
 
@@ -32,37 +31,33 @@ All deterministic loading/parsing logic lives in
 `coverage.acs` map, and (when present) `execution_state.json`'s per-task
 status. It does not re-validate the plan against the spec — that already
 happened in plan-executor's `init`. When `execution_plan.json` or `spec.md`
-is missing from `SPECDIR`, `loadSpecdir` throws before evaluating or
-archiving anything, naming the exact missing file.
+is missing, `loadSpecdir` throws before evaluating or archiving anything,
+naming the exact missing file.
 
 ## Manual AC confirmation protocol
 
 Every `[manual]`-tagged AC (and, in degraded mode with no
 `execution_state.json`, every AC regardless of tag — see R4) MUST be
-confirmed **one by one, in this main conversation thread, directly with the
-user**. For each such AC: present its `ac_id` and its `description` (the
-probe text) to the user, and wait for an explicit answer before moving to
-the next one. Only an explicit "yes, this is met" from the user justifies
+confirmed **one by one, in this main conversation thread, directly with the user**:
+present its `ac_id`/`description` (the probe text) and wait for an explicit
+answer before moving to the next one. Only an explicit "yes, this is met" from the user justifies
 calling `.confirm(ac_id)`; anything else — an explicit "no", or the
-conversation moving on without an answer — means it stays `'unanswered'` or
-becomes `.reject(ac_id)`, and either way it is **not** green (R3, R3.S1,
-R3.S2).
+conversation moving on without an answer — leaves it `'unanswered'` or
+`.reject(ac_id)`, and either way it is **not** green (R3, R3.S1, R3.S2).
 
 This confirmation step **MUST NOT be delegated to a subagent** and **MUST
 NOT be resolved unilaterally** by the orchestrating agent guessing or
 inferring the answer from code/tests. A subagent has no standing to give
-informed consent on the user's behalf, and re-running a test or reading code
-is exactly what `[auto]` ACs are for — a `[manual]` AC exists precisely
+informed consent on the user's behalf — a `[manual]` AC exists precisely
 because it needs a human judgment call that automation cannot make. If you
 find yourself tempted to mark a manual AC green without an explicit
-back-and-forth with the user in this thread, stop: that is a spec violation,
-not a shortcut.
+back-and-forth with the user in this thread, stop: that is a spec violation, not a shortcut.
 
-The bookkeeping for this (tracking each AC's `'unanswered'` /
-`'confirmed'` / `'rejected'` status and computing which ones count green) is
-`manualConfirmation(items)` in `verify-tools.mjs` — it is pure bookkeeping
-with no I/O of its own; the actual presenting-to-the-user and waiting for a
-reply happens here, in the conversation, AC by AC, driven by this protocol.
+The bookkeeping (each AC's `'unanswered'`/`'confirmed'`/`'rejected'` status
+and which ones count green) is `manualConfirmation(items)` in
+`verify-tools.mjs` — pure bookkeeping with no I/O of its own; the actual
+presenting and waiting for a reply happens here, in the conversation, AC
+by AC, driven by this protocol.
 
 ## Final report and archiving
 
@@ -70,20 +65,13 @@ Verify always evaluates the **whole** checklist before concluding anything —
 it never stops at the first not-green AC (that's the spec's own stated
 default). `assembleReport(checklist, groundCheckResult, manualTracker,
 degradedResult, incompleteCoverageResult, tokenDeviationsResult)` in
-`verify-tools.mjs` merges every prior check (`groundCheck`,
-`manualConfirmation`, `degradedManualRouting`, `incompleteCoverage`,
-`tokenDeviations`) into one final per-AC verdict plus an overall `allGreen`
-flag. Token deviations ride along as an informational `deviatedTasks` list —
-they are never allowed to turn a green AC (or the archiving decision) red
-(R6.S2).
+`verify-tools.mjs` merges every prior check into one final per-AC verdict
+plus an overall `allGreen` flag. Token deviations ride along as an informational `deviatedTasks` list —
+they are never allowed to turn a green AC (or the archiving decision) red (R6.S2).
 
-Only when `allGreen` is true does `archiveIfGreen(specDir, report, { cwd })`
-archive: `git mv SPECDIR docs/specs/archived/<slug>/` followed by a commit,
-on whatever branch is currently checked out — no new branch is created, and
-unlike plan-executor's per-task commits, this is explicitly allowed to run
-on `main` (R7). If the destination already exists, it refuses before running
-any git command and reports the collision. If any AC isn't green, nothing is
-moved or committed — the report instead names exactly which ACs are missing
-and why (drift, blocked/skipped, not finished, rejected, unanswered, or fully
-manual-degraded), so the user knows precisely what's left before verify can
-close out the SPECDIR.
+Only when `allGreen` is true does `archiveIfGreen(specDir, report, { cwd })` archive:
+`git mv SPECDIR docs/specs/archived/<slug>/` followed by a commit, on whatever
+branch is checked out — unlike plan-executor's per-task commits, this is explicitly allowed to run on `main` (R7).
+If the destination already exists, it refuses before running any git command and reports the collision.
+If any AC isn't green, nothing is moved or committed — the report instead names exactly which ACs are missing
+and why (drift, blocked/skipped, not finished, rejected, unanswered, or fully manual-degraded).

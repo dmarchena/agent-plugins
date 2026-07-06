@@ -1,0 +1,85 @@
+{
+  "plan_id": "fix-commit-state-ordering-v1",
+  "project_name": "sdd-kit",
+  "global_objective": "Corregir el orden commit-antes-de-persist en completeOne (exec-tools.mjs) para que el commit de cada tarea incluya su propio execution_state.json, fijar como invariante que commitTask solo se invoca desde completeOne, y verificar ambos modos (single-task y batch) de extremo a extremo.",
+  "source_spec": "docs/specs/fix-commit-state-ordering/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 530000,
+  "tasks": [
+    {
+      "task_id": "R1-fix-ordering",
+      "source_ids": ["R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementacion acotada en un fichero existente (exec-tools.mjs/git.mjs) con criterios de aceptacion mecanicos (contenido del commit, git status limpio); tipica de sonnet, sin decisiones de diseno abiertas.",
+      "instructions": "Deriva de R1.S1 y R1.S2 (AC1, AC2). En plugins/sdd-kit/scripts/exec-tools.mjs, corrige el orden en completeOne/cmdComplete/cmdCompleteBatch para que el commit de una tarea (commitTask) ya incluya el execution_state.json de ESA MISMA tarea (status/actual_tokens/test_cmd/commit), no el de la tarea anterior, y para que tras cerrar la ultima tarea de la invocacion (single-task o el ultimo entry de un batch) no quede ningun diff pendiente en execution_state.json. Puedes tocar scripts/exec/git.mjs si hace falta. Restriccion: el modo single-task y el modo batch deben seguir produciendo commits y entradas de estado byte-identicos entre si (invariante ya existente de la spec sdd-kit-token-reduction, cubierto por plugins/sdd-kit/test/exec/complete-batch.test.mjs — no lo rompas).",
+      "expected_output_schema": "plugins/sdd-kit/scripts/exec-tools.mjs (y opcionalmente scripts/exec/git.mjs) modificados de forma que cada commit de tarea contiene su propio execution_state.json, mas un test node --test que verifica AC1 y AC2 en verde, sin romper plugins/sdd-kit/test/exec/complete-batch.test.mjs existente.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 200000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC1", "assertion": "el commit creado para una tarea en verde, leido en la revision de ese mismo commit, contiene en execution_state.json el status, actual_tokens, test_cmd y commit de esa misma tarea, no los valores de la tarea anterior" },
+        { "ref": "AC2", "assertion": "tras cerrar la ultima tarea de un plan en modo single-task, y tras cerrar el ultimo entry de un batch, git status --short sobre la ruta de execution_state.json no reporta ninguna modificacion pendiente" }
+      ]
+    },
+    {
+      "task_id": "R2-invariant-guard",
+      "source_ids": ["R2.S1", "R2.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Escribir un guard test de invariante (localizar call sites + test de contrato) es implementacion acotada con criterio de aceptacion mecanico; no requiere juicio de diseno.",
+      "instructions": "Deriva de R2.S1 y R2.S2 (AC3, AC4). Tarea independiente: no depende de ningun otro resultado previo. Escribe un guard test node --test que: (a) verifique que commitTask( tiene exactamente un call site en todo plugins/sdd-kit/scripts/exec-tools.mjs y plugins/sdd-kit/scripts/exec/*.mjs, y que ese call site esta dentro de completeOne (AC3); (b) sirva de red de seguridad si en el futuro se anade un segundo call site de commitTask fuera de completeOne (AC4). El guard test debe pasar en el estado actual del repo independientemente de cualquier otro cambio en curso, porque el invariante que fija es sobre el NUMERO Y UBICACION de call sites de commitTask, no sobre el orden interno de completeOne.",
+      "expected_output_schema": "Test node --test nuevo que localiza todos los call sites de commitTask( en scripts/exec-tools.mjs y scripts/exec/*.mjs, afirma que hay exactamente 1 y que esta dentro de completeOne, verificando AC3 y AC4 en verde.",
+      "satisfies_acs": ["AC3", "AC4"],
+      "estimated_tokens": 180000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC3", "assertion": "buscar todas las invocaciones de commitTask( en scripts/exec-tools.mjs y scripts/exec/*.mjs devuelve exactamente 1 resultado, ubicado dentro de completeOne" },
+        { "ref": "AC4", "assertion": "el guard test falla si se anade una segunda invocacion de commitTask( fuera de completeOne en esos mismos ficheros" }
+      ]
+    },
+    {
+      "task_id": "e2e",
+      "source_ids": ["R-E2E.S1"],
+      "dependencies": ["R1-fix-ordering", "R2-invariant-guard"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Test de integracion que compone los resultados de R1 y R2 con criterios verificables por node --test; implementacion acotada tipica de sonnet.",
+      "instructions": "Deriva de R-E2E.S1 (AC-E2E). Consume los resultados de R1-fix-ordering y R2-invariant-guard (ambos ya deben estar aplicados). Escribe un test de integracion node --test sobre un fixture de plan con al menos 2 tareas, donde la segunda es la ultima del plan, que verifique: cerrando el fixture completo via cmdComplete (single-task) y, por separado, via cmdCompleteBatch (batch), cada commit generado contiene el execution_state.json de su propia tarea (no el de la anterior) y git status --short sobre execution_state.json queda vacio al terminar, en ambos modos.",
+      "expected_output_schema": "Test de integracion node --test mas fixture de plan multi-tarea que verifica, en ambos modos (single-task y batch), que cada commit refleja su propia tarea y no queda diff pendiente en execution_state.json (AC-E2E).",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 150000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC-E2E", "assertion": "cerrar un plan de 2 o mas tareas por ambos modos (single-task y batch) deja cada commit alineado con su propia tarea y sin diff pendiente en execution_state.json al finalizar en ninguno de los dos modos" }
+      ]
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["R1-fix-ordering"],
+      "R1.S1": ["R1-fix-ordering"],
+      "R1.S2": ["R1-fix-ordering"],
+      "R2": ["R2-invariant-guard"],
+      "R2.S1": ["R2-invariant-guard"],
+      "R2.S2": ["R2-invariant-guard"],
+      "R-E2E": ["e2e"],
+      "R-E2E.S1": ["e2e"]
+    },
+    "acs": {
+      "AC1": ["R1-fix-ordering"],
+      "AC2": ["R1-fix-ordering"],
+      "AC3": ["R2-invariant-guard"],
+      "AC4": ["R2-invariant-guard"],
+      "AC-E2E": ["e2e"]
+    }
+  }
+}

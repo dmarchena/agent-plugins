@@ -27,12 +27,33 @@ export function ensureBranch(slug, cwd = process.cwd()) {
   return { branch, created: true };
 }
 
-export function commitTask(taskId, message, cwd = process.cwd()) {
+// `files`, when given (non-empty array of paths relative to cwd), stages only
+// those paths (`git add <files...>`) instead of the whole tree (`git add -A`).
+// This is what lets a batch close (multiple tasks whose files already sit
+// uncommitted together in the tree, e.g. after N parallel subagents
+// returned) still produce one atomic commit per task: each entry in the
+// batch names its own files so its commit doesn't swallow a sibling task's
+// pending changes. The single-task path (files omitted) keeps today's
+// `add -A` behavior unchanged.
+//
+// `statePath`, when given, is always added to the staged set on top of
+// `files` — a restricted `files` list (batch mode) would otherwise leave the
+// task's own state-file flip (recorded via recordResult+persist just before
+// this call) out of its commit.
+function stage(cwd, files, statePath) {
+  const list = Array.isArray(files) && files.length > 0
+    ? (statePath ? [...files, statePath] : files)
+    : null;
+  if (list) run(['add', '--', ...list], cwd);
+  else run(['add', '-A'], cwd);
+}
+
+export function commitTask(taskId, message, cwd = process.cwd(), files = null, statePath = null) {
   const branch = currentBranch(cwd);
   if (branch === 'main' || branch === 'master') {
     throw new Error(`commitTask: cannot commit on the main branch (${branch})`);
   }
-  run(['add', '-A'], cwd);
+  stage(cwd, files, statePath);
   run(['commit', '-m', message], cwd);
   const hash = run(['rev-parse', '--short', 'HEAD'], cwd);
   return hash.stdout.trim();

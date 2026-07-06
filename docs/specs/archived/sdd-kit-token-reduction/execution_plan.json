@@ -1,0 +1,128 @@
+{
+  "plan_id": "sdd-kit-token-reduction-v1",
+  "project_name": "sdd-kit",
+  "global_objective": "Reducir el consumo real de tokens del flujo sdd-kit aplicando tres palancas sin cambiar lo que producen las skills: adelgazar el contexto fijo de los SKILL.md, cerrar un batch de tareas en una sola invocacion en el executor, y acotar la salida verbosa de un re-run fallido.",
+  "source_spec": "docs/specs/sdd-kit-token-reduction/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 1470000,
+  "tasks": [
+    {
+      "task_id": "R1-anchors",
+      "source_ids": ["R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Extraccion estructurada de anclas de reglas desde ficheros existentes, siguiendo un esquema fijo; sin diseno ni trade-offs.",
+      "instructions": "Deriva de R1.S1 (clausula AND) y R1.S2. ANTES de adelgazar nada, captura de cada uno de los 4 SKILL.md (plugins/sdd-kit/skills/spec-writer/SKILL.md, plan-writer/SKILL.md, plan-executor/SKILL.md, verify/SKILL.md) las anclas de reglas invariantes: cadenas cortas y unicas que identifican reglas de comportamiento esenciales (gates, nombres de subcomando, incidencias, invariantes). Produce un manifiesto de datos con un array de anclas por skill. No modifiques ningun SKILL.md ni ningun otro fichero del plugin.",
+      "expected_output_schema": "Fichero de manifiesto JSON con, por cada una de las 4 skills, un array no vacio de anclas (strings cortas y unicas) capturadas de los SKILL.md actuales sin modificarlos. Ubicado dentro del plugin para que el guard test de R1 lo consuma.",
+      "satisfies_acs": ["AC2"],
+      "estimated_tokens": 120000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "R1-slim",
+      "source_ids": ["R1.S1", "R1.S2"],
+      "dependencies": ["R1-anchors"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementacion acotada con criterio de aceptacion mecanico: el guard test (linea agregada, anclas, referencias) es la red de seguridad determinista, no hace falta juicio opus.",
+      "instructions": "Deriva de R1.S1 y R1.S2 (AC1, AC2, AC3). Consume el manifiesto de anclas producido por la tarea R1-anchors. Escribe PRIMERO un guard test (node --test) que verifique AC1 (suma de lineas de los cuerpos de los 4 SKILL.md <= 491), AC2 (cada ancla del manifiesto presente en el cuerpo del SKILL.md o en un asset referenciado por ruta) y AC3 (cada asset nuevo referenciado por su ruta en el SKILL.md de origen). Luego adelgaza los 4 SKILL.md (plugins/sdd-kit/skills/*/SKILL.md) moviendo secciones de referencia a sus assets/ hasta que el guard test pase, sin eliminar ninguna regla de comportamiento. No cambies el comportamiento ni el triggering de las skills.",
+      "expected_output_schema": "Los 4 SKILL.md adelgazados con la suma de sus cuerpos <= 491 lineas, nuevos ficheros bajo skills/*/assets/ con el contenido de referencia movido y referenciados por ruta desde su SKILL.md, y un guard test node --test que verifica AC1, AC2 y AC3 en verde.",
+      "satisfies_acs": ["AC1", "AC2", "AC3"],
+      "estimated_tokens": 500000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC1", "assertion": "la suma de lineas de los cuerpos siempre-cargados de las cuatro skills no supera 491" },
+        { "ref": "AC2", "assertion": "cada ancla del inventario de reglas de cada skill sigue presente en el cuerpo del SKILL.md o en un asset referenciado por ruta" },
+        { "ref": "AC3", "assertion": "cada asset creado a partir de contenido movido aparece referenciado por su ruta en el SKILL.md de origen" },
+        { "ref": "R1.S2", "assertion": "el contenido de referencia trasladado sigue siendo alcanzable desde la rama de decision que lo usaba" }
+      ]
+    },
+    {
+      "task_id": "R2-batch",
+      "source_ids": ["R2.S1", "R2.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Cambio acotado en scripts deterministas con criterios de aceptacion claros y verificables por node --test; implementacion tipica de sonnet.",
+      "instructions": "Deriva de R2.S1 y R2.S2 (AC4, AC5). Modifica el subcomando de cierre del executor (scripts/exec-tools.mjs y los modulos de scripts/exec/) para cerrar un batch de hasta 3 tareas paralelas en UNA sola invocacion, manteniendo commit y entrada de estado atomicos por tarea y aislando el fallo de una tarea del resto del batch. Anade tests deterministas node --test sobre un fixture. El contenido de cada commit y de cada entrada de estado debe quedar byte-identico al cierre tarea a tarea actual; no toques la inmutabilidad de execution_plan.json ni el esquema de execution_state.json.",
+      "expected_output_schema": "Subcomando de cierre del executor que acepta un batch y lo cierra en 1 invocacion con commit y estado atomicos por tarea y aislamiento de fallos, mas tests node --test que cubren AC4 (1 invocacion, byte-identico) y AC5 (aislamiento de fallo).",
+      "satisfies_acs": ["AC4", "AC5"],
+      "estimated_tokens": 300000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC4", "assertion": "cerrar un batch de N tareas paralelas realiza una unica invocacion de cierre y los commits y entradas de estado resultantes son byte-identicos a los del cierre tarea a tarea" },
+        { "ref": "AC5", "assertion": "si una tarea del batch no alcanza verde reproducible, las tareas verdes se commitean y registran igualmente y la fallida se reporta como no-hecha con su incidencia, sin revertir ni bloquear a las demas" }
+      ]
+    },
+    {
+      "task_id": "R3-filter",
+      "source_ids": ["R3.S1", "R3.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Cambio acotado en la logica de re-run con criterios mecanicos (tope de lineas, veredicto invariante) verificables por node --test.",
+      "instructions": "Deriva de R3.S1 y R3.S2 (AC6, AC7). Modifica la logica de re-run del executor (scripts/exec/verify.mjs) para que el rerun_output devuelto al orquestador se limite a las lineas de fallo o asercion con un tope duro de 50 lineas, preservando la linea de asercion del fallo, sin alterar el veredicto pass/fail. Anade tests node --test con un fixture de log extenso (>200 lineas). El status/veredicto devuelto debe ser identico con y sin recorte.",
+      "expected_output_schema": "Logica de re-run que devuelve rerun_output filtrado (solo lineas de fallo/asercion, <= 50 lineas) preservando la linea de asercion y sin cambiar el veredicto, mas tests node --test que cubren AC6 (recorte) y AC7 (veredicto invariante).",
+      "satisfies_acs": ["AC6", "AC7"],
+      "estimated_tokens": 250000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC6", "assertion": "ante un re-run fallido con log extenso, la salida devuelta al orquestador se limita a las lineas de fallo o asercion con un tope de 50 lineas y conserva la linea de asercion del fallo" },
+        { "ref": "AC7", "assertion": "el veredicto de un re-run fallido es identico con y sin recorte y un test que pasa se sigue reportando como verde" }
+      ]
+    },
+    {
+      "task_id": "e2e",
+      "source_ids": ["R-E2E.S1"],
+      "dependencies": ["R1-slim", "R2-batch", "R3-filter"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Test de integracion que compone los tres cambios con criterios verificables por node --test; implementacion acotada de sonnet.",
+      "instructions": "Deriva de R-E2E.S1 (AC-E2E). Consume los resultados de R1-slim, R2-batch y R3-filter. Escribe un test de integracion node --test sobre un fixture de plan multi-batch (incluido un batch con una tarea que falla y reintenta) que verifique: la ejecucion termina en complete con todas las tareas verdes y committeadas, el total de invocaciones orquestador<->script es estrictamente menor que el baseline previo (registrar el baseline del comportamiento actual sobre el mismo fixture antes del cambio), y ningun rerun_output supera 50 lineas.",
+      "expected_output_schema": "Test de integracion node --test mas fixture de plan multi-batch que verifica ejecucion completa verde y committeada, total de invocaciones orquestador<->script menor que el baseline registrado, y ningun rerun_output > 50 lineas (AC-E2E).",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 300000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC-E2E", "assertion": "ejecutar un plan multi-batch con las tres palancas activas termina con todas las tareas verdes y committeadas, el total de invocaciones orquestador-script es menor que el baseline previo y ninguna salida de re-run supera 50 lineas" }
+      ]
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["R1-anchors", "R1-slim"],
+      "R1.S1": ["R1-slim"],
+      "R1.S2": ["R1-anchors", "R1-slim"],
+      "R2": ["R2-batch"],
+      "R2.S1": ["R2-batch"],
+      "R2.S2": ["R2-batch"],
+      "R3": ["R3-filter"],
+      "R3.S1": ["R3-filter"],
+      "R3.S2": ["R3-filter"],
+      "R-E2E": ["e2e"],
+      "R-E2E.S1": ["e2e"]
+    },
+    "acs": {
+      "AC1": ["R1-slim"],
+      "AC2": ["R1-anchors", "R1-slim"],
+      "AC3": ["R1-slim"],
+      "AC4": ["R2-batch"],
+      "AC5": ["R2-batch"],
+      "AC6": ["R3-filter"],
+      "AC7": ["R3-filter"],
+      "AC-E2E": ["e2e"]
+    }
+  }
+}

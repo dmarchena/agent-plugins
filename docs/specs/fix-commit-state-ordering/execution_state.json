@@ -1,0 +1,36 @@
+{
+  "plan_id": "fix-commit-state-ordering-v1",
+  "source_spec": "docs/specs/fix-commit-state-ordering/spec.md",
+  "branch": "feat/fix-commit-state-ordering",
+  "started_at": "2026-07-06T00:11:13.645Z",
+  "tasks": {
+    "R1-fix-ordering": {
+      "status": "done",
+      "estimated_tokens": 200000,
+      "actual_tokens": 64356,
+      "deviation": -135644,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/commit-ordering.test.mjs",
+      "commit": "617b9c6",
+      "incidencia": null
+    },
+    "R2-invariant-guard": {
+      "status": "done",
+      "estimated_tokens": 180000,
+      "actual_tokens": 59561,
+      "deviation": -120439,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/commit-invariant.test.mjs",
+      "commit": "d0d25e7",
+      "incidencia": null
+    },
+    "e2e": {
+      "status": "done",
+      "estimated_tokens": 150000,
+      "actual_tokens": 65154,
+      "deviation": -84846,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-commit-ordering.test.mjs",
+      "commit": "4ab5627",
+      "incidencia": null
+    }
+  },
+  "pause": null
+}
