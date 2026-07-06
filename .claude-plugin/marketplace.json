@@ -9,6 +9,11 @@
       "name": "sdd-kit",
       "source": "./plugins/sdd-kit",
       "description": "Spec-driven development kit: skills for spec.md and the execution plan."
+    },
+    {
+      "name": "claude-token-debug",
+      "source": "./plugins/claude-token-debug",
+      "description": "Debugging toolkit for measuring where Claude Code's real token spend goes."
     }
   ]
 }
