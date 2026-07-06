@@ -41,12 +41,12 @@
       "incidencia": null
     },
     "e2e": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 300000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 101600,
+      "deviation": -198400,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-token-reduction.test.mjs",
+      "commit": "5c3cd8c",
       "incidencia": null
     }
   },
