@@ -4,6 +4,16 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.3.1
+
+- `plan-writer`'s agent-roles catalog now documents *why* the role-to-model
+  mapping is the right lever: measured on real `general-purpose` invocations
+  in this repo, subagent cost is almost entirely `cache_read` accumulated
+  across turns within a task, not the agent's fixed system prompt (~0.4-2%
+  of total). Recommends keeping each plan task scoped to one verifiable
+  deliverable and splitting tasks expected to need more than ~15-20 turns,
+  rather than reaching for a lighter-weight agent.
+
 ## 0.3.0
 
 - Added the `verify` skill: checks a spec's Acceptance Criteria one by one
