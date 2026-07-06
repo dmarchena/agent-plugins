@@ -10,7 +10,7 @@
       "actual_tokens": 64356,
       "deviation": -135644,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/commit-ordering.test.mjs",
-      "commit": "f9ebbd8",
+      "commit": "9a38789",
       "incidencia": null
     },
     "R2-invariant-guard": {
