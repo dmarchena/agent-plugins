@@ -10,7 +10,7 @@
       "actual_tokens": 64356,
       "deviation": -135644,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/commit-ordering.test.mjs",
-      "commit": "9a38789",
+      "commit": null,
       "incidencia": null
     },
     "R2-invariant-guard": {
@@ -23,12 +23,12 @@
       "incidencia": null
     },
     "e2e": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 150000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 65154,
+      "deviation": -84846,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-commit-ordering.test.mjs",
+      "commit": "3b82106",
       "incidencia": null
     }
   },
