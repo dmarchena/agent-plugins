@@ -28,7 +28,7 @@
       "actual_tokens": 65154,
       "deviation": -84846,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-commit-ordering.test.mjs",
-      "commit": null,
+      "commit": "4ab5627",
       "incidencia": null
     }
   },
