@@ -66,6 +66,14 @@ See `README.md`'s "Conventions" and "Validation" sections — plugin layout,
 manifest `version` (semver, bumped manually), and the `scripts/validate.sh`
 gate are documented there and not repeated here.
 
+**Any commit that changes files under a plugin's directory** (skills,
+commands, agents, scripts — anything other than that plugin's own
+`plugin.json`/`CHANGELOG.md`) **must bump that plugin's `version` and add a
+`CHANGELOG.md` entry in the same commit.** `scripts/validate.sh` only checks
+that `version` is well-formed semver, not that it was bumped — nothing else
+catches a missed bump, so treat it as part of the change itself, not a
+follow-up chore to do later.
+
 ## Templates
 
 Reusable skeletons for the recurring artifacts in this repo live in
