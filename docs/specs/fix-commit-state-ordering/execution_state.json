@@ -19,7 +19,7 @@
       "actual_tokens": 59561,
       "deviation": -120439,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/commit-invariant.test.mjs",
-      "commit": "38a0586",
+      "commit": "19092e4",
       "incidencia": null
     },
     "e2e": {
