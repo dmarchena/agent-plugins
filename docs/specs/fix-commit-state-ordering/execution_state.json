@@ -1,0 +1,36 @@
+{
+  "plan_id": "fix-commit-state-ordering-v1",
+  "source_spec": "docs/specs/fix-commit-state-ordering/spec.md",
+  "branch": "feat/fix-commit-state-ordering",
+  "started_at": "2026-07-06T00:11:13.645Z",
+  "tasks": {
+    "R1-fix-ordering": {
+      "status": "pending",
+      "estimated_tokens": 200000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "R2-invariant-guard": {
+      "status": "pending",
+      "estimated_tokens": 180000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "e2e": {
+      "status": "pending",
+      "estimated_tokens": 150000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    }
+  },
+  "pause": null
+}

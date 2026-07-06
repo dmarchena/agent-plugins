@@ -17,7 +17,9 @@ import { loadPlan, readyBatch } from './exec/plan.mjs';
 import {
   initState, recordResult, recordPause, setBranch, persist, read,
 } from './exec/state.mjs';
-import { ensureBranch, commitTask, currentBranch } from './exec/git.mjs';
+import {
+  ensureBranch, commitTask, amendTaskCommit, currentBranch,
+} from './exec/git.mjs';
 import { rerun, confirm } from './exec/verify.mjs';
 import { exceeds, blockAndSkip } from './exec/budget.mjs';
 import { resumeGround } from './exec/resume.mjs';
@@ -131,7 +133,7 @@ function cmdNext(specDir) {
 // entry: { taskId, tokens, testCmd, rojo, verde, message, files }
 //   files (optional) — paths to stage for this task's commit instead of the
 //   whole tree; see git.mjs#commitTask for why a batch needs this.
-function completeOne(plan, state, entry) {
+function completeOne(plan, state, statePath, entry) {
   const {
     taskId, tokens, testCmd, rojo, verde, message, files = null,
   } = entry;
@@ -143,8 +145,17 @@ function completeOne(plan, state, entry) {
 
   if (res.done) {
     const msg = message || `${taskId}: test + implementation (green verified)`;
-    const hash = commitTask(taskId, msg, process.cwd(), files);
+    // Persist this task's OWN status/tokens/test_cmd before committing, so
+    // the commit captures its own flip, not the previous task's (the bug).
+    recordResult(state, taskId, { status: 'done', actual_tokens: tokens, test_cmd: testCmd, commit: null });
+    persist(statePath, state);
+    const hash = commitTask(taskId, msg, process.cwd(), files, statePath);
+    // The commit hash can't be known before the commit exists; fold it in
+    // via amend (same commit position, not a second commit) so nothing is
+    // left pending (R1.S2/AC2).
     recordResult(state, taskId, { status: 'done', actual_tokens: tokens, test_cmd: testCmd, commit: hash });
+    persist(statePath, state);
+    amendTaskCommit(process.cwd(), files, statePath);
     return { status: 'done', task_id: taskId, commit: hash, actual_tokens: tokens, deviation: state.tasks[taskId].deviation };
   }
 
@@ -153,6 +164,7 @@ function completeOne(plan, state, entry) {
     : res.reason === 'rerun-failed' ? 'orchestrator rerun failed after reported green'
       : 'subagent did not report green';
   recordResult(state, taskId, { status: 'pending', actual_tokens: tokens, test_cmd: testCmd, incidencia });
+  persist(statePath, state);
   return { status: 'not-done', task_id: taskId, reason: res.reason, incidencia, rerun_output: res.rerun_output };
 }
 
@@ -168,10 +180,9 @@ function cmdComplete(specDir, taskId, flags) {
   const tokens = flags.tokens !== undefined && flags.tokens !== true ? parseInt(flags.tokens, 10) : null;
   const message = (flags.message && flags.message !== true) ? String(flags.message) : null;
 
-  const result = completeOne(plan, state, {
+  const result = completeOne(plan, state, p.state, {
     taskId, tokens, testCmd, rojo: flags.rojo, verde: flags.verde, message, files: null,
   });
-  persist(p.state, state);
   out(result);
 }
 
@@ -209,7 +220,10 @@ function cmdCompleteBatch(specDir, batchPath) {
 
   const results = [];
   for (const e of entries) {
-    const result = completeOne(plan, state, {
+    // completeOne persists internally (before AND after its commit) so each
+    // task's own flip is captured by its own commit, and a crash mid-batch
+    // still leaves the already-committed tasks correctly recorded in state.
+    const result = completeOne(plan, state, p.state, {
       taskId: e.task_id,
       tokens: e.tokens != null ? parseInt(e.tokens, 10) : null,
       testCmd: e.test_cmd != null ? String(e.test_cmd) : null,
@@ -219,9 +233,6 @@ function cmdCompleteBatch(specDir, batchPath) {
       files: Array.isArray(e.files) ? e.files : null,
     });
     results.push(result);
-    // Persist after each task, not just at the end: a crash mid-batch still
-    // leaves the already-committed tasks correctly recorded in state.
-    persist(p.state, state);
   }
   out({ status: 'batch', results });
 }

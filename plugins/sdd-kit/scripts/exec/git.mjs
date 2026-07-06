@@ -35,17 +35,42 @@ export function ensureBranch(slug, cwd = process.cwd()) {
 // batch names its own files so its commit doesn't swallow a sibling task's
 // pending changes. The single-task path (files omitted) keeps today's
 // `add -A` behavior unchanged.
-export function commitTask(taskId, message, cwd = process.cwd(), files = null) {
+//
+// `statePath`, when given, is always added to the staged set on top of
+// `files` — a restricted `files` list (batch mode) would otherwise leave the
+// task's own state-file flip (recorded via recordResult+persist just before
+// this call) out of its commit.
+function stage(cwd, files, statePath) {
+  const list = Array.isArray(files) && files.length > 0
+    ? (statePath ? [...files, statePath] : files)
+    : null;
+  if (list) run(['add', '--', ...list], cwd);
+  else run(['add', '-A'], cwd);
+}
+
+export function commitTask(taskId, message, cwd = process.cwd(), files = null, statePath = null) {
   const branch = currentBranch(cwd);
   if (branch === 'main' || branch === 'master') {
     throw new Error(`commitTask: cannot commit on the main branch (${branch})`);
   }
-  if (Array.isArray(files) && files.length > 0) {
-    run(['add', '--', ...files], cwd);
-  } else {
-    run(['add', '-A'], cwd);
-  }
+  stage(cwd, files, statePath);
   run(['commit', '-m', message], cwd);
+  const hash = run(['rev-parse', '--short', 'HEAD'], cwd);
+  return hash.stdout.trim();
+}
+
+// Folds a follow-up change (the state file's own commit-hash field) into the
+// SAME commit position via --amend, so recording that hash never leaves a
+// second, separate commit or a dangling uncommitted diff. See exec-tools.mjs
+// completeOne for why this two-step (commit, then amend) is unavoidable: a
+// commit cannot embed the hash of itself.
+export function amendTaskCommit(cwd = process.cwd(), files = null, statePath = null) {
+  const branch = currentBranch(cwd);
+  if (branch === 'main' || branch === 'master') {
+    throw new Error(`amendTaskCommit: cannot commit on the main branch (${branch})`);
+  }
+  stage(cwd, files, statePath);
+  run(['commit', '--amend', '--no-edit'], cwd);
   const hash = run(['rev-parse', '--short', 'HEAD'], cwd);
   return hash.stdout.trim();
 }
