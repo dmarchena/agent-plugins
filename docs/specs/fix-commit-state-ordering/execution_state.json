@@ -19,7 +19,7 @@
       "actual_tokens": 59561,
       "deviation": -120439,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/commit-invariant.test.mjs",
-      "commit": null,
+      "commit": "d0d25e7",
       "incidencia": null
     },
     "e2e": {
@@ -28,7 +28,7 @@
       "actual_tokens": 65154,
       "deviation": -84846,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-commit-ordering.test.mjs",
-      "commit": "3b82106",
+      "commit": null,
       "incidencia": null
     }
   },
