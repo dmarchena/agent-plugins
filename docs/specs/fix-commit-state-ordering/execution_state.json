@@ -10,7 +10,7 @@
       "actual_tokens": 64356,
       "deviation": -135644,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/commit-ordering.test.mjs",
-      "commit": null,
+      "commit": "617b9c6",
       "incidencia": null
     },
     "R2-invariant-guard": {
@@ -19,7 +19,7 @@
       "actual_tokens": 59561,
       "deviation": -120439,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/commit-invariant.test.mjs",
-      "commit": "19092e4",
+      "commit": null,
       "incidencia": null
     },
     "e2e": {
