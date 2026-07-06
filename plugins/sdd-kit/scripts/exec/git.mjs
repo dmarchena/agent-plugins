@@ -58,19 +58,3 @@ export function commitTask(taskId, message, cwd = process.cwd(), files = null, s
   const hash = run(['rev-parse', '--short', 'HEAD'], cwd);
   return hash.stdout.trim();
 }
-
-// Folds a follow-up change (the state file's own commit-hash field) into the
-// SAME commit position via --amend, so recording that hash never leaves a
-// second, separate commit or a dangling uncommitted diff. See exec-tools.mjs
-// completeOne for why this two-step (commit, then amend) is unavoidable: a
-// commit cannot embed the hash of itself.
-export function amendTaskCommit(cwd = process.cwd(), files = null, statePath = null) {
-  const branch = currentBranch(cwd);
-  if (branch === 'main' || branch === 'master') {
-    throw new Error(`amendTaskCommit: cannot commit on the main branch (${branch})`);
-  }
-  stage(cwd, files, statePath);
-  run(['commit', '--amend', '--no-edit'], cwd);
-  const hash = run(['rev-parse', '--short', 'HEAD'], cwd);
-  return hash.stdout.trim();
-}

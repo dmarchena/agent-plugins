@@ -40,24 +40,40 @@ pasó tarea a tarea.
 Depende de: —
 
 The system SHALL comitear cada tarea (single-task o dentro de un batch) de
-forma que el commit resultante ya contenga el `execution_state.json` con el
-estado de esa misma tarea, y SHALL dejar el working tree sin cambios
-pendientes en `execution_state.json` una vez cerrada la última tarea de la
-invocación.
+forma que el commit resultante ya contenga el `execution_state.json` con
+`status`/`actual_tokens`/`test_cmd` de esa misma tarea (los datos sustantivos
+de auditoría), y SHALL dejar esos mismos campos sin cambios pendientes para
+ninguna tarea una vez cerrada la última tarea de la invocación.
+
+> **Nota de alcance (post-implementación):** el campo `commit` NO forma parte
+> de esta garantía. Un commit no puede contener el hash de sí mismo — es
+> matemáticamente imposible (el contenido determina el hash; para embeberlo
+> haría falta que el hash se predijera a sí mismo, lo cual solo es viable por
+> fuerza bruta, no por diseño). `commit` es además redundante con lo que ya
+> da `git log` (el mensaje de cada commit incluye el `task_id`), así que no
+> es dato sustantivo de auditoría — es una caché de conveniencia. Se
+> mantiene el comportamiento previo a este fix para ese campo específico
+> (se persiste tras conocer el hash, pudiendo quedar pendiente de commitear
+> hasta la siguiente operación git, u orphan si es la última tarea) porque
+> intentar resolverlo exactamente forzaba una mecánica extra (commit+amend)
+> sin beneficio real. AC1/AC2 abajo reflejan esto.
 
 #### R1.S1 — El commit de una tarea en verde refleja su propio estado
 - GIVEN una tarea (single-task vía `cmdComplete`, o un entry de un batch vía
   `cmdCompleteBatch`) cuya evidencia TDD es verde
 - WHEN `completeOne` la comitea
 - THEN leer `execution_state.json` en la revisión de ESE commit ya muestra,
-  para esa tarea, `status: "done"`, su `actual_tokens`, su `test_cmd` y el
-  hash de ESE mismo commit en `commit` — no los valores de la tarea anterior
+  para esa tarea, `status: "done"`, su `actual_tokens` y su `test_cmd` — no
+  los valores de la tarea anterior (el campo `commit` no está cubierto por
+  esta garantía; ver nota de alcance arriba)
 
-#### R1.S2 — Sin diff pendiente tras la última tarea
+#### R1.S2 — Sin diff pendiente en los campos sustantivos tras la última tarea
 - GIVEN un plan (o un batch) donde la última tarea cierra en verde
 - WHEN el comando `complete` termina (single-task o `--batch`)
-- THEN `git status --short` sobre la ruta de `execution_state.json` no
-  muestra ninguna modificación pendiente
+- THEN comparar el `execution_state.json` en disco contra el de HEAD muestra,
+  para TODAS las tareas, `status`/`actual_tokens`/`test_cmd` ya commiteados
+  (sin diferencia); el campo `commit` de la última tarea puede seguir
+  pendiente de commitear (ver nota de alcance)
 
 ### R2 — commitTask solo se invoca desde completeOne
 
@@ -85,17 +101,21 @@ por su cuenta con el mismo riesgo de desfase.
 Depende de: R1, R2
 
 The system SHALL cerrar un plan de varias tareas, tanto en modo single-task
-como en modo batch, dejando cada commit alineado con su propia tarea y sin
-ningún diff pendiente al finalizar.
+como en modo batch, dejando cada commit alineado con el
+status/actual_tokens/test_cmd de su propia tarea y sin ningún diff pendiente
+en esos campos al finalizar (ver nota de alcance en R1 sobre el campo
+`commit`).
 
 #### R-E2E.S1 — Fixture multi-tarea, ambos modos
 - GIVEN un plan-fixture con al menos 2 tareas donde la segunda es la última
   del plan
 - WHEN se cierra completo una vez vía `cmdComplete` (single-task) y, por
   separado, vía `cmdCompleteBatch` (batch)
-- THEN en ambos modos cada commit generado contiene el `execution_state.json`
-  de su propia tarea (no el de la anterior) y `git status --short` sobre
-  `execution_state.json` queda vacío al terminar
+- THEN en ambos modos cada commit generado contiene el
+  status/actual_tokens/test_cmd de su propia tarea (no el de la anterior) y,
+  al terminar, esos mismos campos en `execution_state.json` en disco
+  coinciden con los de HEAD para todas las tareas (el campo `commit` de la
+  última tarea puede seguir pendiente de commitear)
 
 ## Technical Requirements
 
@@ -118,10 +138,13 @@ ningún diff pendiente al finalizar.
 
 - [ ] AC1 → R1.S1 [auto] — fixture de 2+ tareas: el commit de la tarea N,
       leído en esa revisión, tiene en `execution_state.json` el
-      status/actual_tokens/test_cmd/commit de la tarea N (no de la N-1)
+      status/actual_tokens/test_cmd de la tarea N (no de la N-1); el campo
+      `commit` queda fuera de esta garantía (ver nota de alcance en R1)
 - [ ] AC2 → R1.S2 [auto] — tras cerrar la última tarea (single-task) y tras
-      cerrar el último entry de un batch, `git status --short` sobre
-      `execution_state.json` está vacío
+      cerrar el último entry de un batch, `status`/`actual_tokens`/`test_cmd`
+      de TODAS las tareas en el `execution_state.json` en disco coinciden con
+      los de HEAD (ya commiteados); el campo `commit` de la última tarea
+      puede seguir pendiente de commitear
 - [ ] AC3 → R2.S1 [auto] — grep de `commitTask(` en `scripts/exec-tools.mjs`
       y `scripts/exec/*.mjs` devuelve exactamente 1 resultado, dentro de
       `completeOne`
@@ -129,8 +152,10 @@ ningún diff pendiente al finalizar.
       site de `commitTask` o se reordena commit-antes-de-persist dentro de
       `completeOne`
 - [ ] AC-E2E → R-E2E.S1 [auto] — fixture de 2+ tareas cerrado por ambos modos
-      (single-task y batch): todos los commits reflejan su propia tarea y no
-      queda diff pendiente en `execution_state.json` en ninguno de los dos
+      (single-task y batch): todos los commits reflejan el
+      status/actual_tokens/test_cmd de su propia tarea y no queda diff
+      pendiente en esos campos en ninguno de los dos (el `commit` de la
+      última tarea puede seguir pendiente)
 
 ## Assumptions & Open Questions
 

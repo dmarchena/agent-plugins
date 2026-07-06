@@ -18,7 +18,7 @@ import {
   initState, recordResult, recordPause, setBranch, persist, read,
 } from './exec/state.mjs';
 import {
-  ensureBranch, commitTask, amendTaskCommit, currentBranch,
+  ensureBranch, commitTask, currentBranch,
 } from './exec/git.mjs';
 import { rerun, confirm } from './exec/verify.mjs';
 import { exceeds, blockAndSkip } from './exec/budget.mjs';
@@ -146,16 +146,18 @@ function completeOne(plan, state, statePath, entry) {
   if (res.done) {
     const msg = message || `${taskId}: test + implementation (green verified)`;
     // Persist this task's OWN status/tokens/test_cmd before committing, so
-    // the commit captures its own flip, not the previous task's (the bug).
+    // the commit captures its own flip, not the previous task's (the bug
+    // this fixes). The commit hash can't be known before the commit exists
+    // (embedding a commit's own hash inside itself isn't achievable without
+    // amend-per-task gymnastics), so it's recorded afterwards, same as
+    // before this fix — it's a convenience cache (also recoverable via
+    // `git log`, since the message includes the task_id), not the
+    // substantive audit data, so it's fine for it to trail its own commit.
     recordResult(state, taskId, { status: 'done', actual_tokens: tokens, test_cmd: testCmd, commit: null });
     persist(statePath, state);
     const hash = commitTask(taskId, msg, process.cwd(), files, statePath);
-    // The commit hash can't be known before the commit exists; fold it in
-    // via amend (same commit position, not a second commit) so nothing is
-    // left pending (R1.S2/AC2).
     recordResult(state, taskId, { status: 'done', actual_tokens: tokens, test_cmd: testCmd, commit: hash });
     persist(statePath, state);
-    amendTaskCommit(process.cwd(), files, statePath);
     return { status: 'done', task_id: taskId, commit: hash, actual_tokens: tokens, deviation: state.tasks[taskId].deviation };
   }
 

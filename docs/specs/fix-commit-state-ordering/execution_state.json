@@ -14,12 +14,12 @@
       "incidencia": null
     },
     "R2-invariant-guard": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 180000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 59561,
+      "deviation": -120439,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/commit-invariant.test.mjs",
+      "commit": "38a0586",
       "incidencia": null
     },
     "e2e": {
