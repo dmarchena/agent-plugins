@@ -56,7 +56,9 @@ been superseded by the prefixes above.
     period, in English (per "Language" above).
   - Example: `fix(plan-executor): use feat/ branch prefix instead of ia/`.
 - Open a PR to `main` for review; merge once CI (`scripts/validate.sh` via
-  GitHub Actions) is green. Don't push directly to `main`.
+  GitHub Actions) is green. Don't push directly to `main` for feat/fix work.
+  Small, self-contained doc/chore changes (a version bump, a changelog
+  entry, an `AGENTS.md` fix) may be committed directly to `main`.
 - After a PR merges, switch to `main` and pull; don't delete the
   now-merged feature branch unless asked.
 
