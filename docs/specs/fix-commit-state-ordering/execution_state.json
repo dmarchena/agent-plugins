@@ -5,12 +5,12 @@
   "started_at": "2026-07-06T00:11:13.645Z",
   "tasks": {
     "R1-fix-ordering": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 200000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
-      "commit": null,
+      "actual_tokens": 64356,
+      "deviation": -135644,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/commit-ordering.test.mjs",
+      "commit": "f9ebbd8",
       "incidencia": null
     },
     "R2-invariant-guard": {
