@@ -4,6 +4,21 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.3.0
+
+- Added the `verify` skill: checks a spec's Acceptance Criteria one by one
+  against a `docs/specs/<slug>/` that `plan-executor` already ran —
+  deterministic re-run ground check for done tasks' auto ACs, degraded
+  manual-confirmation flow when `execution_state.json` is missing,
+  not-green status for ACs whose covering tasks are incomplete, an
+  informative token-deviation report, and, only once every AC is green,
+  archives the spec dir to `docs/specs/archived/<slug>/`. Shortcut:
+  `/sdd-kit:verify`.
+- Fixed a `plan-executor` bug where a task's own state flip could be
+  dropped: the task's state was committed before it was persisted to
+  disk, so a same-commit read raced the write. State is now persisted
+  before the commit that records it.
+
 ## 0.2.1
 
 - Fixed `plan-executor`'s feature-branch prefix: it hardcoded the old
