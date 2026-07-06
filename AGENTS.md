@@ -66,13 +66,14 @@ See `README.md`'s "Conventions" and "Validation" sections — plugin layout,
 manifest `version` (semver, bumped manually), and the `scripts/validate.sh`
 gate are documented there and not repeated here.
 
-**Any commit that changes files under a plugin's directory** (skills,
-commands, agents, scripts — anything other than that plugin's own
-`plugin.json`/`CHANGELOG.md`) **must bump that plugin's `version` and add a
-`CHANGELOG.md` entry in the same commit.** `scripts/validate.sh` only checks
-that `version` is well-formed semver, not that it was bumped — nothing else
-catches a missed bump, so treat it as part of the change itself, not a
-follow-up chore to do later.
+**Bump that plugin's `version` and add a `CHANGELOG.md` entry when a branch's
+work lands** — merging a `feat/`/`fix/`/... branch into `main`, or committing
+a fix directly onto `main` — **not on every intermediate commit** on the
+branch itself (those stay small, per-task checkpoints as usual). The bump
+and changelog entry are part of that landing commit/merge, not a follow-up
+chore to do later. `scripts/validate.sh` only checks that `version` is
+well-formed semver, not that it was bumped — nothing else catches a missed
+one, so this has to be deliberate at merge time.
 
 ## Templates
 
