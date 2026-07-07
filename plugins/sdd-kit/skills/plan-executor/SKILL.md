@@ -75,10 +75,11 @@ than 3 at once (R4.S1 / AC7).
 
 The brief is self-contained (no memory of this conversation) and
 MUST require the strict TDD cycle **test → red → implementation →
-green**. It must return the new test file(s), the implementation,
-**Evidence of red BEFORE** implementing and green after (R2.S1), the
-exact re-run command, and its token consumption. The test contract is
-never invented by the
+green**, with **Evidence of red BEFORE** implementing and green after
+(R2.S1). Its return follows the compact happy-path contract in
+`assets/task-brief-detail.md` — no file bodies — except when bouncing
+an ambiguity or hitting `no-red`, which keep full prose. The test
+contract is never invented by the
 implementer — see `assets/task-brief-detail.md` for exactly how it's
 sourced from the plan's `test_contract`, or derived from the spec's
 scenarios when `test_contract: null` (R2.S2 / AC3).

@@ -19,6 +19,16 @@ The contract is never invented by the implementer:
   descriptions (R2.S2 / AC3). Read those scenarios from `SPECDIR/spec.md`
   and quote them into the brief so the executor doesn't re-explore.
 
+## The happy-path return contract (§2)
+
+When a task goes green via the TDD cycle, the executor's return
+MUST contain exactly: `task_id`, files touched (paths only), test-cmd,
+rojo flag, verde flag, and tokens consumed — it MUST NOT include the body of any test or implementation file it created or edited.
+When `--rojo fail`, the return also carries a red excerpt: ≤ 3 lines quoting the actual failing assertion, not just a boolean.
+This trim applies only to the happy path — a bounced ambiguity or a
+`no-red` incidence (below) keeps its full explanatory prose instead of
+this compact form.
+
 ## The three `not-done` reasons (§3)
 
 - `reason: "no-red"` (`incidencia: "sin evidencia de rojo"`) — the test

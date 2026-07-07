@@ -73,7 +73,11 @@
     "guarantees the **task** level (TDD tests green)",
     "commits stay on the plan branch",
     "the git module refuses",
-    "happens automatically per verified task on the plan branch"
+    "happens automatically per verified task on the plan branch",
+    "MUST NOT include the body of any test or implementation file",
+    "MUST contain exactly: `task_id`, files touched (paths only)",
+    "≤ 3 lines quoting the actual failing assertion, not just a boolean",
+    "This trim applies only to the happy path"
   ],
   "verify": [
     "AC by AC, against the plain Acceptance Criteria checklist",

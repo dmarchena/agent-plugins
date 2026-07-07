@@ -1,0 +1,58 @@
+{
+  "plan_id": "plan-executor-minimal-return",
+  "project_name": "sdd-kit",
+  "global_objective": "El ejecutor de plan-executor devuelve solo evidencia minima al orquestador (no el fuente que este nunca usa), reduciendo la huella de contexto por tarea; contrato blindado por anclas y sin regresion del flujo determinista.",
+  "source_spec": "docs/specs/executor-minimal-return/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 60000,
+  "tasks": [
+    {
+      "task_id": "T1-contract",
+      "source_ids": ["R1", "R1.S1", "R1.S2", "R1.S3"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Edicion acotada de la doc de brief mas anclas, con criterios claros y guardada por rule-anchors.test.mjs (ciclo TDD anclas->rojo, doc->verde); sin cambios de logica en scripts.",
+      "instructions": "En plugins/sdd-kit/skills/plan-executor: actualiza SKILL.md seccion 2 y assets/task-brief-detail.md para especificar el contrato de retorno minimo del ejecutor segun R1/R1.S1 (campos enumerados: task_id, ficheros tocados, test-cmd, flag rojo, flag verde, extracto-rojo de <=3 lineas segun R1.S2, tokens; prohibir devolver cuerpos de fichero/fuente), y acota el recorte al path feliz conservando la prosa en los retornos de ambiguedad rebotada e incidencia no-red (R1.S3). Anade las anclas correspondientes a assets/rule-anchors.json (bloque plan-executor) para que test/exec/rule-anchors.test.mjs las exija. No tocar scripts/exec-tools.mjs ni scripts/exec/. Verde = rule-anchors.test.mjs pasa con las anclas nuevas.",
+      "expected_output_schema": "Diff sobre skills/plan-executor/SKILL.md, skills/plan-executor/assets/task-brief-detail.md y skills/plan-executor/assets/rule-anchors.json; test/exec/rule-anchors.test.mjs en verde con las anclas nuevas.",
+      "satisfies_acs": ["AC1", "AC2", "AC3"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R1.S1", "assertion": "La doc de brief enumera exactamente los campos del retorno minimo del path de exito y prohibe devolver cuerpos de fichero o codigo fuente; un ancla lo fija y rule-anchors.test.mjs la exige." },
+        { "ref": "R1.S2", "assertion": "La doc de brief exige un extracto de rojo de <=3 lineas con la asercion que fallo cuando rojo=fail, no un booleano solo; ancla presente y exigida por el test." },
+        { "ref": "R1.S3", "assertion": "La doc de brief acota el recorte al path feliz y conserva la prosa en los retornos de ambiguedad rebotada e incidencia no-red; ancla presente." }
+      ]
+    },
+    {
+      "task_id": "T2-e2e",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["T1-contract"],
+      "agent_type": "terminal_operator",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "Verificacion mecanica de no-regresion: correr la suite completa y reportar verde. Bajo juicio -> haiku.",
+      "instructions": "Con los cambios de la tarea T1-contract aplicados, corre la suite test/exec completa (runner test/run.mjs), incluyendo rule-anchors.test.mjs y e2e*.test.mjs, y verifica que queda en verde de punta a punta (R-E2E.S1): complete sigue verificando re-corriendo el test desde disco y produciendo {status: done, commit, deviation} sin leer cuerpos de fichero del retorno. No modifiques codigo; si algo falla, reporta el fallo exacto.",
+      "expected_output_schema": "Salida de test/exec completa en verde (incl. rule-anchors y e2e), o el fallo exacto si lo hubiera; sin cambios de codigo.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 20000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1-contract"],
+      "R-E2E": ["T2-e2e"]
+    },
+    "acs": {
+      "AC1": ["T1-contract"],
+      "AC2": ["T1-contract"],
+      "AC3": ["T1-contract"],
+      "AC-E2E": ["T2-e2e"]
+    }
+  }
+}

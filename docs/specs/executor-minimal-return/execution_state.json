@@ -1,0 +1,27 @@
+{
+  "plan_id": "plan-executor-minimal-return",
+  "source_spec": "docs/specs/executor-minimal-return/spec.md",
+  "branch": "feat/executor-minimal-return",
+  "started_at": "2026-07-07T14:49:29.745Z",
+  "tasks": {
+    "T1-contract": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 65000,
+      "deviation": 25000,
+      "test_cmd": "cd /Users/dmarchena/ai/agent-plugins/plugins/sdd-kit && node --test test/exec/rule-anchors.test.mjs",
+      "commit": "98270bc",
+      "incidencia": null
+    },
+    "T2-e2e": {
+      "status": "pending",
+      "estimated_tokens": 20000,
+      "actual_tokens": 21000,
+      "deviation": 1000,
+      "test_cmd": "cd /Users/dmarchena/ai/agent-plugins/plugins/sdd-kit && node --test test/exec/*.test.mjs",
+      "commit": null,
+      "incidencia": "no red evidence"
+    }
+  },
+  "pause": null
+}
