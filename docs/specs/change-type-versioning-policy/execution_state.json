@@ -37,15 +37,15 @@
       "actual_tokens": 55000,
       "deviation": 39000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/versioning-check.test.mjs",
-      "commit": null,
+      "commit": "5f192da",
       "incidencia": null
     },
     "t5-validate-wiring": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 8000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 55000,
+      "deviation": 47000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/validate-versioning-wiring.test.mjs",
       "commit": null,
       "incidencia": null
     },

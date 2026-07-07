@@ -29,6 +29,12 @@ done
 echo "▶ Validando fixtures de plan-writer (plan-tools.mjs)…"
 node "$ROOT"/plugins/sdd-kit/test/run.mjs || fail=1
 
+# Comprobación de versionado/changelog (R4, change-type-versioning-policy):
+# no bloqueante — nunca toca `fail` ni el exit code de este script, con o sin
+# avisos. Silenciosa cuando `versioningPolicy` es "disabled"/ausente (R4.S1).
+echo "▶ Comprobando versionado/changelog (versioningPolicy)…"
+node "$ROOT"/plugins/sdd-kit/scripts/versioning-report.mjs "$ROOT" || true
+
 if [[ $fail -ne 0 ]]; then
   echo "✘ Validación fallida" >&2
   exit 1
