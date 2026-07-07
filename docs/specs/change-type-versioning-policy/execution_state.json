@@ -46,15 +46,15 @@
       "actual_tokens": 55000,
       "deviation": 47000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/validate-versioning-wiring.test.mjs",
-      "commit": null,
+      "commit": "f89c379",
       "incidencia": null
     },
     "t6-verify-gate": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 14000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 65000,
+      "deviation": 51000,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/verify-versioning-gate.test.mjs",
       "commit": null,
       "incidencia": null
     },
