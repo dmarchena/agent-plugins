@@ -19,14 +19,14 @@
       "actual_tokens": 37730,
       "deviation": 22730,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-scoped-close.test.mjs",
-      "commit": null,
+      "commit": "f3eb629",
       "incidencia": null
     }
   },
   "pause": {
     "reason": "budget: actual > 2x estimated executed",
-    "real_tokens": 115323,
-    "estimated_tokens": 45000,
-    "at_task": "T2-e2e"
+    "real_tokens": 153053,
+    "estimated_tokens": 60000,
+    "at_task": null
   }
 }
