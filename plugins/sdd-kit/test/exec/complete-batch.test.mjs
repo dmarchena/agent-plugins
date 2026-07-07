@@ -201,12 +201,14 @@ test('AC4: closing a batch in 1 invocation yields the same per-task commit+state
     const doneA = cli(ref.repo, [
       'complete', ref.specDir, 'task-a',
       '--tokens', '1200', '--test-cmd', testCmdA, '--rojo', 'fail', '--verde', 'pass',
+      '--files', 'impl/task-a.mjs,t/task-a.check.mjs',
     ]);
     const testCmdB = writeTaskFiles(ref.repo, 'task-b', 'R2.S1', true);
     refInvocations++;
     const doneB = cli(ref.repo, [
       'complete', ref.specDir, 'task-b',
       '--tokens', '1100', '--test-cmd', testCmdB, '--rojo', 'fail', '--verde', 'pass',
+      '--files', 'impl/task-b.mjs,t/task-b.check.mjs',
     ]);
     assert.strictEqual(doneA.status, 'done');
     assert.strictEqual(doneB.status, 'done');

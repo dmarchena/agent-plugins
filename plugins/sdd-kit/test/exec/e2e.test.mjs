@@ -199,6 +199,7 @@ function runTask(repo, specDir, taskId, ref) {
     '--test-cmd', testCmd,
     '--rojo', 'fail',
     '--verde', 'pass',
+    '--files', `impl/${taskId}.mjs,t/${taskId}.test.mjs`,
   ]);
 }
 

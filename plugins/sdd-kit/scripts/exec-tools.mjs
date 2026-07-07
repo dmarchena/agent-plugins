@@ -183,8 +183,19 @@ function cmdComplete(specDir, taskId, flags) {
   const tokens = flags.tokens !== undefined && flags.tokens !== true ? parseInt(flags.tokens, 10) : null;
   const message = (flags.message && flags.message !== true) ? String(flags.message) : null;
 
+  // R1.S2: the single-task path must never fall back to git.mjs's `add -A`
+  // whole-tree stage — it requires an explicit, non-empty, comma-separated
+  // list of the task's own touched files (--files a.mjs,b.mjs), or it
+  // refuses to stage/commit anything at all. This must be checked BEFORE
+  // completeOne runs so a missing list can't reach git.mjs#stage.
+  const filesRaw = (flags.files && flags.files !== true) ? String(flags.files) : '';
+  const files = filesRaw.split(',').map((f) => f.trim()).filter((f) => f.length > 0);
+  if (files.length === 0) {
+    die("complete: refusing to commit without an explicit file list — pass the task's touched files", 1);
+  }
+
   const result = completeOne(plan, state, p.state, {
-    taskId, tokens, testCmd, rojo: flags.rojo, verde: flags.verde, message, files: null,
+    taskId, tokens, testCmd, rojo: flags.rojo, verde: flags.verde, message, files,
   });
   out(result);
 }
