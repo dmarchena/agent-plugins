@@ -19,17 +19,17 @@
       "actual_tokens": 35000,
       "deviation": -15000,
       "test_cmd": "cd plugins/sdd-kit && node --test test/exec/rule-anchors.test.mjs",
-      "commit": null,
+      "commit": "1fe99c4",
       "incidencia": null
     },
     "T3-e2e": {
       "status": "pending",
       "estimated_tokens": 25000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 22671,
+      "deviation": -2329,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/**/*.test.mjs",
       "commit": null,
-      "incidencia": null
+      "incidencia": "no red evidence"
     }
   },
   "pause": null
