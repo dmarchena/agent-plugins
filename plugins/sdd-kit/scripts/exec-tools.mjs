@@ -20,6 +20,7 @@ import {
 import {
   ensureBranch, commitTask, currentBranch,
 } from './exec/git.mjs';
+import { readConfig, readChangeType, resolvePrefix } from './exec/config.mjs';
 import { rerun, confirm } from './exec/verify.mjs';
 import { exceeds, blockAndSkip } from './exec/budget.mjs';
 import { resumeGround } from './exec/resume.mjs';
@@ -91,11 +92,22 @@ function cmdInit(specDir) {
     die('INVALID_PLAN: ' + error + '\nFix the plan with plan-writer before executing.', 2);
   }
   const state = initState(plan);
-  const { branch, created } = ensureBranch(p.slug); // creates/reuses feat/<slug>
+  // R2: the branch prefix follows the spec's recorded Change type through
+  // the project's .sdd-kit.json (falling back to the built-in identity map,
+  // and to 'feat' when no Change type is recorded at all — R2.S3).
+  const changeType = readChangeType(p.spec);
+  const config = readConfig(process.cwd());
+  const prefix = resolvePrefix(changeType, config);
+  const { branch, created } = ensureBranch(p.slug, process.cwd(), prefix);
   setBranch(state, branch);
   persist(p.state, state);
   const batch = readyBatch(plan, [], { max: 3 });
-  out({ ok: true, plan_id: plan.plan_id, branch, branch_created: created, first_batch: batch, total_tasks: plan.tasks.length });
+  const result = { ok: true, plan_id: plan.plan_id, branch, branch_created: created, first_batch: batch, total_tasks: plan.tasks.length };
+  if (!changeType) {
+    result.note = 'spec.md has no "Change type:" line; defaulting the branch prefix to "feat". '
+      + 'Consider adding an explicit Change type (feat/fix/chore/refactor/docs) near the top of the spec.';
+  }
+  out(result);
 }
 
 // next <specDir>: next runnable batch (<=3), or a budget pause, or done.
