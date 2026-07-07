@@ -82,7 +82,8 @@ an ambiguity or hitting `no-red`, which keep full prose. The test
 contract is never invented by the
 implementer — see `assets/task-brief-detail.md` for exactly how it's
 sourced from the plan's `test_contract`, or derived from the spec's
-scenarios when `test_contract: null` (R2.S2 / AC3).
+scenarios when `test_contract: null` — the brief then carries IDs plus
+an extraction command, never the spec text itself (R2.S2 / AC3).
 
 Give the executor the task's `instructions`, `expected_output_schema`,
 exact file paths, and the constraints (Node ESM only, no network, don't

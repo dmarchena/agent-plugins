@@ -10,15 +10,15 @@
       "actual_tokens": 35000,
       "deviation": -25000,
       "test_cmd": "cd plugins/sdd-kit && node --test test/exec/extract.test.mjs",
-      "commit": null,
+      "commit": "587fc69",
       "incidencia": null
     },
     "T2-brief": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 50000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 35000,
+      "deviation": -15000,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/exec/rule-anchors.test.mjs",
       "commit": null,
       "incidencia": null
     },

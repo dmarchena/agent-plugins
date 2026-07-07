@@ -77,7 +77,9 @@
     "MUST NOT include the body of any test or implementation file",
     "MUST contain exactly: `task_id`, files touched (paths only)",
     "≤ 3 lines quoting the actual failing assertion, not just a boolean",
-    "This trim applies only to the happy path"
+    "This trim applies only to the happy path",
+    "MUST NOT quote the scenario/AC text verbatim into the brief",
+    "bounces the task as an unresolved ambiguity instead of inventing a contract"
   ],
   "verify": [
     "AC by AC, against the plain Acceptance Criteria checklist",

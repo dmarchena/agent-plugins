@@ -16,8 +16,13 @@ The contract is never invented by the implementer:
   the executor to **derive** the contract from the `spec.md` scenarios
   referenced by the task's `source_ids` / `satisfies_acs`, and the tests
   **must cite those scenario/AC IDs** (e.g. `R2.S1`, `AC3`) in their
-  descriptions (R2.S2 / AC3). Read those scenarios from `SPECDIR/spec.md`
-  and quote them into the brief so the executor doesn't re-explore.
+  descriptions (R2.S2 / AC3). The brief passes the executor those IDs
+  plus the deterministic extraction command,
+  `node scripts/exec-tools.mjs extract SPECDIR <ID...>`; it
+  MUST NOT quote the scenario/AC text verbatim into the brief. The
+  executor runs the command itself to get the verbatim text and derives
+  the contract from it. If the command exits non-zero naming a missing
+  ID, the executor bounces the task as an unresolved ambiguity instead of inventing a contract, rather than resolving it itself.
 
 ## The happy-path return contract (§2)
 
