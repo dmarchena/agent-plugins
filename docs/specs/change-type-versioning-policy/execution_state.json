@@ -32,11 +32,11 @@
       "incidencia": null
     },
     "t4-versioning-check": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 16000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 55000,
+      "deviation": 39000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/versioning-check.test.mjs",
       "commit": null,
       "incidencia": null
     },
@@ -64,7 +64,7 @@
       "actual_tokens": 9000,
       "deviation": 4000,
       "test_cmd": "node --test plugins/sdd-kit/test/repo-config.test.mjs",
-      "commit": null,
+      "commit": "cdfddef",
       "incidencia": null
     },
     "t8-e2e-full-flow": {
