@@ -28,7 +28,7 @@ Prefix every working branch with the semantic type of change it carries:
 
 - `feat/<slug>` — new functionality.
 - `fix/<slug>` — bug fix.
-- `spec/<slug>` — spec/documentation-only work (e.g. an sdd-kit `spec.md`
+- `docs/<slug>` — spec/documentation-only work (e.g. an sdd-kit `spec.md`
   authored on its own, before any plan or code).
 - `chore/<slug>` — maintenance with no user-facing behavior change (deps,
   CI, formatting).
@@ -76,6 +76,16 @@ and changelog entry are part of that landing commit/merge, not a follow-up
 chore to do later. `scripts/validate.sh` only checks that `version` is
 well-formed semver, not that it was bumped — nothing else catches a missed
 one, so this has to be deliberate at merge time.
+
+**Which segment to bump is determined by the change type of the landing
+branch**, not a judgment call:
+
+| Change type                    | Segment bumped        |
+| ------------------------------- | ---------------------- |
+| `fix`, `chore`, `refactor`      | patch                  |
+| `feat`                          | minor                  |
+| `docs`                          | no bump required       |
+| `major`                         | reserved and unused pre-`1.0.0` |
 
 ## Templates
 

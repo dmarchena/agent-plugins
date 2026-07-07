@@ -1,0 +1,81 @@
+{
+  "plan_id": "plan-change-type-versioning-policy-001",
+  "source_spec": "spec.md",
+  "branch": "fix/change-type-versioning-policy",
+  "started_at": "2026-07-07T22:12:54.673Z",
+  "tasks": {
+    "t1-spec-writer-change-type": {
+      "status": "pending",
+      "estimated_tokens": 9000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "t2-branch-prefix": {
+      "status": "pending",
+      "estimated_tokens": 14000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "t3-agents-md-versioning": {
+      "status": "done",
+      "estimated_tokens": 7000,
+      "actual_tokens": 35000,
+      "deviation": 28000,
+      "test_cmd": "node --test plugins/sdd-kit/test/agents-md-versioning.test.mjs",
+      "commit": null,
+      "incidencia": null
+    },
+    "t4-versioning-check": {
+      "status": "pending",
+      "estimated_tokens": 16000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "t5-validate-wiring": {
+      "status": "pending",
+      "estimated_tokens": 8000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "t6-verify-gate": {
+      "status": "pending",
+      "estimated_tokens": 14000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "t7-repo-config": {
+      "status": "pending",
+      "estimated_tokens": 5000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "t8-e2e-full-flow": {
+      "status": "pending",
+      "estimated_tokens": 4000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    }
+  },
+  "pause": null
+}
