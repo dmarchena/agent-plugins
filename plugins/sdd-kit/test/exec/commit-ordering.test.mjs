@@ -244,6 +244,7 @@ test('AC1/AC2 (single-task complete): each task commits its own state; last task
     const doneA = cli(repo, [
       'complete', specDir, 'task-a',
       '--tokens', '1200', '--test-cmd', testCmdA, '--rojo', 'fail', '--verde', 'pass',
+      '--files', 'impl/task-a.mjs,t/task-a.check.mjs',
     ]);
     assert.strictEqual(doneA.status, 'done');
     assert.ok(doneA.commit, 'task-a must have a commit hash');
@@ -257,6 +258,7 @@ test('AC1/AC2 (single-task complete): each task commits its own state; last task
     const doneB = cli(repo, [
       'complete', specDir, 'task-b',
       '--tokens', '1100', '--test-cmd', testCmdB, '--rojo', 'fail', '--verde', 'pass',
+      '--files', 'impl/task-b.mjs,t/task-b.check.mjs',
     ]);
     assert.strictEqual(doneB.status, 'done');
     assert.ok(doneB.commit, 'task-b must have a commit hash');

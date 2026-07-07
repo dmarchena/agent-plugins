@@ -33,17 +33,23 @@ export function ensureBranch(slug, cwd = process.cwd()) {
 // uncommitted together in the tree, e.g. after N parallel subagents
 // returned) still produce one atomic commit per task: each entry in the
 // batch names its own files so its commit doesn't swallow a sibling task's
-// pending changes. The single-task path (files omitted) keeps today's
-// `add -A` behavior unchanged.
+// pending changes. The single-task path now requires `files` too (R1) — the
+// caller in exec-tools.mjs refuses to call commitTask at all without an
+// explicit list, so `files === null` here only ever happens for the batch
+// path's own historical null case (files omitted in a batch entry), which
+// keeps the `add -A` fallback exactly as it was.
 //
 // `statePath`, when given, is always added to the staged set on top of
-// `files` — a restricted `files` list (batch mode) would otherwise leave the
-// task's own state-file flip (recorded via recordResult+persist just before
-// this call) out of its commit.
-function stage(cwd, files, statePath) {
-  const list = Array.isArray(files) && files.length > 0
+// `files` — a restricted `files` list would otherwise leave the task's own
+// state-file flip (recorded via recordResult+persist just before this call)
+// out of its commit.
+function pathspecList(files, statePath) {
+  return Array.isArray(files) && files.length > 0
     ? (statePath ? [...files, statePath] : files)
     : null;
+}
+
+function stage(cwd, list) {
   if (list) run(['add', '--', ...list], cwd);
   else run(['add', '-A'], cwd);
 }
@@ -53,8 +59,18 @@ export function commitTask(taskId, message, cwd = process.cwd(), files = null, s
   if (branch === 'main' || branch === 'master') {
     throw new Error(`commitTask: cannot commit on the main branch (${branch})`);
   }
-  stage(cwd, files, statePath);
-  run(['commit', '-m', message], cwd);
+  const list = pathspecList(files, statePath);
+  stage(cwd, list);
+  // R1.S3: when a file list is known, scope the COMMIT itself to that
+  // pathspec (not just the preceding `git add`). Two completions racing
+  // (e.g. a concurrent single-task complete, or two batch entries) could
+  // otherwise each stage their own files and then have the second `git
+  // commit` (no pathspec) sweep in whatever the first left staged if the
+  // first hasn't committed yet. `git commit -- <pathspec>` only commits the
+  // pathspec-matched staged changes, leaving anything else staged untouched
+  // for its own commit.
+  if (list) run(['commit', '-m', message, '--', ...list], cwd);
+  else run(['commit', '-m', message], cwd);
   const hash = run(['rev-parse', '--short', 'HEAD'], cwd);
   return hash.stdout.trim();
 }

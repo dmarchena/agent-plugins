@@ -1,0 +1,32 @@
+{
+  "plan_id": "executor-scoped-commit-v1",
+  "source_spec": "docs/specs/executor-scoped-commit/spec.md",
+  "branch": "feat/executor-scoped-commit",
+  "started_at": "2026-07-07T20:13:54.391Z",
+  "tasks": {
+    "T1-scoped-commit": {
+      "status": "done",
+      "estimated_tokens": 45000,
+      "actual_tokens": 115323,
+      "deviation": 70323,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/scoped-commit.test.mjs",
+      "commit": "c2ca119",
+      "incidencia": null
+    },
+    "T2-e2e": {
+      "status": "done",
+      "estimated_tokens": 15000,
+      "actual_tokens": 37730,
+      "deviation": 22730,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-scoped-close.test.mjs",
+      "commit": "f3eb629",
+      "incidencia": null
+    }
+  },
+  "pause": {
+    "reason": "budget: actual > 2x estimated executed",
+    "real_tokens": 153053,
+    "estimated_tokens": 60000,
+    "at_task": null
+  }
+}

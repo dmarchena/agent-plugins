@@ -97,11 +97,11 @@ re-run command it reported; **quote it** so it arrives as one argv token:
 
 ```
 node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs complete SPECDIR <task_id> \
-  --tokens <N> --test-cmd "<re-run command>" \
+  --tokens <N> --test-cmd "<re-run command>" --files "<a.mjs,b.mjs,...>" \
   --rojo pass|fail --verde pass|fail [--message "<commit subject>"]
 ```
 
-`--rojo`/`--verde` report the exit status of the test in each TDD phase.
+`--files` is REQUIRED (comma-separated touched paths) — `complete` commits only those plus its own state file, refusing to commit at all without it (R1). `--rojo`/`--verde` report the exit status of the test in each TDD phase.
 Genuine evidence is `--rojo fail` **and** `--verde pass`; `--rojo pass`
 means the test passed with nothing implemented — the "sin evidencia de
 rojo" incidence, not success. `complete` re-runs `--test-cmd` itself and
