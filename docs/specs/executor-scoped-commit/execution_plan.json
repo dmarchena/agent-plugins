@@ -1,0 +1,67 @@
+{
+  "plan_id": "executor-scoped-commit-v1",
+  "project_name": "sdd-kit",
+  "global_objective": "Make plan-executor's single-task complete path commit only the files a task touched (plus the plan state file), never sweeping unrelated working-tree work into the commit, with a loud failure when the file list can't be determined and correct per-task content under concurrent completions.",
+  "source_spec": "docs/specs/executor-scoped-commit/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 60000,
+  "tasks": [
+    {
+      "task_id": "T1-scoped-commit",
+      "source_ids": ["R1", "R1.S1", "R1.S2", "R1.S3"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation with clear acceptance criteria (AC1-AC3): scope the single-task commit to named files, add a fail-loud guard, and make the commit pathspec-scoped. One cohesive deliverable over two known files, not a design decision.",
+      "instructions": "Implement R1 and its scenarios R1.S1, R1.S2, R1.S3 in the single-task completion path. Per the spec's Technical Requirements, source the touched-file list from the executor's existing happy-path return contract and pass it through instead of the current hardcoded empty list; stage only those files plus the plan state file; make the commit pathspec-scoped so concurrent completions (R1.S3) cannot cross contents; and ensure the whole-tree staging fallback is unreachable from this path. On an empty or absent file list, fail loudly per R1.S2 using the exact error message defined in that scenario. Do not change the batch-close path's behavior (spec non-goal). Satisfies AC1, AC2, AC3.",
+      "expected_output_schema": "Modified single-task completion path plus its shared staging/commit helper, with automated tests, such that a single-task completion commits exactly the task's touched files plus the plan state file, fails loudly on an empty/absent list, and produces per-completion-scoped commits under concurrency.",
+      "satisfies_acs": ["AC1", "AC2", "AC3"],
+      "estimated_tokens": 45000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R1.S1",
+          "assertion": "After a single-task completion with an unrelated untracked path present in the tree, the resulting commit's file list contains exactly the task's touched files plus the plan state file, and the unrelated path stays untracked."
+        },
+        {
+          "ref": "R1.S2",
+          "assertion": "A single-task completion with no resolvable touched-file list creates no commit, stages nothing, and exits non-zero with the exact error message defined in R1.S2."
+        },
+        {
+          "ref": "R1.S3",
+          "assertion": "Two single-task completions naming disjoint file sets against the same working tree each produce a commit whose file list contains only its own named files plus the state file, never the other's."
+        }
+      ]
+    },
+    {
+      "task_id": "T2-e2e",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["T1-scoped-commit"],
+      "agent_type": "terminal_operator",
+      "model": "haiku",
+      "subagent": "general-purpose",
+      "justification": "Verification-only integrative run of R-E2E.S1: execute the full suite and confirm the end-to-end scoped close. No code deliverable and no design judgment, so the most austere operator role applies.",
+      "instructions": "Verify R-E2E.S1 end to end, consuming T1-scoped-commit's implementation. Drive a real task to completion through the single-task completion path in a repo state that also holds unrelated uncommitted work, and confirm the task's commit is scoped to its own files, the unrelated work stays uncommitted, and the full test suite is green. Satisfies AC-E2E.",
+      "expected_output_schema": "A pass/fail report giving the full suite result (green/red with test counts) and confirmation that the end-to-end scoped close per R-E2E.S1 holds: task commit scoped to its own files and unrelated uncommitted work untouched.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 15000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1-scoped-commit"],
+      "R-E2E": ["T2-e2e"]
+    },
+    "acs": {
+      "AC1": ["T1-scoped-commit"],
+      "AC2": ["T1-scoped-commit"],
+      "AC3": ["T1-scoped-commit"],
+      "AC-E2E": ["T2-e2e"]
+    }
+  }
+}
