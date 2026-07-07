@@ -4,6 +4,16 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.3.2
+
+- `plan-executor`'s task brief now documents a minimal happy-path return
+  contract: on a green TDD cycle the executor's return must contain
+  exactly `task_id`, files touched (paths only), test-cmd, rojo/verde
+  flags, and tokens consumed — no file bodies, and a ≤3-line red excerpt
+  only when `--rojo fail`. Trims what a disposable executor drags back
+  into the orchestrator's persistent context on the happy path; a
+  bounced ambiguity or a `no-red` incidence still keeps full prose.
+
 ## 0.3.1
 
 - `plan-writer`'s agent-roles catalog now documents *why* the role-to-model
