@@ -4,6 +4,16 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.3.4
+
+- Fixed the single-task `complete` path (`exec-tools.mjs complete SPECDIR
+  <id>`) staging the entire working tree (`git add -A`), which could
+  sweep unrelated in-progress work into a task's commit — it now commits
+  only the files that task touched plus the plan's state file. Also
+  refuses to commit (non-zero exit, working tree untouched) when the
+  task's touched-file list can't be resolved, rather than falling back
+  to staging the whole tree.
+
 ## 0.3.3
 
 - Added a deterministic `extract` subcommand (`exec-tools.mjs extract
