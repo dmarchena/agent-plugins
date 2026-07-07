@@ -5,11 +5,11 @@
   "started_at": "2026-07-07T22:12:54.673Z",
   "tasks": {
     "t1-spec-writer-change-type": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 9000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 80000,
+      "deviation": 71000,
+      "test_cmd": "node --test plugins/sdd-kit/test/spec-writer-change-type.test.mjs",
       "commit": null,
       "incidencia": null
     },
@@ -28,7 +28,7 @@
       "actual_tokens": 35000,
       "deviation": 28000,
       "test_cmd": "node --test plugins/sdd-kit/test/agents-md-versioning.test.mjs",
-      "commit": null,
+      "commit": "2c55920",
       "incidencia": null
     },
     "t4-versioning-check": {
@@ -77,5 +77,10 @@
       "incidencia": null
     }
   },
-  "pause": null
+  "pause": {
+    "reason": "budget: actual > 2x estimated executed",
+    "real_tokens": 35000,
+    "estimated_tokens": 7000,
+    "at_task": "t1-spec-writer-change-type"
+  }
 }
