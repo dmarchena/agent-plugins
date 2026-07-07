@@ -4,6 +4,17 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.3.3
+
+- Added a deterministic `extract` subcommand (`exec-tools.mjs extract
+  SPECDIR <ID...>`) that prints the verbatim spec.md block for a
+  scenario or AC ID, failing clearly on an unknown ID. `plan-executor`'s
+  brief for `test_contract: null` tasks now passes the executor these
+  IDs plus the extraction command instead of quoting the scenario/AC
+  text into the brief itself — the orchestrator no longer reads or
+  drags scenario bodies across every brief; the disposable executor
+  extracts them itself and bounces the task if an ID doesn't exist.
+
 ## 0.3.2
 
 - `plan-executor`'s task brief now documents a minimal happy-path return
