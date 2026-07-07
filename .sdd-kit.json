@@ -1,0 +1,10 @@
+{
+  "versioningPolicy": "plugin-changelog",
+  "branchPrefixes": {
+    "feat": "feat",
+    "fix": "fix",
+    "chore": "chore",
+    "refactor": "refactor",
+    "docs": "docs"
+  }
+}

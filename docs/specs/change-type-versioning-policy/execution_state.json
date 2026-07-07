@@ -19,7 +19,7 @@
       "actual_tokens": 50000,
       "deviation": 36000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/branch-prefix.test.mjs",
-      "commit": null,
+      "commit": "e94a955",
       "incidencia": null
     },
     "t3-agents-md-versioning": {
@@ -59,11 +59,11 @@
       "incidencia": null
     },
     "t7-repo-config": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 5000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 9000,
+      "deviation": 4000,
+      "test_cmd": "node --test plugins/sdd-kit/test/repo-config.test.mjs",
       "commit": null,
       "incidencia": null
     },
