@@ -23,6 +23,7 @@ import {
 import { rerun, confirm } from './exec/verify.mjs';
 import { exceeds, blockAndSkip } from './exec/budget.mjs';
 import { resumeGround } from './exec/resume.mjs';
+import { extractIds } from './exec/extract.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -287,6 +288,32 @@ function cmdReport(specDir) {
   });
 }
 
+// extract <specDir> <ID> [ID...]: prints the verbatim spec.md block for each
+// ID. Scenario IDs (R<n>.S<m> or R-E2E.S<m>) print their full #### block up
+// to (not including) the next header of level <=4; AC IDs (AC<n> or AC-E2E)
+// print just their single checklist line. Human/subagent-readable plain
+// text, not the JSON out() convention the other commands use. If ANY
+// requested ID isn't found, nothing is printed for it (no partial/invented
+// block) and the process exits non-zero naming the missing ID(s) on stderr.
+function cmdExtract(specDir, ids) {
+  if (!ids || ids.length === 0) {
+    die('Usage: exec-tools.mjs extract <specDir> <ID> [ID...]', 1);
+  }
+  const p = paths(specDir);
+  let specText;
+  try {
+    specText = fs.readFileSync(p.spec, 'utf8');
+  } catch (err) {
+    die(`could not read spec.md: ${p.spec} (${err.message})`, 1);
+  }
+  const { blocks, missing } = extractIds(specText, ids);
+  if (missing.length > 0) {
+    die(`ID(s) not found in spec.md: ${missing.join(', ')}`, 1);
+  }
+  const parts = ids.map((id) => `--- ${id} ---\n${blocks.get(id)}`);
+  process.stdout.write(parts.join('\n\n') + '\n');
+}
+
 // --- dispatch ----------------------------------------------------------------
 
 function main() {
@@ -300,8 +327,9 @@ function main() {
     case 'block': return cmdBlock(pos[0], pos[1]);
     case 'resume': return cmdResume(pos[0]);
     case 'report': return cmdReport(pos[0]);
+    case 'extract': return cmdExtract(pos[0], pos.slice(1));
     default:
-      die('Usage: exec-tools.mjs <init|next|complete|block|resume|report> <specDir> [...]', 1);
+      die('Usage: exec-tools.mjs <init|next|complete|block|resume|report|extract> <specDir> [...]', 1);
   }
 }
 

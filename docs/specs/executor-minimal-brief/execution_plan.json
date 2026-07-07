@@ -1,0 +1,82 @@
+{
+  "plan_id": "plan-executor-minimal-brief",
+  "project_name": "sdd-kit",
+  "global_objective": "El brief del ejecutor pasa IDs de escenario/AC mas un extractor determinista en vez de citar el texto de spec.md; el orquestador ni lee ni arrastra los cuerpos de escenario. Extractor con unit tests, contrato de brief blindado por anclas y sin regresion.",
+  "source_spec": "docs/specs/executor-minimal-brief/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 135000,
+  "tasks": [
+    {
+      "task_id": "T1-extractor",
+      "source_ids": ["R1", "R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Comando determinista nuevo con criterios de aceptacion claros y unit tests (TDD); implementacion acotada -> sonnet.",
+      "instructions": "Implementa en plugins/sdd-kit/scripts/exec-tools.mjs (o un modulo bajo scripts/exec/) un comando determinista que, dado SPECDIR y una lista de IDs (R<n>.S<m> y AC<n>/AC-E2E), imprima el texto verbatim de cada bloque desde SPECDIR/spec.md (R1.S1): para un escenario, desde su cabecera '#### R<n>.S<m>' hasta la siguiente cabecera; para un AC, su linea de checklist. Ante un ID inexistente, salir con codigo distinto de 0 nombrando el ID que no encontro (R1.S2), sin imprimir un bloque vacio. Reutiliza las regex de cabecera de scripts/plan-tools.mjs (parseSpec) y scripts/verify-tools.mjs (parseAcChecklist); no dupliques el parseo. Anade unit tests en test/exec/. Node ESM, sin red.",
+      "expected_output_schema": "Nuevo comando en exec-tools.mjs (o scripts/exec/) mas un test unitario en test/exec/ que cubre R1.S1 y R1.S2: stdout con los bloques verbatim y exit distinto de 0 con mensaje que nombra el ID ausente.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 60000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R1.S1", "assertion": "Dado un spec.md con un escenario R2.S1 (con sus bullets) y un AC3 en el checklist, invocar el comando con los IDs de R2.S1 y AC3 imprime el bloque completo del escenario y la linea del AC, y sale con codigo 0." },
+        { "ref": "R1.S2", "assertion": "Dado un ID que no existe en el spec.md, el comando sale con codigo distinto de 0 y el mensaje nombra el ID ausente, sin imprimir un bloque vacio ni inventarlo." }
+      ]
+    },
+    {
+      "task_id": "T2-brief",
+      "source_ids": ["R2", "R2.S1", "R2.S2", "R2.S3", "R2.S4"],
+      "dependencies": ["T1-extractor"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Edicion de la doc de brief mas anclas guardada por rule-anchors (TDD); depende del comando de extraccion creado en T1-extractor, al que el brief debe referirse.",
+      "instructions": "En plugins/sdd-kit/skills/plan-executor: actualiza SKILL.md seccion 2 y assets/task-brief-detail.md para que, en el caso test_contract:null, el brief pase los IDs (source_ids/satisfies_acs) y el comando de extraccion creado en la tarea T1-extractor en vez de citar el texto de los escenarios (R2.S1), e instruya rebotar la tarea si el extractor falla por un ID inexistente (R2.S2). Conserva sin cambios el path con test_contract no nulo (R2.S3) y la exigencia de que los tests derivados citen los IDs de escenario/AC en sus descripciones (R2.S4). Anade las anclas a assets/rule-anchors.json para que test/exec/rule-anchors.test.mjs las exija. Verde = rule-anchors.test.mjs pasa con las anclas nuevas.",
+      "expected_output_schema": "Diff sobre skills/plan-executor/SKILL.md, skills/plan-executor/assets/task-brief-detail.md y skills/plan-executor/assets/rule-anchors.json; test/exec/rule-anchors.test.mjs en verde con las anclas nuevas.",
+      "satisfies_acs": ["AC3", "AC4", "AC5", "AC6"],
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R2.S1", "assertion": "La doc de brief instruye pasar los IDs mas el comando de extraccion y prohibe citar el texto verbatim de los escenarios; ancla presente y exigida por rule-anchors.test.mjs." },
+        { "ref": "R2.S2", "assertion": "La doc de brief instruye rebotar la tarea si el extractor falla por un ID inexistente; ancla presente." },
+        { "ref": "R2.S3", "assertion": "La doc de brief conserva documentado el path test_contract no nulo sin extractor; ancla presente." },
+        { "ref": "R2.S4", "assertion": "La exigencia de citar los IDs de escenario/AC en los tests derivados sigue documentada; ancla presente." }
+      ]
+    },
+    {
+      "task_id": "T3-e2e",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["T1-extractor", "T2-brief"],
+      "agent_type": "terminal_operator",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "Verificacion mecanica de no-regresion end-to-end: correr la suite completa y reportar verde. Bajo juicio -> haiku.",
+      "instructions": "Con los cambios de las tareas T1-extractor y T2-brief aplicados, corre la suite test/exec completa (runner test/run.mjs), incluyendo los unit tests del extractor, rule-anchors.test.mjs y e2e*.test.mjs, y verifica que queda en verde de punta a punta con una tarea test_contract:null (R-E2E.S1). No modifiques codigo; si algo falla, reporta el fallo exacto.",
+      "expected_output_schema": "Salida de test/exec completa en verde (incl. extractor, rule-anchors y e2e), o el fallo exacto si lo hubiera; sin cambios de codigo.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1-extractor"],
+      "R2": ["T2-brief"],
+      "R-E2E": ["T3-e2e"]
+    },
+    "acs": {
+      "AC1": ["T1-extractor"],
+      "AC2": ["T1-extractor"],
+      "AC3": ["T2-brief"],
+      "AC4": ["T2-brief"],
+      "AC5": ["T2-brief"],
+      "AC6": ["T2-brief"],
+      "AC-E2E": ["T3-e2e"]
+    }
+  }
+}

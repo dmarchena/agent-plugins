@@ -1,0 +1,36 @@
+{
+  "plan_id": "plan-executor-minimal-brief",
+  "source_spec": "docs/specs/executor-minimal-brief/spec.md",
+  "branch": "feat/executor-minimal-brief",
+  "started_at": "2026-07-07T15:12:37.712Z",
+  "tasks": {
+    "T1-extractor": {
+      "status": "done",
+      "estimated_tokens": 60000,
+      "actual_tokens": 35000,
+      "deviation": -25000,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/exec/extract.test.mjs",
+      "commit": null,
+      "incidencia": null
+    },
+    "T2-brief": {
+      "status": "pending",
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T3-e2e": {
+      "status": "pending",
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    }
+  },
+  "pause": null
+}
