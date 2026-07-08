@@ -10,7 +10,7 @@
       "actual_tokens": 55000,
       "deviation": -15000,
       "test_cmd": "node --test plugins/sdd-kit/test/verify-cli.test.mjs",
-      "commit": null,
+      "commit": "234d224",
       "incidencia": null
     },
     "T2-drop-budget-pause": {
@@ -23,11 +23,11 @@
       "incidencia": null
     },
     "T3-verify-skill-cli": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 30000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 55000,
+      "deviation": 25000,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-skill-cli.test.mjs",
       "commit": null,
       "incidencia": null
     },

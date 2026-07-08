@@ -25,14 +25,48 @@ directory (`SPECDIR`) — the same directory plan-writer produced the
 `execution_plan.json` in and plan-executor ran against. It does not take a
 plan or spec file path directly; always pass the directory.
 
-All deterministic loading/parsing logic lives in
-`${CLAUDE_PLUGIN_ROOT}/scripts/verify-tools.mjs`, starting with
-`loadSpecdir(specDir)`, which loads `spec.md`'s AC checklist, the plan's
-`coverage.acs` map, and (when present) `execution_state.json`'s per-task
-status. It does not re-validate the plan against the spec — that already
-happened in plan-executor's `init`. When `execution_plan.json` or `spec.md`
-is missing, `loadSpecdir` throws before evaluating or archiving anything,
-naming the exact missing file.
+All deterministic verify logic lives in
+`${CLAUDE_PLUGIN_ROOT}/scripts/verify-tools.mjs`, exposed as one-line CLI
+subcommands — `node ${CLAUDE_PLUGIN_ROOT}/scripts/verify-tools.mjs <sub> SPECDIR [args]` —
+mirroring the shape `exec-tools.mjs` already uses for plan-executor. **Drive
+every deterministic verify step through these one-liners. Do NOT `import`
+verify-tools.mjs's exported functions (`loadSpecdir`, `groundCheck`,
+`assembleReport`, `archiveIfGreen`, `manualConfirmation`, ...) into the
+orchestrating agent's context, and do NOT author a throwaway driver script
+that calls them — that reloads the whole ~900-line library into this
+conversation for no reason the CLI doesn't already cover.** Each subcommand
+prints one JSON object with a `status` field to stdout and uses process exit
+codes:
+
+```
+node ${CLAUDE_PLUGIN_ROOT}/scripts/verify-tools.mjs ground-check SPECDIR
+node ${CLAUDE_PLUGIN_ROOT}/scripts/verify-tools.mjs report SPECDIR [--verdicts <path>]
+node ${CLAUDE_PLUGIN_ROOT}/scripts/verify-tools.mjs archive SPECDIR [--verdicts <path>]
+```
+
+`ground-check` re-runs `[auto]` ACs' stored test commands against the
+current working tree and prints the raw green/drift verdict. `report` runs
+the full pipeline (load SPECDIR → ground check → manual-confirmation
+tracking → degraded-manual routing when `execution_state.json` is absent →
+incomplete-coverage explanations → token-deviation flags → assemble the
+final per-AC report) and prints `{ status: 'report', allGreen, acs, deviatedTasks }`,
+never blocking on interactive stdin. `archive` re-runs that same pipeline
+and, only when `allGreen` is true, also archives the SPECDIR (`git mv` +
+commit) to `docs/specs/archived/<slug>/`, printing
+`{ status: 'archived'|'not-archived', ... }` either way — it always exits 0,
+so branch on the `status`/`archived` field, not the exit code.
+
+Internally these subcommands wrap `loadSpecdir(specDir)` (loads `spec.md`'s
+AC checklist, the plan's `coverage.acs` map, and — when present —
+`execution_state.json`'s per-task status), `groundCheck`,
+`degradedManualRouting`, `incompleteCoverage`, `tokenDeviations`, and
+`assembleReport` — useful context for interpreting a subcommand's output,
+but you invoke them via the CLI, never via `import`. None of this
+re-validates the plan against the spec — that already happened in
+plan-executor's `init`. On a SPECDIR missing `execution_plan.json` or
+`spec.md`, every subcommand exits non-zero and prints
+`VerifyInputError: <message naming the missing file>` — nothing is
+evaluated or archived.
 
 ## Manual AC confirmation protocol
 
@@ -54,27 +88,73 @@ find yourself tempted to mark a manual AC green without an explicit
 back-and-forth with the user in this thread, stop: that is a spec violation, not a shortcut.
 
 The bookkeeping (each AC's `'unanswered'`/`'confirmed'`/`'rejected'` status
-and which ones count green) is `manualConfirmation(items)` in
+and which ones count green) is `manualConfirmation(items)` inside
 `verify-tools.mjs` — pure bookkeeping with no I/O of its own; the actual
 presenting and waiting for a reply happens here, in the conversation, AC
-by AC, driven by this protocol.
+by AC, driven by this protocol. What changed is only the plumbing that
+carries the resolved answers into the deterministic pipeline: after each
+`[manual]` AC (or, in degraded mode, every AC — see R4) has been confirmed
+or rejected in this conversation, write the resolved answers to a JSON
+verdicts file —
+
+```json
+[
+  { "ac_id": "AC6", "verdict": "confirmed" },
+  { "ac_id": "AC9", "verdict": "rejected" }
+]
+```
+
+— and pass it to `report`/`archive` via `--verdicts <path>`
+(`node ${CLAUDE_PLUGIN_ROOT}/scripts/verify-tools.mjs report SPECDIR --verdicts <path>`),
+the same file-based convention `exec-tools.mjs complete --batch` uses. The
+CLI never prompts interactively (R1.S3): an AC with no matching entry in the
+file simply stays `'unanswered'` — not green — rather than the command
+blocking on stdin. You do not call `manualConfirmation(items).confirm(ac_id)`
+yourself; that call now happens inside the `report`/`archive` subcommand
+when it reads your verdicts file.
 
 ## Final report and archiving
 
 Verify always evaluates the **whole** checklist before concluding anything —
 it never stops at the first not-green AC (that's the spec's own stated
-default). `assembleReport(checklist, groundCheckResult, manualTracker,
-degradedResult, incompleteCoverageResult, tokenDeviationsResult)` in
-`verify-tools.mjs` merges every prior check into one final per-AC verdict
-plus an overall `allGreen` flag. Token deviations ride along as an informational `deviatedTasks` list —
-they are never allowed to turn a green AC (or the archiving decision) red (R6.S2). This same normal flow is what closes the spec-mandated `AC-E2E`: once its backing `verifier` task (see plan-executor's `assets/task-brief-detail.md`) is `done`, `AC-E2E` goes green here with no manual override, no hand-patched report field, and no user-override confirmation step — a still-`pending` verifier task just leaves it not-green like any other AC.
+default). Run the `report` one-liner to get it:
 
-Only when `allGreen` is true does `archiveIfGreen(specDir, report, { cwd, versioning })` archive:
-`git mv SPECDIR docs/specs/archived/<slug>/` followed by a commit, on whatever
-branch is checked out — unlike plan-executor's per-task commits, this is explicitly allowed to run on `main` (R7).
-If the destination already exists, it refuses before running any git command and reports the collision.
-If any AC isn't green, nothing is moved or committed — the report instead names exactly which ACs are missing
-and why (drift, blocked/skipped, not finished, rejected, unanswered, or fully manual-degraded).
+```
+node ${CLAUDE_PLUGIN_ROOT}/scripts/verify-tools.mjs report SPECDIR [--verdicts <path>]
+```
+
+which internally runs `assembleReport(checklist, groundCheckResult,
+manualTracker, degradedResult, incompleteCoverageResult,
+tokenDeviationsResult)` to merge every prior check into one final per-AC
+verdict plus an overall `allGreen` flag, and prints
+`{ status: 'report', allGreen, acs, deviatedTasks }`. Token deviations ride
+along as an informational `deviatedTasks` list — they are never allowed to
+turn a green AC (or the archiving decision) red (R6.S2). This same normal
+flow is what closes the spec-mandated `AC-E2E`: once its backing `verifier`
+task (see plan-executor's `assets/task-brief-detail.md`) is `done`,
+`AC-E2E` goes green here with no manual override, no hand-patched report
+field, and no user-override confirmation step — a still-`pending` verifier
+task just leaves it not-green like any other AC.
+
+Once you've confirmed the report looks right, run the `archive` one-liner
+(it re-runs the same pipeline itself, so pass the same `--verdicts` file if
+you used one for `report`):
+
+```
+node ${CLAUDE_PLUGIN_ROOT}/scripts/verify-tools.mjs archive SPECDIR [--verdicts <path>]
+```
+
+Only when `allGreen` is true does this internally call
+`archiveIfGreen(specDir, report, { cwd })` to archive:
+`git mv SPECDIR docs/specs/archived/<slug>/` followed by a commit, on
+whatever branch is checked out — unlike plan-executor's per-task commits,
+this is explicitly allowed to run on `main` (R7). If the destination already
+exists, it refuses before running any git command and reports the
+collision. If any AC isn't green, nothing is moved or committed — the
+printed report instead names exactly which ACs are missing and why (drift,
+blocked/skipped, not finished, rejected, unanswered, or fully
+manual-degraded). Either way `archive` exits 0 — check the `status`/
+`archived` field in its JSON output, not the exit code.
 
 ## Versioning-policy gate before archiving (R5)
 
