@@ -15,6 +15,7 @@ la tarea.
 | `doc_writer`        | `general-purpose` | `sonnet` | redactar docs siguiendo un esquema |
 | `reviewer`          | `general-purpose` | `opus`   | revisión crítica / juicio |
 | `architect`         | `Plan`            | `opus`   | diseño / decisiones con trade-offs |
+| `verifier`          | `general-purpose` | `haiku`  | correr la suite ya existente y confirmar verde (sin código, sin fase roja) — la tarea que respalda el `R-E2E`/`AC-E2E` que todo spec exige |
 
 ## Coste real de un subagente: turnos, no prompt fijo
 

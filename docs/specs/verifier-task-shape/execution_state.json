@@ -19,7 +19,7 @@
       "actual_tokens": 35000,
       "deviation": -25000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/verifier-complete.test.mjs",
-      "commit": null,
+      "commit": "d1b93a9",
       "incidencia": null
     },
     "T3-state-only-commit": {
@@ -41,11 +41,11 @@
       "incidencia": null
     },
     "T5-emit-and-document": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 40000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 50000,
+      "deviation": 10000,
+      "test_cmd": "node --test plugins/sdd-kit/test/verifier-docs.test.mjs",
       "commit": null,
       "incidencia": null
     },

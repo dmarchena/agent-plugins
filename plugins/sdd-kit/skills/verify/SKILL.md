@@ -67,7 +67,7 @@ default). `assembleReport(checklist, groundCheckResult, manualTracker,
 degradedResult, incompleteCoverageResult, tokenDeviationsResult)` in
 `verify-tools.mjs` merges every prior check into one final per-AC verdict
 plus an overall `allGreen` flag. Token deviations ride along as an informational `deviatedTasks` list —
-they are never allowed to turn a green AC (or the archiving decision) red (R6.S2).
+they are never allowed to turn a green AC (or the archiving decision) red (R6.S2). This same normal flow is what closes the spec-mandated `AC-E2E`: once its backing `verifier` task (see plan-executor's `assets/task-brief-detail.md`) is `done`, `AC-E2E` goes green here with no manual override, no hand-patched report field, and no user-override confirmation step — a still-`pending` verifier task just leaves it not-green like any other AC.
 
 Only when `allGreen` is true does `archiveIfGreen(specDir, report, { cwd })` archive:
 `git mv SPECDIR docs/specs/archived/<slug>/` followed by a commit, on whatever

@@ -34,6 +34,28 @@ This trim applies only to the happy path — a bounced ambiguity or a
 `no-red` incidence (below) keeps its full explanatory prose instead of
 this compact form.
 
+## The `verifier` task shape
+
+A task with `agent_type: "verifier"` (`test_contract: null`) is not a
+code-writing task: it's the spec-mandated `R-E2E`/`AC-E2E` end-to-end
+confirmation — run the pre-existing suite and confirm it's green, with **no
+code** to write and **no red phase** to produce, since there's nothing to
+implement. Its completion path is deliberately different from a
+`code_writer` task's:
+
+- **No red phase expected.** The brief does not ask this executor for
+  evidence-of-red-before-green — there is no implementation step that could
+  fail first. `complete` waives the red-phase requirement for this
+  `agent_type` only (the waiver never applies to any other role), so a
+  passing suite here is genuine success, not the `no-red` incidence above.
+- **Deterministic suite re-run.** `complete` still re-runs the task's
+  `--test-cmd` itself — the pre-existing suite, not a new test — and only
+  records `done` when that re-run passes; a failing re-run is
+  `reason: "rerun-failed"` exactly like any other task.
+- **State-only commit.** The resulting done-commit stages only the executor
+  state file (`execution_state.json`) — no `--files` list is required and
+  no code files are ever swept in, since none were touched.
+
 ## The three `not-done` reasons (§3)
 
 - `reason: "no-red"` (`incidencia: "sin evidencia de rojo"`) — the test
