@@ -10,15 +10,15 @@
       "actual_tokens": 48000,
       "deviation": 8000,
       "test_cmd": "node plugins/sdd-kit/test/run.mjs",
-      "commit": null,
+      "commit": "b5bed4b",
       "incidencia": null
     },
     "T2-complete-green": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 60000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 35000,
+      "deviation": -25000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/verifier-complete.test.mjs",
       "commit": null,
       "incidencia": null
     },
