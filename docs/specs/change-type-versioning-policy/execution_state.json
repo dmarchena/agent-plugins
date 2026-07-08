@@ -55,7 +55,7 @@
       "actual_tokens": 65000,
       "deviation": 51000,
       "test_cmd": "cd plugins/sdd-kit && node --test test/verify-versioning-gate.test.mjs",
-      "commit": null,
+      "commit": "eeae6e3",
       "incidencia": null
     },
     "t7-repo-config": {
@@ -68,13 +68,13 @@
       "incidencia": null
     },
     "t8-e2e-full-flow": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 4000,
-      "actual_tokens": null,
-      "deviation": null,
+      "actual_tokens": 55000,
+      "deviation": 51000,
       "test_cmd": null,
       "commit": null,
-      "incidencia": null
+      "incidencia": "manual AC-E2E confirmation, no artifact/commit — verified via throwaway fixture, report only"
     }
   },
   "pause": {
