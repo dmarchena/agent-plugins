@@ -81,7 +81,8 @@
               "code_writer",
               "doc_writer",
               "reviewer",
-              "architect"
+              "architect",
+              "verifier"
             ],
             "description": "Rol abstracto y portable asignado a la tarea."
           },

@@ -1,0 +1,63 @@
+{
+  "plan_id": "verifier-task-shape-plan",
+  "source_spec": "docs/specs/verifier-task-shape/spec.md",
+  "branch": "fix/verifier-task-shape",
+  "started_at": "2026-07-08T08:39:01.292Z",
+  "tasks": {
+    "T1-contract": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 48000,
+      "deviation": 8000,
+      "test_cmd": "node plugins/sdd-kit/test/run.mjs",
+      "commit": null,
+      "incidencia": null
+    },
+    "T2-complete-green": {
+      "status": "pending",
+      "estimated_tokens": 60000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T3-state-only-commit": {
+      "status": "pending",
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T4-verify-e2e-flow": {
+      "status": "pending",
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T5-emit-and-document": {
+      "status": "pending",
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T6-e2e": {
+      "status": "pending",
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    }
+  },
+  "pause": null
+}
