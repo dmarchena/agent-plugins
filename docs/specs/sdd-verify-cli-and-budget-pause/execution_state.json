@@ -5,11 +5,11 @@
   "started_at": "2026-07-08T21:18:21.312Z",
   "tasks": {
     "T1-verify-cli": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 70000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 55000,
+      "deviation": -15000,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-cli.test.mjs",
       "commit": null,
       "incidencia": null
     },
@@ -19,7 +19,7 @@
       "actual_tokens": 45000,
       "deviation": 5000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/next-no-pause.test.mjs",
-      "commit": null,
+      "commit": "89a2d7b",
       "incidencia": null
     },
     "T3-verify-skill-cli": {
