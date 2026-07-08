@@ -189,7 +189,8 @@ function cmdComplete(specDir, taskId, flags) {
   const p = paths(specDir);
   const { plan } = loadPlan(p.spec, p.plan);
   const state = read(p.state);
-  if (!plan.tasks.find((t) => t.task_id === taskId)) die('UNKNOWN_TASK: ' + taskId, 1);
+  const task = plan.tasks.find((t) => t.task_id === taskId);
+  if (!task) die('UNKNOWN_TASK: ' + taskId, 1);
 
   const testCmd = flags['test-cmd'] === true || flags['test-cmd'] === undefined ? null : String(flags['test-cmd']);
   const tokens = flags.tokens !== undefined && flags.tokens !== true ? parseInt(flags.tokens, 10) : null;
@@ -200,9 +201,18 @@ function cmdComplete(specDir, taskId, flags) {
   // list of the task's own touched files (--files a.mjs,b.mjs), or it
   // refuses to stage/commit anything at all. This must be checked BEFORE
   // completeOne runs so a missing list can't reach git.mjs#stage.
+  //
+  // T3-state-only-commit: a `verifier` task writes no code of its own (it
+  // only re-runs an already-implemented suite), so it has no touched files
+  // to name and is exempt from this guard. It still never reaches `add -A`
+  // though: an empty `files` array is passed through to completeOne, and
+  // git.mjs#pathspecList treats that as "stage only the state file", not
+  // "no restriction". Ordinary (non-verifier) tasks are unaffected — the die()
+  // below still fires for them exactly as before.
   const filesRaw = (flags.files && flags.files !== true) ? String(flags.files) : '';
   const files = filesRaw.split(',').map((f) => f.trim()).filter((f) => f.length > 0);
-  if (files.length === 0) {
+  const isVerifierTask = task.agent_type === 'verifier';
+  if (files.length === 0 && !isVerifierTask) {
     die("complete: refusing to commit without an explicit file list — pass the task's touched files", 1);
   }
 

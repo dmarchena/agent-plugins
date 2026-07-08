@@ -1,0 +1,63 @@
+{
+  "plan_id": "verifier-task-shape-plan",
+  "source_spec": "docs/specs/verifier-task-shape/spec.md",
+  "branch": "fix/verifier-task-shape",
+  "started_at": "2026-07-08T08:39:01.292Z",
+  "tasks": {
+    "T1-contract": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 48000,
+      "deviation": 8000,
+      "test_cmd": "node plugins/sdd-kit/test/run.mjs",
+      "commit": "b5bed4b",
+      "incidencia": null
+    },
+    "T2-complete-green": {
+      "status": "done",
+      "estimated_tokens": 60000,
+      "actual_tokens": 35000,
+      "deviation": -25000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/verifier-complete.test.mjs",
+      "commit": "d1b93a9",
+      "incidencia": null
+    },
+    "T3-state-only-commit": {
+      "status": "done",
+      "estimated_tokens": 50000,
+      "actual_tokens": 30000,
+      "deviation": -20000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/verifier-commit.test.mjs",
+      "commit": "ee3ec92",
+      "incidencia": null
+    },
+    "T4-verify-e2e-flow": {
+      "status": "done",
+      "estimated_tokens": 50000,
+      "actual_tokens": 30000,
+      "deviation": -20000,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-verifier-e2e.test.mjs",
+      "commit": "2d41951",
+      "incidencia": "no-red accepted by user override: verify flow already generic/correct, no implementation needed (spec Assumption); AC8/AC9 tests green, full suite 124/124"
+    },
+    "T5-emit-and-document": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 50000,
+      "deviation": 10000,
+      "test_cmd": "node --test plugins/sdd-kit/test/verifier-docs.test.mjs",
+      "commit": "10a0291",
+      "incidencia": null
+    },
+    "T6-e2e": {
+      "status": "done",
+      "estimated_tokens": 30000,
+      "actual_tokens": 31000,
+      "deviation": 1000,
+      "test_cmd": "node --test plugins/sdd-kit/test/**/*.test.mjs",
+      "commit": "8572e36",
+      "incidencia": "verification-only e2e task: no red phase possible (bootstrap — cannot be tagged verifier while that role predates this plan). Full suite 140/140 green; no-red accepted by user override (foreseen)."
+    }
+  },
+  "pause": null
+}

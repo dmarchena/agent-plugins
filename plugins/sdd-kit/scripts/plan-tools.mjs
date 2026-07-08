@@ -152,6 +152,7 @@ const VALID_AGENT_TYPES = new Set([
   'doc_writer',
   'reviewer',
   'architect',
+  'verifier',
 ]);
 const VALID_MODELS = new Set(['haiku', 'sonnet', 'opus']);
 

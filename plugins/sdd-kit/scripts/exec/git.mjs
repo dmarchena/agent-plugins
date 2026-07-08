@@ -48,10 +48,20 @@ export function ensureBranch(slug, cwd = process.cwd(), prefix = 'feat') {
 // `files` — a restricted `files` list would otherwise leave the task's own
 // state-file flip (recorded via recordResult+persist just before this call)
 // out of its commit.
+//
+// `files === null` (not provided at all) is the ONLY case that falls back to
+// the whole-tree `git add -A` below — that's the batch path's pre-existing
+// legacy behavior when a batch entry omits `files`. An explicit EMPTY array
+// is a different, deliberate signal (T3-state-only-commit): a `verifier`
+// task writes no code of its own, so its `complete` passes `files: []` to
+// mean "stage nothing but the state file" — never "no restriction, sweep the
+// tree". This is what lets a verifier task close without an explicit
+// `--files` list while still never falling back to `add -A`.
 function pathspecList(files, statePath) {
-  return Array.isArray(files) && files.length > 0
-    ? (statePath ? [...files, statePath] : files)
-    : null;
+  if (files === null) return null;
+  const named = Array.isArray(files) ? files : [];
+  if (named.length === 0) return statePath ? [statePath] : null;
+  return statePath ? [...named, statePath] : named;
 }
 
 function stage(cwd, list) {

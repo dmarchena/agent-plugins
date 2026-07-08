@@ -33,14 +33,21 @@ export function trimRerunOutput(output, maxLines = RERUN_OUTPUT_MAX_LINES) {
   return picked.slice(0, maxLines).join('\n');
 }
 
-export function classifyEvidence({ rojo_passed, verde_passed }) {
+// isVerifier: T2 — a `verifier` task re-runs an already-implemented suite
+// instead of writing new code from a failing test, so it has no red phase to
+// report in the first place. Scoped strictly to agent_type === "verifier"
+// (see confirm() below): any other agent_type keeps rojo_passed === true
+// classifying as 'no-red', unchanged.
+export function classifyEvidence({ rojo_passed, verde_passed }, isVerifier = false) {
+  if (isVerifier) return 'red-green';
   if (rojo_passed === true) return 'no-red';
   if (verde_passed === false) return 'not-green';
   return 'red-green';
 }
 
 export function confirm(task, evidence, testCmd, cwd = process.cwd()) {
-  const classification = classifyEvidence(evidence);
+  const isVerifier = Boolean(task && task.agent_type === 'verifier');
+  const classification = classifyEvidence(evidence, isVerifier);
   if (classification !== 'red-green') {
     return { done: false, rerun_output: null, reason: classification };
   }

@@ -94,6 +94,20 @@ const CASES = [
     stream: 'stderr',
     substr: 'test_contract.ref does not exist in spec:',
   },
+  {
+    name: 'R1.S1: verifier task with agent_type verifier and test_contract null passes plan validation',
+    args: ['check-plan', 'valid/spec.md', 'verifier-valid/plan.json'],
+    expectExit: 0,
+    stream: 'stdout',
+    substr: 'valid plan: 4 tasks',
+  },
+  {
+    name: 'R1.S2: verifier task with a non-null test_contract is rejected naming the task_id and the null-contract rule',
+    args: ['check-plan', 'valid/spec.md', 'verifier-bad-test-contract/plan.json'],
+    expectExit: 1,
+    stream: 'stderr',
+    substr: 'test_contract must be null for agent_type=verifier: task-e2e',
+  },
 ];
 
 // Arguments ending in .md/.json are relative fixture paths; the rest

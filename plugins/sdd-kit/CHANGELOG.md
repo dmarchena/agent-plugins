@@ -4,6 +4,22 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.4.0
+
+- Added a `verifier` `agent_type` for the spec-mandated end-to-end
+  confirmation task. `plan-writer` now emits it (instead of
+  `terminal_operator`) for the task backing every spec's `R-E2E`/`AC-E2E`.
+  A `verifier` task runs the pre-existing suite and confirms it green with
+  no code and no red phase: `plan-executor`'s `complete` waives the
+  red-phase requirement for it — deterministically re-running the suite
+  rather than classifying `--rojo pass` as `no-red` — scoped strictly to
+  `verifier` tasks so other roles keep the `no-red` guard, and commits it
+  staging only the executor state file (no `--files` needed, never a
+  whole-tree `git add -A`). `verify` closes the backing `AC-E2E` green
+  through its normal report/archive flow. Removes the recurring `no-red`
+  wall that forced a manual override on the final task of every plan
+  (issue #11).
+
 ## 0.3.5
 
 - `spec-writer` now records an explicit `Change type` (feat/fix/chore/
