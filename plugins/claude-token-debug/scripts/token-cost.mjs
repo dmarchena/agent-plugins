@@ -3,16 +3,21 @@
 // Pricing core + session scanner/CLI for claude-token-debug's token-cost CLI
 // (see docs/specs/token-cost-cli). stdlib only, no npm deps, no network.
 //
-// This file has two layers:
+// This file has three layers:
 //  - Pricing core (PRICE table, tier detection, per-message costing) — pure,
 //    takes no fs/path input itself.
-//  - Session scanner (analyzeSession) + a minimal CLI entry point, built on
-//    top of the pricing core. --json, --boundary and target resolution
-//    (--project/--session/projects-root) are explicitly NOT implemented here
-//    — a later task adds them; this CLI takes its target as a plain
-//    positional session-file path for now.
+//  - Session scanner (analyzeSession, kept for back-compat with its own
+//    shape) plus target resolution (--project/--session/--projects-root,
+//    defaulting to the newest session of the newest-active project) and a
+//    pure, side-effect-free `analyze()` that adds --boundary slicing and
+//    returns the exact shape the CLI's --json flag prints
+//    (session/subs/orchestrator/subTotal/orchAll).
+//  - A minimal CLI entry point that is a thin print wrapper over
+//    `analyze()`: it never computes anything itself, only parses argv and
+//    prints either `renderReport()`'s table or `JSON.stringify()`'s output.
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 // USD per 1,000,000 tokens, list prices (directional, not billing-exact).
@@ -208,24 +213,12 @@ function readSubagentLabel(metaFilePath, agentId) {
   return agentId;
 }
 
-// Scans one session: its own flat transcript (the orchestrator) plus every
-// agent-<id>.jsonl under its sibling subagents/ directory (if any), labeling
-// each subagent from its agent-<id>.meta.json. Cost-based percentages: the
-// orchestrator/subagents split is computed from cost totals, not raw token
-// counts. cache_read tokens/cost are included in every total because
-// scanTranscript's `usage`/`cost` already fold cache_read in (see
-// costForUsage/normalizeUsage above).
-//
-// Missing subagents/ directory (R1.S2): reported as zero subagents at 0%,
-// never thrown. All accumulators here are local to this call, so nothing
-// leaks between calls (R1.S2's "never borrow another session's numbers").
-export function analyzeSession(sessionFilePath) {
-  const sessionDir = path.dirname(sessionFilePath);
-  const sessionName = path.basename(sessionFilePath).replace(/\.jsonl$/, '');
-  const subagentsDir = path.join(sessionDir, 'subagents');
-
-  const orchestrator = scanTranscript(sessionFilePath);
-
+// Scans a session's sibling subagents/ directory (if any): every
+// agent-<id>.jsonl paired with its agent-<id>.meta.json label. Shared by
+// analyzeSession and analyze() so both report the exact same per-subagent
+// numbers. Missing/non-directory subagentsDir (R1.S2): returns zero
+// subagents and a zeroed subTotal, never throws.
+function scanSubagentsDir(subagentsDir) {
   const subagents = [];
   const subTotalUsage = zeroUsage();
   let subTotalCost = 0;
@@ -251,11 +244,39 @@ export function analyzeSession(sessionFilePath) {
     }
   }
 
-  const subTotal = {
-    usage: subTotalUsage,
-    cost: subTotalCost,
-    tokens: totalTokens(subTotalUsage),
+  return {
+    subagents,
+    subTotal: {
+      usage: subTotalUsage,
+      cost: subTotalCost,
+      tokens: totalTokens(subTotalUsage),
+    },
   };
+}
+
+// Scans one session: its own flat transcript (the orchestrator) plus every
+// agent-<id>.jsonl under its sibling subagents/ directory (if any), labeling
+// each subagent from its agent-<id>.meta.json. Cost-based percentages: the
+// orchestrator/subagents split is computed from cost totals, not raw token
+// counts. cache_read tokens/cost are included in every total because
+// scanTranscript's `usage`/`cost` already fold cache_read in (see
+// costForUsage/normalizeUsage above).
+//
+// Missing subagents/ directory (R1.S2): reported as zero subagents at 0%,
+// never thrown. All accumulators here are local to this call, so nothing
+// leaks between calls (R1.S2's "never borrow another session's numbers").
+//
+// Kept as-is (own shape: subagents/grand/percentages) for back-compat with
+// existing callers/tests; analyze() below is the new pure function whose
+// shape mirrors the CLI's --json output (R3).
+export function analyzeSession(sessionFilePath) {
+  const sessionDir = path.dirname(sessionFilePath);
+  const sessionName = path.basename(sessionFilePath).replace(/\.jsonl$/, '');
+  const subagentsDir = path.join(sessionDir, 'subagents');
+
+  const orchestrator = scanTranscript(sessionFilePath);
+  const { subagents, subTotal } = scanSubagentsDir(subagentsDir);
+  const subTotalCost = subTotal.cost;
 
   const grandCost = orchestrator.cost + subTotalCost;
   const grandTokens = orchestrator.tokens + subTotal.tokens;
@@ -277,40 +298,312 @@ export function analyzeSession(sessionFilePath) {
   };
 }
 
-// --- CLI (human-readable default output only; --json is a later task) --
+// --- Target resolution (R4.S1) ----------------------------------------
+
+// projects-root override precedence: explicit opts.projectsRoot wins, then
+// the TOKEN_COST_PROJECTS_ROOT env var (so tests/CI never need to touch the
+// real ~/.claude/projects), then the real default.
+function projectsRootFrom(opts) {
+  return (
+    (opts && opts.projectsRoot) ||
+    process.env.TOKEN_COST_PROJECTS_ROOT ||
+    path.join(os.homedir(), '.claude', 'projects')
+  );
+}
+
+function newestByMtime(paths) {
+  return paths
+    .map((p) => ({ p, mtime: fs.statSync(p).mtimeMs }))
+    .sort((a, b) => b.mtime - a.mtime)[0].p;
+}
+
+// Newest *.jsonl file directly inside a project directory (flat session
+// files live at the project dir's own top level; a session's subagents/
+// dir sits alongside its .jsonl, not inside it).
+function newestSessionInProjectDir(projectDir) {
+  const sessionFiles = fs
+    .readdirSync(projectDir)
+    .filter((f) => f.endsWith('.jsonl'))
+    .map((f) => path.join(projectDir, f));
+  if (sessionFiles.length === 0) {
+    throw new Error(`No session files found under: ${projectDir}`);
+  }
+  return newestByMtime(sessionFiles);
+}
+
+// "Newest-active project" heuristic: the most recently modified directory
+// directly under projectsRoot. Documented default, not a discovered fact —
+// mtime is the only ordering signal readily available on a project dir.
+function newestActiveProjectDir(projectsRoot) {
+  if (!fs.existsSync(projectsRoot)) {
+    throw new Error(`Projects root not found: ${projectsRoot}`);
+  }
+  const projectDirs = fs
+    .readdirSync(projectsRoot)
+    .map((name) => path.join(projectsRoot, name))
+    .filter((p) => fs.statSync(p).isDirectory());
+  if (projectDirs.length === 0) {
+    throw new Error(`No projects found under: ${projectsRoot}`);
+  }
+  return newestByMtime(projectDirs);
+}
+
+// Resolves a CLI/analyze() target down to one concrete flat session .jsonl
+// path. Precedence: an explicit opts.sessionPath wins outright (this is how
+// the CLI's plain positional arg and directly-targeted analyze() calls stay
+// simple); else --project/--session narrow within projectsRoot (either or
+// both may be given — a session name alone is looked up inside the
+// newest-active project); else fall back to the newest session of the
+// newest-active project dir under projectsRoot (R4.S1's default).
+function resolveSessionPath(opts) {
+  if (opts && opts.sessionPath) {
+    return opts.sessionPath;
+  }
+
+  const projectsRoot = projectsRootFrom(opts);
+
+  if (opts && opts.project) {
+    const projectDir = path.join(projectsRoot, opts.project);
+    if (opts.session) {
+      return path.join(projectDir, `${opts.session}.jsonl`);
+    }
+    return newestSessionInProjectDir(projectDir);
+  }
+
+  if (opts && opts.session) {
+    const projectDir = newestActiveProjectDir(projectsRoot);
+    return path.join(projectDir, `${opts.session}.jsonl`);
+  }
+
+  const projectDir = newestActiveProjectDir(projectsRoot);
+  return newestSessionInProjectDir(projectDir);
+}
+
+// --- Boundary slicing (R4.S2) ------------------------------------------
+
+// First raw (unparsed) line index whose text contains `substr`. Matching
+// against the raw line text — not just assistant records — because R4
+// slices at "the first flat-session line" containing the substring, which
+// may live on a non-assistant line (user/tool-result/etc). Returns -1 when
+// no --boundary was requested or no line matches; callers treat -1 as
+// "unsplit" (R4.S2), never as an error.
+function findBoundaryLineIndex(rawLines, substr) {
+  if (!substr) {
+    return -1;
+  }
+  for (let i = 0; i < rawLines.length; i++) {
+    if (rawLines[i].includes(substr)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+// Scans the orchestrator's own flat transcript, optionally slicing its
+// assistant messages into pre/post buckets at the first raw line containing
+// `boundarySubstr`. Always returns the full (unsplit) usage/cost/tokens/
+// models totals — exactly like scanTranscript — plus a `boundary` object
+// describing whether/where the split fired. Missing file -> zeroed totals,
+// unsplit boundary, never throws (mirrors readAssistantRecords).
+function scanOrchestratorTranscript(filePath, boundarySubstr) {
+  if (!fs.existsSync(filePath)) {
+    return {
+      usage: zeroUsage(),
+      cost: 0,
+      tokens: 0,
+      models: [],
+      boundary: { substr: boundarySubstr || null, split: false, pre: null, post: null },
+    };
+  }
+
+  const raw = fs.readFileSync(filePath, 'utf8');
+  const rawLines = raw.split('\n').filter((l) => l.trim().length > 0);
+  const boundaryIndex = findBoundaryLineIndex(rawLines, boundarySubstr);
+  const split = boundaryIndex !== -1;
+
+  const usage = zeroUsage();
+  let cost = 0;
+  const models = new Set();
+
+  const preUsage = zeroUsage();
+  let preCost = 0;
+  const postUsage = zeroUsage();
+  let postCost = 0;
+
+  rawLines.forEach((line, index) => {
+    let record;
+    try {
+      record = JSON.parse(line);
+    } catch {
+      return;
+    }
+    if (!record || record.type !== 'assistant') {
+      return;
+    }
+
+    const priced = priceMessage(record);
+    addUsageInto(usage, priced.usage);
+    cost += priced.cost;
+    if (priced.model) {
+      models.add(priced.model);
+    }
+
+    if (split) {
+      if (index < boundaryIndex) {
+        addUsageInto(preUsage, priced.usage);
+        preCost += priced.cost;
+      } else {
+        addUsageInto(postUsage, priced.usage);
+        postCost += priced.cost;
+      }
+    }
+  });
+
+  return {
+    usage,
+    cost,
+    tokens: totalTokens(usage),
+    models: Array.from(models),
+    boundary: {
+      substr: boundarySubstr || null,
+      split,
+      pre: split ? { usage: preUsage, cost: preCost, tokens: totalTokens(preUsage) } : null,
+      post: split ? { usage: postUsage, cost: postCost, tokens: totalTokens(postUsage) } : null,
+    },
+  };
+}
+
+// --- Pure analysis (R3) -------------------------------------------------
+
+// The pure, side-effect-free analysis function (R3.S2): writes nothing to
+// stdout/stderr, and returns exactly the shape the CLI's --json flag prints
+// (R3.S1) — top-level keys session/subs/orchestrator/subTotal/orchAll.
+// `target` is either a plain session-file-path string (the common case for
+// direct/importable callers and for the CLI's positional arg) or an options
+// object: { sessionPath, project, session, projectsRoot, boundary }.
+//
+// subTotal/orchAll carry the cost-based percentage split (`pct`) that used
+// to live in analyzeSession's separate `percentages` field — paired here so
+// each total is self-describing. subsPct is computed first (from cost),
+// orchPct is its exact complement, so the two always sum to exactly 100.
+export function analyze(target) {
+  const opts = typeof target === 'string' ? { sessionPath: target } : target || {};
+  const sessionFilePath = resolveSessionPath(opts);
+
+  const sessionDir = path.dirname(sessionFilePath);
+  const subagentsDir = path.join(sessionDir, 'subagents');
+
+  const orchestrator = scanOrchestratorTranscript(sessionFilePath, opts.boundary);
+  const { subagents, subTotal } = scanSubagentsDir(subagentsDir);
+
+  const grandCost = orchestrator.cost + subTotal.cost;
+  const subsPct = grandCost > 0 ? Math.round((subTotal.cost / grandCost) * 1000) / 10 : 0;
+  const orchPct = Math.round((100 - subsPct) * 10) / 10;
+
+  return {
+    session: sessionFilePath,
+    subs: subagents,
+    orchestrator,
+    subTotal: { ...subTotal, pct: subsPct },
+    orchAll: {
+      usage: orchestrator.usage,
+      cost: orchestrator.cost,
+      tokens: orchestrator.tokens,
+      pct: orchPct,
+    },
+  };
+}
+
+// --- CLI -----------------------------------------------------------------
 
 function formatUsd(amount) {
   return `$${amount.toFixed(4)}`;
 }
 
+// Renders analyze()'s return shape as a human-readable table. Pure
+// presentation — takes no fs input of its own, so it never causes the
+// CLI's default path to diverge from what analyze() actually computed.
 export function renderReport(result) {
   const lines = [];
   lines.push(`Session: ${result.session}`);
 
-  if (result.subagents.length > 0) {
+  if (result.subs.length > 0) {
     lines.push('Subagents:');
-    for (const sub of result.subagents) {
+    for (const sub of result.subs) {
       lines.push(`  ${sub.label}: tokens=${sub.tokens} cost=${formatUsd(sub.cost)}`);
     }
   }
 
   lines.push(`Orchestrator total: tokens=${result.orchestrator.tokens} cost=${formatUsd(result.orchestrator.cost)}`);
   lines.push(
-    `Grand total: cost=${formatUsd(result.grand.cost)} orchestrator ${result.percentages.orchestrator}% subagents ${result.percentages.subagents}%`,
+    `Grand total: cost=${formatUsd(result.orchAll.cost + result.subTotal.cost)} orchestrator ${result.orchAll.pct}% subagents ${result.subTotal.pct}%`,
   );
+
+  if (result.orchestrator.boundary && result.orchestrator.boundary.split) {
+    const { pre, post } = result.orchestrator.boundary;
+    lines.push(`Boundary split: pre=${formatUsd(pre.cost)} post=${formatUsd(post.cost)}`);
+  }
 
   return lines.join('\n');
 }
 
+// Minimal argv parser. Supports a plain positional session-path arg (kept
+// for back-compat with the pre-T3 CLI contract) alongside --json,
+// --project, --session, --projects-root and --boundary flags.
+function parseArgs(argv) {
+  const opts = {};
+  const rest = [];
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    switch (arg) {
+      case '--json':
+        opts.json = true;
+        break;
+      case '--project':
+        opts.project = argv[++i];
+        break;
+      case '--session':
+        opts.session = argv[++i];
+        break;
+      case '--projects-root':
+        opts.projectsRoot = argv[++i];
+        break;
+      case '--boundary':
+        opts.boundary = argv[++i];
+        break;
+      default:
+        rest.push(arg);
+    }
+  }
+
+  if (rest.length > 0) {
+    opts.sessionPath = rest[0];
+  }
+
+  return opts;
+}
+
+// The CLI is a thin print wrapper: it only parses argv, calls the pure
+// analyze(), and prints either the human-readable table or the JSON
+// document. No cost/scan logic lives here.
 function main() {
-  const target = process.argv[2];
-  if (!target) {
-    process.stderr.write('Usage: token-cost.mjs <session.jsonl>\n');
+  const opts = parseArgs(process.argv.slice(2));
+
+  let result;
+  try {
+    result = analyze(opts);
+  } catch (err) {
+    process.stderr.write(`${err.message}\n`);
     process.exitCode = 1;
     return;
   }
-  const result = analyzeSession(target);
-  process.stdout.write(renderReport(result) + '\n');
+
+  if (opts.json) {
+    process.stdout.write(JSON.stringify(result) + '\n');
+  } else {
+    process.stdout.write(renderReport(result) + '\n');
+  }
 }
 
 const isMainModule = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;

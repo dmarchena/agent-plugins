@@ -19,15 +19,15 @@
       "actual_tokens": 45000,
       "deviation": 5000,
       "test_cmd": "node --test plugins/claude-token-debug/test/token-cost.test.mjs",
-      "commit": null,
+      "commit": "f015e59",
       "incidencia": null
     },
     "T3-io": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 34000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 45000,
+      "deviation": 11000,
+      "test_cmd": "node --test plugins/claude-token-debug/test/token-cost.test.mjs",
       "commit": null,
       "incidencia": null
     },

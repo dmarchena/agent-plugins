@@ -12,6 +12,7 @@ import {
   costForUsage,
   priceMessage,
   analyzeSession,
+  analyze,
 } from '../scripts/token-cost.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -344,4 +345,154 @@ test('analyzeSession: importable function returns the same numbers for a fixture
   assert.equal(result.percentages.orchestrator, 100);
   assert.equal(result.orchestrator.tokens, sumUsageTokens(usage));
   assert.ok(Math.abs(result.orchestrator.cost - costForUsage('sonnet', usage)) < 0.001);
+});
+
+test('AC5: CLI --json writes a single parseable JSON document whose top-level keys are session, subs, orchestrator, subTotal and orchAll', () => {
+  const usage = {
+    input_tokens: 1000,
+    output_tokens: 200,
+    cache_read_input_tokens: 50,
+    cache_creation_input_tokens: 0,
+  };
+  const sessionFile = writeSessionTree(
+    [{ type: 'assistant', message: { model: 'claude-sonnet-4-5-20250929', usage } }],
+    [
+      {
+        id: 'j1',
+        description: 'json-fixture subagent',
+        lines: [{ type: 'assistant', message: { model: 'claude-haiku-4-5-20251001', usage } }],
+      },
+    ],
+  );
+
+  const stdout = execFileSync('node', [CLI_PATH, sessionFile, '--json'], { encoding: 'utf8' });
+
+  let parsed;
+  assert.doesNotThrow(() => {
+    parsed = JSON.parse(stdout);
+  }, `--json output must be a single valid JSON document; got:\n${stdout}`);
+
+  const topLevelKeys = Object.keys(parsed).sort();
+  assert.deepEqual(topLevelKeys, ['orchAll', 'orchestrator', 'session', 'subTotal', 'subs'].sort());
+});
+
+test('AC6: importing analyze() and calling it on an explicit fixture target returns the same shape as --json and writes nothing to stdout', () => {
+  const usage = {
+    input_tokens: 800,
+    output_tokens: 150,
+    cache_read_input_tokens: 20,
+    cache_creation_input_tokens: 0,
+  };
+  const sessionFile = writeSessionTree(
+    [{ type: 'assistant', message: { model: 'claude-opus-4-1-20250805', usage } }],
+    [
+      {
+        id: 'k2',
+        description: 'importable-fixture subagent',
+        lines: [{ type: 'assistant', message: { model: 'claude-sonnet-4-5-20250929', usage } }],
+      },
+    ],
+  );
+
+  const jsonStdout = execFileSync('node', [CLI_PATH, sessionFile, '--json'], { encoding: 'utf8' });
+  const fromCli = JSON.parse(jsonStdout);
+
+  const originalWrite = process.stdout.write;
+  let wroteAnything = false;
+  process.stdout.write = (...args) => {
+    wroteAnything = true;
+    return true;
+  };
+  let direct;
+  try {
+    direct = analyze(sessionFile);
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+
+  assert.equal(wroteAnything, false, 'analyze() must write nothing to stdout');
+  assert.deepEqual(Object.keys(direct).sort(), Object.keys(fromCli).sort());
+  // Round-trip through JSON to normalize (defends against any non-JSON-safe
+  // value sneaking into the shape) before comparing to the --json output.
+  assert.deepEqual(JSON.parse(JSON.stringify(direct)), fromCli);
+});
+
+test('AC7: --boundary matching a flat-session line reports pre- and post-boundary orchestrator subtotals that sum to the orchestrator total', () => {
+  const preUsage1 = {
+    input_tokens: 3000,
+    output_tokens: 700,
+    cache_read_input_tokens: 100,
+    cache_creation_input_tokens: 0,
+  };
+  const preUsage2 = {
+    input_tokens: 1000,
+    output_tokens: 300,
+    cache_read_input_tokens: 0,
+    cache_creation_input_tokens: 0,
+  };
+  const postUsage1 = {
+    input_tokens: 2000,
+    output_tokens: 500,
+    cache_read_input_tokens: 50,
+    cache_creation_input_tokens: 0,
+  };
+
+  const sessionFile = writeSessionFixture([
+    { type: 'assistant', message: { model: 'claude-sonnet-4-5-20250929', usage: preUsage1 } },
+    { type: 'assistant', message: { model: 'claude-sonnet-4-5-20250929', usage: preUsage2 } },
+    { type: 'user', marker: 'BOUNDARY_MARK_42', message: { content: 'switching phases' } },
+    { type: 'assistant', message: { model: 'claude-haiku-4-5-20251001', usage: postUsage1 } },
+  ]);
+
+  const stdout = execFileSync(
+    'node',
+    [CLI_PATH, sessionFile, '--json', '--boundary', 'BOUNDARY_MARK_42'],
+    { encoding: 'utf8' },
+  );
+  const parsed = JSON.parse(stdout);
+
+  assert.equal(parsed.orchestrator.boundary.split, true, 'expected the boundary to fire');
+  assert.ok(parsed.orchestrator.boundary.pre, 'expected a pre-boundary subtotal');
+  assert.ok(parsed.orchestrator.boundary.post, 'expected a post-boundary subtotal');
+
+  const expectedPreCost = costForUsage('sonnet', preUsage1) + costForUsage('sonnet', preUsage2);
+  const expectedPostCost = costForUsage('haiku', postUsage1);
+
+  assert.ok(Math.abs(parsed.orchestrator.boundary.pre.cost - expectedPreCost) < 0.0001);
+  assert.ok(Math.abs(parsed.orchestrator.boundary.post.cost - expectedPostCost) < 0.0001);
+
+  const summed = parsed.orchestrator.boundary.pre.cost + parsed.orchestrator.boundary.post.cost;
+  assert.ok(
+    Math.abs(summed - parsed.orchestrator.cost) < 0.0001,
+    'pre-boundary cost + post-boundary cost must sum to the orchestrator total',
+  );
+});
+
+test('AC8: --boundary matching no flat-session line reports a single unsplit orchestrator total (split false) and exits 0', () => {
+  const usage = {
+    input_tokens: 1500,
+    output_tokens: 400,
+    cache_read_input_tokens: 0,
+    cache_creation_input_tokens: 0,
+  };
+  const sessionFile = writeSessionFixture([
+    { type: 'assistant', message: { model: 'claude-sonnet-4-5-20250929', usage } },
+  ]);
+
+  let stdout;
+  assert.doesNotThrow(() => {
+    stdout = execFileSync(
+      'node',
+      [CLI_PATH, sessionFile, '--json', '--boundary', 'NO_SUCH_SUBSTRING_ANYWHERE'],
+      { encoding: 'utf8' },
+    );
+  }, 'CLI must exit 0 when the boundary substring matches no line');
+
+  const parsed = JSON.parse(stdout);
+  assert.equal(parsed.orchestrator.boundary.split, false);
+  assert.equal(parsed.orchestrator.boundary.pre, null);
+  assert.equal(parsed.orchestrator.boundary.post, null);
+
+  const expectedCost = costForUsage('sonnet', usage);
+  assert.ok(Math.abs(parsed.orchestrator.cost - expectedCost) < 0.0001);
 });
