@@ -61,12 +61,12 @@ AC checklist, the plan's `coverage.acs` map, and — when present —
 `execution_state.json`'s per-task status), `groundCheck`,
 `degradedManualRouting`, `incompleteCoverage`, `tokenDeviations`, and
 `assembleReport` — useful context for interpreting a subcommand's output,
-but you invoke them via the CLI, never via `import`. None of this
-re-validates the plan against the spec — that already happened in
-plan-executor's `init`. On a SPECDIR missing `execution_plan.json` or
-`spec.md`, every subcommand exits non-zero and prints
-`VerifyInputError: <message naming the missing file>` — nothing is
-evaluated or archived.
+but you invoke them via the CLI, never via `import`. It does not re-validate the plan against the spec — that already happened in
+plan-executor's `init`. When `execution_plan.json` or `spec.md` is missing,
+`loadSpecdir` throws before evaluating or archiving anything, naming the
+exact missing file; each CLI subcommand surfaces that as a non-zero exit
+code and a printed `VerifyInputError: <message naming the missing file>` —
+nothing is evaluated or archived.
 
 ## Manual AC confirmation protocol
 
@@ -128,9 +128,8 @@ manualTracker, degradedResult, incompleteCoverageResult,
 tokenDeviationsResult)` to merge every prior check into one final per-AC
 verdict plus an overall `allGreen` flag, and prints
 `{ status: 'report', allGreen, acs, deviatedTasks }`. Token deviations ride
-along as an informational `deviatedTasks` list — they are never allowed to
-turn a green AC (or the archiving decision) red (R6.S2). This same normal
-flow is what closes the spec-mandated `AC-E2E`: once its backing `verifier`
+along as an informational `deviatedTasks` list — they are never allowed to turn a green AC (or the archiving decision) red (R6.S2). This same normal flow
+is what closes the spec-mandated `AC-E2E`: once its backing `verifier`
 task (see plan-executor's `assets/task-brief-detail.md`) is `done`,
 `AC-E2E` goes green here with no manual override, no hand-patched report
 field, and no user-override confirmation step — a still-`pending` verifier
@@ -150,9 +149,7 @@ Only when `allGreen` is true does this internally call
 whatever branch is checked out — unlike plan-executor's per-task commits,
 this is explicitly allowed to run on `main` (R7). If the destination already
 exists, it refuses before running any git command and reports the
-collision. If any AC isn't green, nothing is moved or committed — the
-printed report instead names exactly which ACs are missing and why (drift,
-blocked/skipped, not finished, rejected, unanswered, or fully
+collision. If any AC isn't green, nothing is moved or committed — the report instead names exactly which ACs are missing and why (drift, blocked/skipped, not finished, rejected, unanswered, or fully
 manual-degraded). Either way `archive` exits 0 — check the `status`/
 `archived` field in its JSON output, not the exit code.
 
