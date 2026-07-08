@@ -28,7 +28,7 @@
       "actual_tokens": 45000,
       "deviation": 11000,
       "test_cmd": "node --test plugins/claude-token-debug/test/token-cost.test.mjs",
-      "commit": null,
+      "commit": "5422279",
       "incidencia": null
     },
     "T4-wire-skill": {
@@ -41,11 +41,11 @@
       "incidencia": null
     },
     "T5-e2e": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 16000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 1200,
+      "deviation": -14800,
+      "test_cmd": "node --test plugins/claude-token-debug/test/token-cost.test.mjs",
       "commit": null,
       "incidencia": null
     }
