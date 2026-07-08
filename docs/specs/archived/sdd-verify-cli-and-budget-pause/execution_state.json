@@ -1,0 +1,45 @@
+{
+  "plan_id": "sdd-verify-cli-and-budget-pause",
+  "source_spec": "docs/specs/sdd-verify-cli-and-budget-pause/spec.md",
+  "branch": "refactor/sdd-verify-cli-and-budget-pause",
+  "started_at": "2026-07-08T21:18:21.312Z",
+  "tasks": {
+    "T1-verify-cli": {
+      "status": "done",
+      "estimated_tokens": 70000,
+      "actual_tokens": 55000,
+      "deviation": -15000,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-cli.test.mjs",
+      "commit": "234d224",
+      "incidencia": null
+    },
+    "T2-drop-budget-pause": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 45000,
+      "deviation": 5000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/next-no-pause.test.mjs",
+      "commit": "89a2d7b",
+      "incidencia": null
+    },
+    "T3-verify-skill-cli": {
+      "status": "done",
+      "estimated_tokens": 30000,
+      "actual_tokens": 55000,
+      "deviation": 25000,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-skill-cli.test.mjs",
+      "commit": "321d282",
+      "incidencia": null
+    },
+    "T4-e2e-test": {
+      "status": "done",
+      "estimated_tokens": 45000,
+      "actual_tokens": 42000,
+      "deviation": -3000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec-verify-e2e.test.mjs",
+      "commit": "079ff87",
+      "incidencia": null
+    }
+  },
+  "pause": null
+}

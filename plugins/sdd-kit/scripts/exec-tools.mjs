@@ -15,14 +15,14 @@ import { fileURLToPath } from 'node:url';
 
 import { loadPlan, readyBatch } from './exec/plan.mjs';
 import {
-  initState, recordResult, recordPause, setBranch, persist, read,
+  initState, recordResult, setBranch, persist, read,
 } from './exec/state.mjs';
 import {
   ensureBranch, commitTask, currentBranch,
 } from './exec/git.mjs';
 import { readConfig, readChangeType, resolvePrefix } from './exec/config.mjs';
 import { rerun, confirm } from './exec/verify.mjs';
-import { exceeds, blockAndSkip } from './exec/budget.mjs';
+import { blockAndSkip } from './exec/budget.mjs';
 import { resumeGround } from './exec/resume.mjs';
 import { extractIds } from './exec/extract.mjs';
 
@@ -110,21 +110,14 @@ function cmdInit(specDir) {
   out(result);
 }
 
-// next <specDir>: next runnable batch (<=3), or a budget pause, or done.
+// next <specDir>: next runnable batch (<=3), or done, or stalled.
+// Note: token budget deviation is not gated here — it's surfaced per-task via
+// `report` (state.mjs#recordResult's `deviation` field); an over-budget run
+// is otherwise-healthy DAG state and must not halt execution.
 function cmdNext(specDir) {
   const p = paths(specDir);
   const { plan } = loadPlan(p.spec, p.plan);
   const state = read(p.state);
-
-  const budget = exceeds(state);
-  if (budget.exceeded) {
-    const { done } = doneAndExcluded(state);
-    const nextId = readyBatch(plan, done, { max: 1, excluded: doneAndExcluded(state).excluded })[0] || null;
-    recordPause(state, { reason: 'budget: actual > 2x estimated executed', real_tokens: budget.real, estimated_tokens: budget.estimated, at_task: nextId });
-    persist(p.state, state);
-    out({ status: 'paused', reason: 'budget', real: budget.real, estimated: budget.estimated, at_task: nextId });
-    return;
-  }
 
   const { done, excluded } = doneAndExcluded(state);
   const batch = readyBatch(plan, done, { max: 3, excluded });

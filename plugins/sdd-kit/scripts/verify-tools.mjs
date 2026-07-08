@@ -4,8 +4,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { checkVersioning } from './exec/versioning-check.mjs';
 import { currentBranch } from './exec/git.mjs';
+import { readConfig } from './exec/config.mjs';
+import { rerun } from './exec/verify.mjs';
 
 /**
  * Thrown when a required SPECDIR input (execution_plan.json or spec.md) is
@@ -25,7 +28,7 @@ export class VerifyInputError extends Error {
 const AC_SECTION_RE = /^##\s+Acceptance Criteria\s*$/;
 const OTHER_H2_RE = /^##\s+/;
 const AC_ITEM_RE =
-  /^-\s*(?:\[[^\]]*\]\s*)?(AC-E2E|AC\d+)\s*→\s*(R-E2E\.S\d+|R\d+\.S\d+)\s*\[(auto|manual)\]\s*—\s*(.+)$/;
+  /^-\s*(?:\[[^\]]*\]\s*)?(AC-E2E|AC\d+)\s*→\s*(R-E2E(?:\.S\d+)?|R\d+(?:\.S\d+)?)\s*\[(auto|manual)\]\s*—\s*(.+)$/;
 
 // Parses the "## Acceptance Criteria" section of a spec.md into an array of
 // { ac_id, ref, tag, description }, folding wrapped description lines (lines
@@ -891,4 +894,173 @@ export function archiveIfGreen(specDir, report, { cwd, versioning } = {}) {
     commit,
     ...(versioningWarnings.length > 0 ? { versioningWarnings } : {}),
   };
+}
+
+// ---------------------------------------------------------------------------
+// CLI — T1-verify-cli: wires the deterministic functions above into
+// one-line `node verify-tools.mjs <sub> SPECDIR [args]` subcommands, mirroring
+// exec-tools.mjs's shape (parseFlags/out/die + a main() dispatcher). This
+// section is guarded behind the `import.meta.url` check at the bottom so
+// importing this module (as ~10 existing test files do) never triggers argv
+// parsing or process.exit — only running it directly as a script does.
+// ---------------------------------------------------------------------------
+
+function die(msg, code = 1) {
+  process.stderr.write(msg + '\n');
+  process.exit(code);
+}
+
+function out(obj) {
+  process.stdout.write(JSON.stringify(obj, null, 2) + '\n');
+}
+
+// Minimal --flags parser (value in the next token), same convention as
+// exec-tools.mjs's parseFlags.
+function parseFlags(argv) {
+  const flags = {};
+  const pos = [];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a.startsWith('--')) {
+      const key = a.slice(2);
+      const next = argv[i + 1];
+      if (next === undefined || next.startsWith('--')) { flags[key] = true; }
+      else { flags[key] = next; i++; }
+    } else { pos.push(a); }
+  }
+  return { flags, pos };
+}
+
+// Reads --verdicts <path> (a JSON array of { ac_id, verdict: 'confirmed'|'rejected' },
+// the same file-based convention as exec-tools.mjs's `complete --batch`) and
+// applies each entry to a manualConfirmation-shaped tracker. An entry whose
+// ac_id isn't tracked by `tracker` (e.g. it names an [auto] AC while not in
+// degraded mode) is silently ignored rather than crashing the whole report —
+// this file is meant to resolve manual/degraded ACs, nothing else. An AC with
+// no entry in the file simply stays 'unanswered' (tracker's own default) —
+// this function never invents a confirmation.
+function applyVerdicts(tracker, verdictsPath) {
+  if (!tracker || !verdictsPath) return;
+  let entries;
+  try {
+    entries = JSON.parse(fs.readFileSync(verdictsPath, 'utf8'));
+  } catch (e) {
+    throw new Error(`could not read/parse --verdicts file ${verdictsPath}: ${e.message}`);
+  }
+  if (!Array.isArray(entries)) return;
+  for (const entry of entries) {
+    if (!entry || typeof entry.ac_id !== 'string') continue;
+    try {
+      if (entry.verdict === 'confirmed') tracker.confirm(entry.ac_id);
+      else if (entry.verdict === 'rejected') tracker.reject(entry.ac_id);
+    } catch {
+      // Unknown ac_id for this tracker — not a [manual]/degraded AC. Ignore.
+    }
+  }
+}
+
+// Shared pipeline behind `report` and `archive` (SKILL.md's documented
+// sequence): loadSpecdir -> groundCheck -> build a manual-confirmation
+// tracker for [manual] ACs (skipped when degraded) -> degradedManualRouting
+// -> incompleteCoverage -> tokenDeviations -> assembleReport. Never reads
+// interactive stdin: [manual]/degraded ACs are resolved solely from an
+// optional --verdicts file, and anything left unanswered simply stays
+// 'unanswered' (not green) rather than blocking on a prompt.
+function buildReport(specDir, verdictsPath) {
+  const { checklist, coverageAcs, taskState } = loadSpecdir(specDir);
+
+  const groundCheckResult = groundCheck(checklist, coverageAcs, taskState, { rerun });
+  const degradedResult = degradedManualRouting(checklist, taskState);
+
+  let manualTracker = null;
+  if (degradedResult.degraded) {
+    applyVerdicts(degradedResult.tracker, verdictsPath);
+  } else {
+    const manualItems = checklist.filter((item) => item.tag === 'manual');
+    if (manualItems.length > 0) {
+      manualTracker = manualConfirmation(manualItems);
+      applyVerdicts(manualTracker, verdictsPath);
+    }
+  }
+
+  const incompleteCoverageResult = incompleteCoverage(checklist, coverageAcs, taskState);
+  const tokenDeviationsResult = tokenDeviations(taskState);
+
+  return assembleReport(
+    checklist,
+    groundCheckResult,
+    manualTracker,
+    degradedResult,
+    incompleteCoverageResult,
+    tokenDeviationsResult
+  );
+}
+
+// ground-check <specDir>: re-runs [auto] ACs' stored test commands against
+// the current working tree (T2/groundCheck) and prints the raw green/drift
+// verdict, without the manual/degraded/coverage machinery `report` adds.
+function cmdGroundCheck(specDir) {
+  let checklist; let coverageAcs; let taskState;
+  try {
+    ({ checklist, coverageAcs, taskState } = loadSpecdir(specDir));
+  } catch (e) {
+    if (e instanceof VerifyInputError) return die(`VerifyInputError: ${e.message}`, 1);
+    throw e;
+  }
+  const result = groundCheck(checklist, coverageAcs, taskState, { rerun });
+  out({ status: 'ground-check', ...result });
+}
+
+// report <specDir> [--verdicts <path>]: full deterministic verify pipeline,
+// never blocking on interactive input (R1.S3).
+function cmdReport(specDir, flags) {
+  let report;
+  try {
+    const verdictsPath = flags.verdicts && flags.verdicts !== true ? String(flags.verdicts) : null;
+    report = buildReport(specDir, verdictsPath);
+  } catch (e) {
+    if (e instanceof VerifyInputError) return die(`VerifyInputError: ${e.message}`, 1);
+    throw e;
+  }
+  out({ status: 'report', ...report });
+}
+
+// archive <specDir> [--verdicts <path>]: re-runs the same pipeline as
+// `report` to get a fresh report, then archives iff every AC is green.
+// Exits 0 whether or not it actually archived — the `status`/`archived`
+// field in the JSON tells the caller which.
+function cmdArchive(specDir, flags) {
+  let report;
+  try {
+    const verdictsPath = flags.verdicts && flags.verdicts !== true ? String(flags.verdicts) : null;
+    report = buildReport(specDir, verdictsPath);
+  } catch (e) {
+    if (e instanceof VerifyInputError) return die(`VerifyInputError: ${e.message}`, 1);
+    throw e;
+  }
+  const cwd = process.cwd();
+  const config = readConfig(cwd);
+  const result = archiveIfGreen(specDir, report, { cwd, versioning: { config } });
+  out({ status: result.archived ? 'archived' : 'not-archived', ...result });
+}
+
+function main() {
+  const [cmd, ...rest] = process.argv.slice(2);
+  const { flags, pos } = parseFlags(rest);
+  switch (cmd) {
+    case 'ground-check': return cmdGroundCheck(pos[0]);
+    case 'report': return cmdReport(pos[0], flags);
+    case 'archive': return cmdArchive(pos[0], flags);
+    default:
+      die('Usage: verify-tools.mjs <ground-check|report|archive> <specDir> [--verdicts <path>]', 1);
+  }
+}
+
+// Guard: only run the CLI when this file is executed directly (`node
+// verify-tools.mjs ...`), never when it's `import`ed — ~10 existing test
+// files import this module in-process to call its exported functions
+// directly, and must never trigger argv parsing or process.exit as a side
+// effect of that import.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main();
 }
