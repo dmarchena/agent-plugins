@@ -196,7 +196,7 @@ The system SHALL, for a project configured with `versioningPolicy: "plugin-chang
 - [ ] AC16 → R5.S3 [auto] — with `plugin-changelog` and a touched plugin missing its bump/changelog, run `verify`; confirm it does NOT archive and reports the specific plugin
 - [ ] AC17 → R5.S4 [auto] — with `plugin-changelog` and a touched plugin with the wrong segment (bump+changelog present), run `verify`; confirm it warns but still archives
 - [ ] AC18 → R5.S5 [auto] — with `versioningPolicy: "changelog-only"` and a missing required changelog entry, run `verify`; confirm it does NOT archive and reports the missing entry
-- [ ] AC19 → In-scope repo config [auto] — confirm this repo's root `.sdd-kit.json` exists with `"versioningPolicy": "plugin-changelog"` and a `branchPrefixes` map consistent with `AGENTS.md`'s renamed `docs/<slug>` convention
+- [ ] AC19 → R4.S2 [auto] — confirm this repo's root `.sdd-kit.json` exists with `"versioningPolicy": "plugin-changelog"` and a `branchPrefixes` map consistent with `AGENTS.md`'s renamed `docs/<slug>` convention
 - [ ] AC-E2E → R-E2E.S1 [manual] — run the full fix-classified flow end to end on a throwaway spec touching `plugins/sdd-kit/`: confirm `verify` blocks archiving before the bump exists, and archives successfully once a correct patch bump + changelog entry are added
 
 ## Assumptions & Open Questions
