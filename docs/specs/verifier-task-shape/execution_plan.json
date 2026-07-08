@@ -1,0 +1,155 @@
+{
+  "plan_id": "verifier-task-shape-plan",
+  "project_name": "sdd-kit verifier task shape",
+  "global_objective": "Give the spec-mandated end-to-end confirmation task a first-class 'verifier' agent_type so it closes green through the normal plan-executor/verify flow without the recurring manual no-red override (issue #11).",
+  "source_spec": "docs/specs/verifier-task-shape/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 270000,
+  "tasks": [
+    {
+      "task_id": "T1-contract",
+      "source_ids": ["R1", "R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation with clear acceptance criteria: a JSON-schema enum edit plus a validator rule, both testable against AC1/AC2.",
+      "instructions": "Implement R1 (R1.S1, R1.S2). Add 'verifier' to the agent_type enum in plugins/sdd-kit/skills/plan-writer/assets/execution_plan.schema.json, and extend the external plan validator in plugins/sdd-kit/scripts/plan-tools.mjs (the check-plan path that enforces the code_writer<->non-null test_contract exclusivity) so a 'verifier' task is held to the same test_contract:null rule as other non-code_writer roles, rejecting a verifier task with a non-null test_contract by naming its task_id. No dependency on other tasks. Reference the spec's R1.S1/R1.S2 and AC1/AC2 for the exact observables; do not copy their text.",
+      "expected_output_schema": "Edited execution_plan.schema.json (agent_type enum includes 'verifier') and plan-tools.mjs validator, plus tests, such that a verifier+null-contract plan validates (exit 0) and a verifier+non-null-contract plan is rejected (non-zero) with the task_id named.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R1.S1", "assertion": "A plan whose task has agent_type verifier and test_contract null passes plan validation with a zero exit and no error emitted." },
+        { "ref": "R1.S2", "assertion": "A plan whose verifier task carries a non-null test_contract fails validation with a non-zero exit and an error naming the offending task_id and stating the null-contract rule for non-code_writer roles." }
+      ]
+    },
+    {
+      "task_id": "T2-complete-green",
+      "source_ids": ["R2", "R2.S1", "R2.S2", "R2.S3"],
+      "dependencies": ["T1-contract"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded change to the executor's evidence/close logic with three clear observable cases (AC3/AC4/AC5); the waiver-scoping edge is the sensitive part but fully specified.",
+      "instructions": "Implement R2 (R2.S1, R2.S2, R2.S3), consuming the 'verifier' role recognized by T1-contract. In plugins/sdd-kit/scripts/exec/verify.mjs and plugins/sdd-kit/scripts/exec-tools.mjs (completeOne / confirm / classifyEvidence), make 'complete' on a verifier task waive the red-phase requirement: deterministically re-run the task's --test-cmd suite and record the task done when it passes, instead of returning no-red. Scope the waiver strictly to agent_type=='verifier' so a terminal_operator (or any non-verifier) task with a passed red phase still classifies as no-red exactly as before. Reference R2.S1/R2.S2/R2.S3 and AC3/AC4/AC5 for observables; do not copy their text.",
+      "expected_output_schema": "Edited verify.mjs/exec-tools.mjs plus tests: complete on a verifier task with a green suite returns status done (no no-red incident); with a red suite returns not-done/rerun-failed and stays pending with no commit; a non-verifier task with rojo pass still returns not-done/no-red.",
+      "satisfies_acs": ["AC3", "AC4", "AC5"],
+      "estimated_tokens": 60000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R2.S1", "assertion": "complete on a verifier task whose suite passes returns status done, sets its state entry to done, and records no no-red incident for it." },
+        { "ref": "R2.S2", "assertion": "complete on a verifier task whose suite fails on the orchestrator re-run returns status not-done with reason rerun-failed, leaves the state entry pending, and creates no commit." },
+        { "ref": "R2.S3", "assertion": "complete on a terminal_operator (non-verifier) task with a passed red phase still returns status not-done with reason no-red, unchanged from prior behavior." }
+      ]
+    },
+    {
+      "task_id": "T3-state-only-commit",
+      "source_ids": ["R3", "R3.S1", "R3.S2"],
+      "dependencies": ["T2-complete-green"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded change to the commit path with two clear observables (AC6/AC7); must preserve issue #9 pathspec hygiene, which is precisely specified.",
+      "instructions": "Implement R3 (R3.S1, R3.S2), building on the verifier done-path from T2-complete-green. In plugins/sdd-kit/scripts/exec/git.mjs and plugins/sdd-kit/scripts/exec-tools.mjs, make a verifier task's done-completion produce exactly one commit that stages only the executor state file (execution_state.json, the done-flip), without requiring an explicit --files list and without ever falling back to a whole-tree git add -A. Do not weaken the issue #9 guard for ordinary code tasks. Reference R3.S1/R3.S2 and AC6/AC7 for observables; do not copy their text.",
+      "expected_output_schema": "Edited git.mjs/exec-tools.mjs plus tests: a verifier done-commit's changed-path set is exactly {execution_state.json} even with unrelated tree changes present; complete on a verifier task without --files does not abort with the issue #9 refusal and stages no code files.",
+      "satisfies_acs": ["AC6", "AC7"],
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R3.S1", "assertion": "When a verifier task is recorded done with unrelated changes present in the tree, exactly one commit is created whose changed-path set is only the executor state file, its message references the task_id, and no unrelated change is swept in." },
+        { "ref": "R3.S2", "assertion": "complete on a verifier task without a --files list does not abort with the issue #9 explicit-file-list refusal and stages no code files it was not given." }
+      ]
+    },
+    {
+      "task_id": "T4-verify-e2e-flow",
+      "source_ids": ["R4", "R4.S1", "R4.S2"],
+      "dependencies": ["T2-complete-green"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded change/wiring in the verify layer with two clear observables (AC8/AC9); reconciling the normal report/archive flow with a done verifier task.",
+      "instructions": "Implement R4 (R4.S1, R4.S2), relying on a verifier task that reaches done via T2-complete-green. In the verify layer (plugins/sdd-kit/scripts/verify-tools.mjs assembleReport/archiveIfGreen and, if needed, plugins/sdd-kit/skills/verify/SKILL.md), ensure AC-E2E is marked green through the normal report flow (no hand-patched report field, no user-override reason) when its backing verifier task is done and all other ACs are green, and is left not-green with the SPECDIR unarchived when that task is still pending. Reference R4.S1/R4.S2 and AC8/AC9 for observables; do not copy their text.",
+      "expected_output_schema": "Edited verify-tools.mjs (and verify/SKILL.md if needed) plus tests: with the verifier task done and other ACs green, verify reports AC-E2E green via the normal flow (reason != user-override) and archives the SPECDIR; with it pending, AC-E2E is not-green and the SPECDIR is not archived.",
+      "satisfies_acs": ["AC8", "AC9"],
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R4.S1", "assertion": "With the verifier task done and all other ACs green, verify reports AC-E2E green through the normal report flow (reason is not user-override) and archives the SPECDIR under docs/specs/archived/<slug>/." },
+        { "ref": "R4.S2", "assertion": "With the verifier task still pending, verify reports AC-E2E as not-green, the run as not-finished, and does not archive the SPECDIR." }
+      ]
+    },
+    {
+      "task_id": "T5-emit-and-document",
+      "source_ids": ["R5", "R5.S1", "R5.S2"],
+      "dependencies": ["T1-contract"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Documentation and skill guidance following a schema; no runtime logic, but must be precise about the verifier shape recognized by T1.",
+      "instructions": "Implement R5 (R5.S1, R5.S2), documenting the verifier role added by T1-contract. Update plugins/sdd-kit/skills/plan-executor/assets/task-brief-detail.md and plugins/sdd-kit/skills/verify/SKILL.md to describe the verifier task shape and its completion path (green via suite re-run, state-only commit, no red phase). Add a 'verifier' row to plugins/sdd-kit/skills/plan-writer/assets/agent-roles.md and update plan-writer's guidance so the task backing R-E2E/AC-E2E is emitted with agent_type 'verifier' instead of terminal_operator. Reference R5.S1/R5.S2 and AC10/AC11; do not copy their text.",
+      "expected_output_schema": "Edited task-brief-detail.md, verify/SKILL.md, agent-roles.md and plan-writer guidance: the literal role 'verifier' and its completion path appear in the docs, and plan-writer is instructed to emit agent_type 'verifier' for the E2E task.",
+      "satisfies_acs": ["AC10", "AC11"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "T6-e2e",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["T1-contract", "T2-complete-green", "T3-state-only-commit", "T4-verify-e2e-flow", "T5-emit-and-document"],
+      "agent_type": "terminal_operator",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "Verification-only: run the full suite and an end-to-end fixture check to confirm the integrated flow; no new code. (Bootstrap note: this task cannot itself be a 'verifier' task because that role does not yet validate until T1 lands.)",
+      "instructions": "Verify R-E2E (R-E2E.S1) once T1-contract, T2-complete-green, T3-state-only-commit, T4-verify-e2e-flow and T5-emit-and-document are done. Run the full sdd-kit test suite and drive a spec->plan->exec->verify run over a plan containing a verifier task backing AC-E2E, confirming the verifier task closes done with a state-only commit and no no-red incident, AC-E2E is reported green through the normal flow (never user-override), and the SPECDIR is archived, with no manual override at any step. Reference R-E2E.S1 and AC-E2E for observables; do not copy their text.",
+      "expected_output_schema": "A green full-suite run plus an end-to-end confirmation that a verifier-backed AC-E2E closes green (state-only commit, no no-red) and the SPECDIR archives with no manual override.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1-contract"],
+      "R1.S1": ["T1-contract"],
+      "R1.S2": ["T1-contract"],
+      "R2": ["T2-complete-green"],
+      "R2.S1": ["T2-complete-green"],
+      "R2.S2": ["T2-complete-green"],
+      "R2.S3": ["T2-complete-green"],
+      "R3": ["T3-state-only-commit"],
+      "R3.S1": ["T3-state-only-commit"],
+      "R3.S2": ["T3-state-only-commit"],
+      "R4": ["T4-verify-e2e-flow"],
+      "R4.S1": ["T4-verify-e2e-flow"],
+      "R4.S2": ["T4-verify-e2e-flow"],
+      "R5": ["T5-emit-and-document"],
+      "R5.S1": ["T5-emit-and-document"],
+      "R5.S2": ["T5-emit-and-document"],
+      "R-E2E": ["T6-e2e"],
+      "R-E2E.S1": ["T6-e2e"]
+    },
+    "acs": {
+      "AC1": ["T1-contract"],
+      "AC2": ["T1-contract"],
+      "AC3": ["T2-complete-green"],
+      "AC4": ["T2-complete-green"],
+      "AC5": ["T2-complete-green"],
+      "AC6": ["T3-state-only-commit"],
+      "AC7": ["T3-state-only-commit"],
+      "AC8": ["T4-verify-e2e-flow"],
+      "AC9": ["T4-verify-e2e-flow"],
+      "AC10": ["T5-emit-and-document"],
+      "AC11": ["T5-emit-and-document"],
+      "AC-E2E": ["T6-e2e"]
+    }
+  }
+}

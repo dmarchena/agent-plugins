@@ -55,7 +55,7 @@
       "actual_tokens": 31000,
       "deviation": 1000,
       "test_cmd": "node --test plugins/sdd-kit/test/**/*.test.mjs",
-      "commit": null,
+      "commit": "8572e36",
       "incidencia": "verification-only e2e task: no red phase possible (bootstrap — cannot be tagged verifier while that role predates this plan). Full suite 140/140 green; no-red accepted by user override (foreseen)."
     }
   },
