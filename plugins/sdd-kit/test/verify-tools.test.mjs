@@ -31,6 +31,11 @@ test('R1.S1 / AC1: with spec.md, execution_plan.json and execution_state.json pr
   assert.ok(ac2);
   assert.equal(ac2.tag, 'manual');
 
+  const ac4 = result.checklist.find((item) => item.ac_id === 'AC4');
+  assert.ok(ac4, 'AC4 (bare requirement ref, no scenario suffix) should be parsed, not silently dropped');
+  assert.equal(ac4.ref, 'R3');
+  assert.equal(ac4.tag, 'manual');
+
   assert.deepEqual(result.coverageAcs, {
     AC1: ['T1'],
     AC2: ['T2'],

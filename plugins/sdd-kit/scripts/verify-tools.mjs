@@ -27,7 +27,7 @@ export class VerifyInputError extends Error {
 const AC_SECTION_RE = /^##\s+Acceptance Criteria\s*$/;
 const OTHER_H2_RE = /^##\s+/;
 const AC_ITEM_RE =
-  /^-\s*(?:\[[^\]]*\]\s*)?(AC-E2E|AC\d+)\s*→\s*(R-E2E\.S\d+|R\d+\.S\d+)\s*\[(auto|manual)\]\s*—\s*(.+)$/;
+  /^-\s*(?:\[[^\]]*\]\s*)?(AC-E2E|AC\d+)\s*→\s*(R-E2E(?:\.S\d+)?|R\d+(?:\.S\d+)?)\s*\[(auto|manual)\]\s*—\s*(.+)$/;
 
 // Parses the "## Acceptance Criteria" section of a spec.md into an array of
 // { ac_id, ref, tag, description }, folding wrapped description lines (lines
