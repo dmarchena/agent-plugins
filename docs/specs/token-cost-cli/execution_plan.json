@@ -1,0 +1,133 @@
+{
+  "plan_id": "token-cost-cli-plan",
+  "project_name": "claude-token-debug token-cost CLI",
+  "global_objective": "Ship claude-token-debug's cost analysis as a runnable, model-aware CLI plus an importable analyze() function (token-cost.mjs) so 'where did a session's tokens go' is a one-liner whose parser never enters the orchestrator context and whose structured result is consumable by other tooling; then wire the skill's subagent-cost technique to invoke it. Closes #16.",
+  "source_spec": "docs/specs/token-cost-cli/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 128000,
+  "tasks": [
+    {
+      "task_id": "T1-model-weighting",
+      "source_ids": ["R2", "R2.S1", "R2.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Foundational, dependency-free (spec: Depende de —) pricing core with two clear [auto] acceptance criteria: derive each message's price tier from its own message.model and handle an unknown tier without dropping tokens or guessing; seeds the module the rest of the plan extends.",
+      "instructions": "Implement R2 (scenarios R2.S1, R2.S2) as the pricing core of a Node ESM module at plugins/claude-token-debug/scripts/token-cost.mjs (create it): stdlib only (node:fs, node:path, node:os), no npm deps, no network, shebang '#!/usr/bin/env node'. The prototype seed in the spec's source issue is the starting point. Ship an inline, editable exported PRICE constant (list USD/Mtok) and derive each assistant message's price tier from its own message.model string (opus/sonnet/haiku) with no hardcoded per-session model, so a session mixing models has each message costed at its own tier and the reported model list contains every distinct model string seen (R2.S1). When a message's model matches no known tier, still count its tokens in the token totals and still surface its model string in the model list, while contributing 0 to the cost — never drop it and never guess a tier (R2.S2). Add a node:test suite under plugins/claude-token-debug/test/ that imports the module and/or drives it over a self-contained fixture projects tree built under a tmp dir (mirroring the sdd-kit test/*.test.mjs + fixtures pattern), never touching the real ~/.claude/projects, observing per-message-tier cost-weighting and the unknown-tier behavior. Cover AC3 and AC4. No dependency on other tasks. Reference the spec's R#/S#/AC# for the exact observables; do not copy their text.",
+      "expected_output_schema": "New file plugins/claude-token-debug/scripts/token-cost.mjs exporting the PRICE constant and per-message cost/tier derivation (tier from each message's own message.model, no hardcoding, graceful unknown-tier), plus a node:test suite and tmp fixture under plugins/claude-token-debug/test/, such that AC3 (total cost equals the sum of each message priced at its own tier; model list holds every distinct model string) and AC4 (unknown-tier message counted in token totals and listed, contributing 0 cost) pass under `node --test`.",
+      "satisfies_acs": ["AC3", "AC4"],
+      "estimated_tokens": 34000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC3", "assertion": "Over a fixture session whose assistant messages carry different models, the reported total cost equals the sum of each message priced at its own model's tier, and the reported model list contains every distinct model string seen." },
+        { "ref": "AC4", "assertion": "Over a fixture session containing a message whose model matches no known tier, that message's tokens are included in the token totals and its model string appears in the model list, while it contributes zero to the cost." }
+      ]
+    },
+    {
+      "task_id": "T2-scan-split",
+      "source_ids": ["R1", "R1.S1", "R1.S2"],
+      "dependencies": ["T1-model-weighting"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation over the pricing core from T1-model-weighting, with two clear [auto] acceptance criteria: the session scan, subagent/orchestrator split with labels and cost-based percentages, and the default human-readable rendering.",
+      "instructions": "Implement R1 (scenarios R1.S1, R1.S2) in the token-cost.mjs module at plugins/claude-token-debug/scripts/token-cost.mjs, consuming the exported PRICE table and per-message cost/tier derivation built by T1-model-weighting. Provide an exported analysis function that scans a session's assistant messages, sums input/output/cache_read/cache_creation usage, splits subagents vs orchestrator, labels each subagent from its agent-<id>.meta.json, and computes a cost-based orchestrator-vs-subagent percentage split with cache_read included in every total (R1.S1). Handle a missing subagents/ directory by reporting the orchestrator alone with subagents at 0 percent and exit 0, never borrowing another session's numbers (R1.S2). Run as a CLI printing a human-readable table by default; do not implement the --json flag, the --boundary slicing, or the projects-root/--project/--session target resolution here — those belong to a later task. Extend the node:test suite from T1-model-weighting with cases driving the CLI by subprocess (execFileSync) and importing the module directly over a tmp fixture projects tree (a flat <session>.jsonl with assistant messages carrying usage, a subagents/agent-<id>.jsonl and its agent-<id>.meta.json), never touching the real ~/.claude/projects. Cover AC1 and AC2. Reference the spec's R#/S#/AC# for the exact observables; do not copy their text.",
+      "expected_output_schema": "Edited plugins/claude-token-debug/scripts/token-cost.mjs adding the exported analysis function (session scan, subagent/orchestrator split, meta labels, cache_read-inclusive totals, cost-based percentage split) and a human-readable CLI default, plus extended node:test cases, such that over the fixture: AC1 (subagent line with meta label + per-subagent total, orchestrator total line, grand total with orchestrator%/subagents% summing to 100, cache_read included) and AC2 (no subagents/ -> subagents 0%, exit 0, no cross-session bleed) pass under `node --test`.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC1", "assertion": "Running the CLI over a fixture session with one labeled subagent yields output containing a per-subagent line showing the meta description label and that subagent's token total, an orchestrator total line, and a grand-total line stating both an orchestrator percentage and a subagents percentage that sum to 100, with cache_read tokens included in the totals." },
+        { "ref": "AC2", "assertion": "Running the CLI over a fixture session that has no subagents directory prints the orchestrator total and a grand total reporting subagents at 0 percent, exits 0, and does not incorporate any other session's numbers." }
+      ]
+    },
+    {
+      "task_id": "T3-io",
+      "source_ids": ["R3", "R3.S1", "R3.S2", "R4", "R4.S1", "R4.S2"],
+      "dependencies": ["T2-scan-split"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded I/O surface over the module built by T2-scan-split, with four clear [auto] acceptance criteria: JSON output, side-effect-free importable shape, target resolution and boundary slicing.",
+      "instructions": "Implement R3 and R4 (scenarios R3.S1/R3.S2, R4.S1/R4.S2) on top of the token-cost.mjs module and analysis function built by T2-scan-split. Add a --json flag that prints one valid JSON document with top-level keys session, subs, orchestrator, subTotal, orchAll (R3.S1); guarantee that importing the module and calling the exported analysis function on an explicit target returns that same shape and writes nothing to stdout (R3.S2) — refactor the print path out of the pure function if needed. Add target resolution: --project/--session plus a projects-root override, defaulting to the newest session of the newest-active project under ~/.claude/projects; and --boundary <substr> slicing the orchestrator turns into pre/post subtotals at the first matching flat-session line (R4.S1), falling back to a single unsplit total (split flag false) when the substring matches no line (R4.S2). Extend the node:test suite (from T2-scan-split) with cases covering AC5..AC8, still driving the CLI by subprocess and importing the module over the tmp fixture tree, never touching the real ~/.claude/projects. Consume the module and analysis function from T2-scan-split. Reference the spec's R#/S#/AC# for the exact observables; do not copy their text.",
+      "expected_output_schema": "Edited plugins/claude-token-debug/scripts/token-cost.mjs adding --json, side-effect-free importable analysis, --project/--session + projects-root override, and --boundary slicing, plus extended node:test cases, such that over the fixture: AC5 (--json emits one valid JSON doc with keys session/subs/orchestrator/subTotal/orchAll); AC6 (imported function returns that shape and prints nothing); AC7 (--boundary match -> pre/post subtotals summing to the orchestrator total); AC8 (--boundary no match -> single unsplit total, split false, exit 0). All suite tests pass under `node --test`.",
+      "satisfies_acs": ["AC5", "AC6", "AC7", "AC8"],
+      "estimated_tokens": 34000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC5", "assertion": "Running the CLI with --json writes a single parseable JSON document to stdout whose top-level keys are session, subs, orchestrator, subTotal and orchAll." },
+        { "ref": "AC6", "assertion": "Importing the module and calling its exported analysis function on an explicit fixture target returns an object with the same shape as the --json document and writes nothing to stdout." },
+        { "ref": "AC7", "assertion": "Running the CLI with a --boundary substring present in a flat-session line reports a pre-boundary and a post-boundary orchestrator subtotal whose costs sum to the orchestrator total." },
+        { "ref": "AC8", "assertion": "Running the CLI with a --boundary substring that appears in no flat-session line reports a single unsplit orchestrator total (split flag false) and exits 0." }
+      ]
+    },
+    {
+      "task_id": "T4-wire-skill",
+      "source_ids": ["R5", "R5.S1"],
+      "dependencies": ["T2-scan-split", "T3-io"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Prose rewrite of one SKILL.md section following a fixed shape (invoke the CLI, keep the binary-inspection prose) — bounded documentation work, no logic.",
+      "instructions": "Implement R5 (R5.S1). Rewrite the subagent-cost technique in plugins/claude-token-debug/skills/token-cost-debug/SKILL.md so it invokes the CLI shipped by T2-scan-split and T3-io via `${CLAUDE_PLUGIN_ROOT}/scripts/token-cost.mjs` (with its flags: --json, --boundary, --project/--session), replacing the hand-written-parser procedure, while leaving the built-in-agent binary-inspection technique (the strings/dd offset-reading prose) present and intact. Also update the plugin CHANGELOG.md and bump .claude-plugin/plugin.json per repo versioning convention if the exec/verify stage requires it. Consume the CLI invocation contract and flags established by T2-scan-split and T3-io. Reference R5.S1 and AC9 for the observable; do not copy their text.",
+      "expected_output_schema": "Edited plugins/claude-token-debug/skills/token-cost-debug/SKILL.md whose subagent-cost technique invokes ${CLAUDE_PLUGIN_ROOT}/scripts/token-cost.mjs and whose binary-inspection (strings/dd) prose is still present, satisfying AC9.",
+      "satisfies_acs": ["AC9"],
+      "estimated_tokens": 22000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "T5-e2e",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["T1-model-weighting", "T2-scan-split", "T3-io"],
+      "agent_type": "verifier",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "End-to-end confirmation task mandated by R-E2E/AC-E2E: re-run the existing suite over the fixture tree and confirm green, no code to write.",
+      "instructions": "Confirm R-E2E (R-E2E.S1). Run the full node:test suite authored by T1-model-weighting, T2-scan-split and T3-io (which includes the integrated --json run over the fixture projects tree) and confirm it is green, evidencing AC-E2E: a single --json run over the fixture tree emits a breakdown whose subagent entry carries the meta label, whose totals include cache_read, whose per-message cost is model-weighted, and whose orchAll/subTotal costs yield the reported percentage split. Consume the module and tests from T1-model-weighting, T2-scan-split and T3-io. Write no code and no tests. Reference R-E2E.S1 and AC-E2E for the observable; do not copy their text.",
+      "expected_output_schema": "A pass/fail confirmation that the full node:test suite is green, evidencing the AC-E2E end-to-end breakdown over the fixture tree. No files produced.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 16000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T2-scan-split"],
+      "R1.S1": ["T2-scan-split"],
+      "R1.S2": ["T2-scan-split"],
+      "R2": ["T1-model-weighting"],
+      "R2.S1": ["T1-model-weighting"],
+      "R2.S2": ["T1-model-weighting"],
+      "R3": ["T3-io"],
+      "R3.S1": ["T3-io"],
+      "R3.S2": ["T3-io"],
+      "R4": ["T3-io"],
+      "R4.S1": ["T3-io"],
+      "R4.S2": ["T3-io"],
+      "R5": ["T4-wire-skill"],
+      "R5.S1": ["T4-wire-skill"],
+      "R-E2E": ["T5-e2e"],
+      "R-E2E.S1": ["T5-e2e"]
+    },
+    "acs": {
+      "AC1": ["T2-scan-split"],
+      "AC2": ["T2-scan-split"],
+      "AC3": ["T1-model-weighting"],
+      "AC4": ["T1-model-weighting"],
+      "AC5": ["T3-io"],
+      "AC6": ["T3-io"],
+      "AC7": ["T3-io"],
+      "AC8": ["T3-io"],
+      "AC9": ["T4-wire-skill"],
+      "AC-E2E": ["T5-e2e"]
+    }
+  }
+}
