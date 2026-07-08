@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { checkVersioning } from './exec/versioning-check.mjs';
 import { currentBranch } from './exec/git.mjs';
+import { readConfig } from './exec/config.mjs';
 import { rerun } from './exec/verify.mjs';
 
 /**
@@ -1037,7 +1038,9 @@ function cmdArchive(specDir, flags) {
     if (e instanceof VerifyInputError) return die(`VerifyInputError: ${e.message}`, 1);
     throw e;
   }
-  const result = archiveIfGreen(specDir, report, { cwd: process.cwd() });
+  const cwd = process.cwd();
+  const config = readConfig(cwd);
+  const result = archiveIfGreen(specDir, report, { cwd, versioning: { config } });
   out({ status: result.archived ? 'archived' : 'not-archived', ...result });
 }
 

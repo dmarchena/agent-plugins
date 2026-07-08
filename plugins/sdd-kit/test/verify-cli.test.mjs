@@ -175,3 +175,49 @@ test('AC3: report --verdicts confirms a [manual] AC from a file (no interactive 
     fs.rmSync(repo, { recursive: true, force: true });
   }
 });
+
+// ---------------------------------------------------------------------------
+// Regression: the `archive` subcommand must read the repo's .sdd-kit.json
+// and enforce its versioning-policy gate (R5, change-type-versioning-policy
+// spec) — not silently skip it. Caught during verify of
+// sdd-verify-cli-and-budget-pause: cmdArchive called archiveIfGreen without
+// ever passing `versioning`, so the gate was dead code once driven via CLI.
+// ---------------------------------------------------------------------------
+
+test('R5 regression: archive subcommand reads .sdd-kit.json and enforces the versioning-policy gate', () => {
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-cli-versioning-'));
+  try {
+    initRepo(repo);
+    fs.writeFileSync(
+      path.join(repo, '.sdd-kit.json'),
+      JSON.stringify({ versioningPolicy: 'plugin-changelog' }, null, 2)
+    );
+    const pluginDir = path.join(repo, 'plugins', 'demo-plugin');
+    fs.mkdirSync(path.join(pluginDir, '.claude-plugin'), { recursive: true });
+    fs.writeFileSync(
+      path.join(pluginDir, '.claude-plugin', 'plugin.json'),
+      JSON.stringify({ name: 'demo-plugin', version: '0.1.0' }, null, 2)
+    );
+    fs.writeFileSync(path.join(pluginDir, 'CHANGELOG.md'), '# Changelog\n\n## 0.1.0\n\n- Initial.\n');
+    git(repo, ['add', '-A']);
+    git(repo, ['commit', '-qm', 'add plugin + versioning config']);
+
+    git(repo, ['checkout', '-b', 'fix/versioning-demo']);
+    fs.mkdirSync(path.join(pluginDir, 'scripts'), { recursive: true });
+    fs.writeFileSync(path.join(pluginDir, 'scripts', 'foo.mjs'), '// touch, no bump\n');
+    const specDir = buildFixture(repo, 'versioning-demo');
+
+    const archiveOut = cli(repo, ['archive', specDir]);
+    const archived = JSON.parse(archiveOut);
+    assert.equal(archived.status, 'not-archived');
+    assert.equal(archived.archived, false);
+    assert.equal(archived.reason, 'versioning policy not satisfied');
+    assert.ok(Array.isArray(archived.versioningWarnings));
+    assert.ok(archived.versioningWarnings.some((w) => w.plugin === 'demo-plugin'));
+
+    const destination = path.join(repo, 'docs', 'specs', 'archived', 'versioning-demo');
+    assert.equal(fs.existsSync(destination), false, 'must not archive when the touched plugin lacks a bump/changelog');
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
