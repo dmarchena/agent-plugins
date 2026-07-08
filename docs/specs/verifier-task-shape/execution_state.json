@@ -37,7 +37,7 @@
       "actual_tokens": 30000,
       "deviation": -20000,
       "test_cmd": "node --test plugins/sdd-kit/test/verify-verifier-e2e.test.mjs",
-      "commit": null,
+      "commit": "2d41951",
       "incidencia": "no-red accepted by user override: verify flow already generic/correct, no implementation needed (spec Assumption); AC8/AC9 tests green, full suite 124/124"
     },
     "T5-emit-and-document": {
@@ -50,13 +50,13 @@
       "incidencia": null
     },
     "T6-e2e": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 30000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 31000,
+      "deviation": 1000,
+      "test_cmd": "node --test plugins/sdd-kit/test/**/*.test.mjs",
       "commit": null,
-      "incidencia": null
+      "incidencia": "verification-only e2e task: no red phase possible (bootstrap — cannot be tagged verifier while that role predates this plan). Full suite 140/140 green; no-red accepted by user override (foreseen)."
     }
   },
   "pause": null
