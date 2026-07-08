@@ -28,17 +28,17 @@
       "actual_tokens": 30000,
       "deviation": -20000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/verifier-commit.test.mjs",
-      "commit": null,
+      "commit": "ee3ec92",
       "incidencia": null
     },
     "T4-verify-e2e-flow": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 50000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 30000,
+      "deviation": -20000,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-verifier-e2e.test.mjs",
       "commit": null,
-      "incidencia": null
+      "incidencia": "no-red accepted by user override: verify flow already generic/correct, no implementation needed (spec Assumption); AC8/AC9 tests green, full suite 124/124"
     },
     "T5-emit-and-document": {
       "status": "done",
