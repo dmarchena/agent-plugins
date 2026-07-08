@@ -37,7 +37,7 @@
       "actual_tokens": 35000,
       "deviation": 13000,
       "test_cmd": "grep -q \"token-cost.mjs\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md && grep -qi -- \"--json\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md && grep -qi -- \"--boundary\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md && grep -q \"strings -n\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md && grep -q \"dd if=\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md",
-      "commit": null,
+      "commit": "b3d42aa",
       "incidencia": null
     },
     "T5-e2e": {
