@@ -32,11 +32,11 @@
       "incidencia": null
     },
     "T4-wire-skill": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 22000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 35000,
+      "deviation": 13000,
+      "test_cmd": "grep -q \"token-cost.mjs\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md && grep -qi -- \"--json\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md && grep -qi -- \"--boundary\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md && grep -q \"strings -n\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md && grep -q \"dd if=\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md",
       "commit": null,
       "incidencia": null
     },
@@ -46,7 +46,7 @@
       "actual_tokens": 1200,
       "deviation": -14800,
       "test_cmd": "node --test plugins/claude-token-debug/test/token-cost.test.mjs",
-      "commit": null,
+      "commit": "ad3c862",
       "incidencia": null
     }
   },

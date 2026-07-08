@@ -18,31 +18,48 @@ prompt and tool list, instead of guessing from its `whenToUse` description.
 
 ### 1. Measuring real subagent cost
 
-Subagent transcripts are not in the flat session `.jsonl` — they live at:
+Don't hand-parse the `.jsonl` transcripts — run this plugin's own CLI, which
+already sums every assistant message's `usage` fields (`input_tokens`,
+`output_tokens`, `cache_read_input_tokens`, `cache_creation_input_tokens`)
+into a model-weighted cost, per subagent and for the orchestrator, with a
+cost-based percentage split:
 
 ```
-~/.claude/projects/<project-slug>/<sessionId>/subagents/agent-<agentId>.jsonl
+node ${CLAUDE_PLUGIN_ROOT}/scripts/token-cost.mjs [--project <name>] [--session <name>] [--projects-root <path>] [--boundary <substr>] [--json]
 ```
 
-For each file, sum every assistant message's `usage` fields
-(`input_tokens`, `output_tokens`, `cache_read_input_tokens`,
-`cache_creation_input_tokens`) for total cost, and count assistant messages
-for turns.
+- No target flags: resolves to the newest session of the newest-active
+  project under `~/.claude/projects` (override the root with
+  `--projects-root` or the `TOKEN_COST_PROJECTS_ROOT` env var). Use
+  `--project <name>` to scope to one project's sessions unless the question
+  is explicitly about usage across all projects; add `--session <name>` to
+  pin a specific session, or pass a plain positional path to a session
+  `.jsonl` directly.
+- `--json` prints one JSON document (keys `session`/`subs`/`orchestrator`/
+  `subTotal`/`orchAll`) instead of the human table — pipe it into `jq` or
+  another script when the answer needs further computation.
+- `--boundary <substr>` slices the orchestrator's own turns into pre/post
+  subtotals at the first flat-session line containing `<substr>`, to isolate
+  cost before/after a specific event without writing a custom scanner; falls
+  back to a single unsplit total when no line matches.
 
-To find which `subagent_type` an invocation used (to group/filter by role),
-link across the *parent* session's flat `.jsonl`:
+It's also importable for scripted use, returning the same shape as `--json`
+with no stdout side effects:
 
-1. Find the `Agent` tool_use block: an assistant message with
-   `message.content[].type == "tool_use"` and `name == "Agent"`; its
-   `input.subagent_type` is the role, its `id` is the tool_use id.
-2. Find the matching result: a later record with
-   `message.content[].type == "tool_result"` whose `tool_use_id` equals that
-   id, or (for async agents) a `toolUseResult.agentId` on the same record.
-3. `toolUseResult.agentId` is the `<agentId>` in the subagent filename above
-   — that's the join key back to step 1's `subagent_type`.
+```js
+import { analyze } from '<plugin root>/scripts/token-cost.mjs';
+const result = analyze({ project: '<name>', boundary: '<substr>' });
+```
 
-Scope the scan to one project (`~/.claude/projects/<project-slug>/`) unless
-the question is explicitly about usage across all projects.
+Per-subagent entries are labeled from each subagent's own
+`agent-<id>.meta.json` description. If the question needs the exact
+`subagent_type` string instead (to group/filter by role), that still
+requires linking across the *parent* session's flat `.jsonl`: find the
+`Agent` tool_use block (`message.content[].type == "tool_use"` and
+`name == "Agent"`, whose `input.subagent_type` is the role and `id` is the
+tool_use id), then the matching `tool_result` (`tool_use_id` equal to that
+id, or a `toolUseResult.agentId` on the same record for async agents) —
+`toolUseResult.agentId` is the join key back to the CLI's per-subagent `id`.
 
 ### 2. Inspecting a built-in agent's real prompt/tools
 
