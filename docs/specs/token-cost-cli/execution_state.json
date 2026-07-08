@@ -10,15 +10,15 @@
       "actual_tokens": 28000,
       "deviation": -6000,
       "test_cmd": "node --test plugins/claude-token-debug/test/token-cost.test.mjs",
-      "commit": null,
+      "commit": "83585d9",
       "incidencia": null
     },
     "T2-scan-split": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 40000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 45000,
+      "deviation": 5000,
+      "test_cmd": "node --test plugins/claude-token-debug/test/token-cost.test.mjs",
       "commit": null,
       "incidencia": null
     },
