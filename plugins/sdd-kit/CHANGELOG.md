@@ -4,6 +4,34 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.4.1
+
+- `verify-tools.mjs` exposes its deterministic stages as CLI subcommands
+  (`ground-check`, `report`, `archive`), each printing JSON with a `status`
+  field and using process exit codes, mirroring `exec-tools.mjs`'s shape —
+  so the `verify` skill drives verification with one-line `node` commands
+  instead of importing the ~900-line module or authoring a driver script.
+  `report`/`archive` accept a `--verdicts <path>` file to resolve
+  `[manual]`-tagged ACs without ever blocking on interactive stdin. The
+  `verify` `SKILL.md` is updated to drive every deterministic step this
+  way.
+- The exec `next`-batch path no longer pauses (nor records a `pause` entry)
+  when a task's real tokens exceed 2x its estimate but every task is
+  otherwise healthy — the deviation still surfaces in the report, but a
+  healthy over-budget plan now runs to completion instead of halting for a
+  `resume` round-trip. Genuine-failure blocking (retry once, then block
+  dependents) is unchanged.
+- Fixed the AC checklist parser to accept ACs that reference a bare
+  requirement (e.g. `AC6 → R1 [manual]`) rather than only a scenario
+  (`R1.S1`) — previously such a line was silently dropped from the
+  checklist, so it never appeared in `ground-check`/`report` output and
+  never blocked `allGreen`.
+- Fixed `archive`'s CLI subcommand to read `.sdd-kit.json` via
+  `readConfig()` and pass it into `archiveIfGreen`'s versioning gate —
+  previously the gate was wired only when calling `archiveIfGreen`
+  directly, so driving `archive` through the CLI silently skipped the
+  `versioningPolicy` check.
+
 ## 0.4.0
 
 - Added a `verifier` `agent_type` for the spec-mandated end-to-end
