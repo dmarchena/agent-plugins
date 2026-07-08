@@ -1,0 +1,191 @@
+{
+  "plan_id": "plan-change-type-versioning-policy-001",
+  "project_name": "Change-type-driven branch naming and versioning policy",
+  "global_objective": "Make a change's explicit Change type (recorded in spec-writer) the single source of truth for both plan-executor's branch prefix and the semver segment expected at landing, with a per-project .sdd-kit.json policy that drives non-blocking checks in scripts/validate.sh and an archive-blocking gate in verify.",
+  "source_spec": "spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 77000,
+  "tasks": [
+    {
+      "task_id": "t1-spec-writer-change-type",
+      "source_ids": ["R1.S1", "R1.S2", "R1.S3", "R1.S4"],
+      "dependencies": [],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Editing an interactive skill's instructions and template following the spec; no code/tests (all four ACs are manual behavioral checks), so bounded doc work fits doc_writer/sonnet.",
+      "instructions": "Update the spec-writer skill so it records one explicit Change type per spec, per R1.S1-R1.S4. Edit plugins/sdd-kit/skills/spec-writer/SKILL.md and assets/interview-steps.md to add a change-type step right after the one-liner/purpose is established (R1.S1): present feat/fix/chore/refactor/docs with one recommended from the one-liner. Handle a one-liner mixing a fix and new capability by surfacing the dominant-side/split tradeoff instead of guessing (R1.S2). Handle the leading command argument: when /sdd-kit:spec's first word case-insensitively matches one of the five types, skip the question, treat the rest as the one-liner, echo the type back in one line, and record it (R1.S3); when it does not match, treat all text as the one-liner and ask interactively (R1.S4). Add a `Change type: <value>` line near the top of the written spec in assets/spec-template.md (just under the title/Purpose). Update plugins/sdd-kit/commands/spec.md argument-hint if needed to reflect the optional leading type word. Do not touch git.mjs or any exec/verify script (those are separate tasks). AC1-AC4 are all [manual] so no test is written here.",
+      "expected_output_schema": "Edited spec-writer SKILL.md, interview-steps.md, spec-template.md (with a `Change type:` line) and commands/spec.md, so the interview records an explicit Change type and honors a valid leading type argument.",
+      "satisfies_acs": ["AC1", "AC2", "AC3", "AC4"],
+      "estimated_tokens": 9000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "t2-branch-prefix",
+      "source_ids": ["R2.S1", "R2.S2", "R2.S3"],
+      "dependencies": ["t1-spec-writer-change-type"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded Node ESM change to branch creation plus a reusable .sdd-kit.json reader, with clear scenario-derived acceptance criteria.",
+      "instructions": "Implement R2.S1-R2.S3. Introduce a reusable .sdd-kit.json config reader (repo-root, all fields optional) exposing branchPrefixes, versioningPolicy (default 'disabled'), and changelogPath (default 'CHANGELOG.md') so tasks t4-versioning-check, t5-validate-wiring and t6-verify-gate can reuse it. Read the spec's `Change type` line (the line format produced by t1-spec-writer-change-type) and map it to a branch prefix through branchPrefixes, falling back per-key to the built-in identity default map (feat/fix/chore/refactor/docs) when the key is missing or the file is absent (R2.S1). Support an explicit empty-string prefix producing a branch named exactly <slug> with no leading slash (R2.S2). When the spec has no `Change type` line, default to feat (today's behavior) and make init's output include a note recommending the spec be updated with an explicit Change type (R2.S3). Modify plugins/sdd-kit/scripts/exec/git.mjs (ensureBranch currently hardcodes `feat/${slug}`) to accept the resolved prefix/branch name, and wire the resolution into cmdInit in plugins/sdd-kit/scripts/exec-tools.mjs. Add unit tests alongside the existing test/exec/git.test.mjs style covering R2.S1/S2/S3. Node ESM stdlib only, no network.",
+      "expected_output_schema": "Modified git.mjs ensureBranch (parameterized prefix), exec-tools.mjs cmdInit wiring, a new .sdd-kit.json reader module, and passing unit tests for the three branch-naming scenarios.",
+      "satisfies_acs": ["AC5", "AC6", "AC7"],
+      "estimated_tokens": 14000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R2.S1", "assertion": "A fix-typed spec with no project config produces a branch prefixed fix rather than feat" },
+        { "ref": "R2.S2", "assertion": "A project config mapping a type to an empty prefix produces a branch equal to the slug with no leading slash" },
+        { "ref": "R2.S3", "assertion": "A spec with no recorded change type still creates a feat-prefixed branch and init reports a note recommending an explicit change type be added" }
+      ]
+    },
+    {
+      "task_id": "t3-agents-md-versioning",
+      "source_ids": ["R3.S1"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "The deliverable pairs an AGENTS.md documentation edit with a re-runnable check so its [auto] AC (AC8) can be mechanically verified, which the code_writer test contract provides.",
+      "instructions": "Implement R3.S1. Edit the repo-root AGENTS.md so its versioning section documents, per change type, which semver segment a landing bumps (fix/chore/refactor to patch, feat to minor, docs to no bump required, major reserved and unused pre-1.0.0), replacing the current vague 'bump the version' guidance. In the Branch naming section, rename the `spec/<slug>` entry to `docs/<slug>`. Add a re-runnable test (grep-based, picked up by the existing test runner) asserting both the segment table content and that `docs/<slug>` is present while `spec/<slug>` is gone, so AC8 is mechanically checkable. Do not modify any script behavior beyond adding this assertion test.",
+      "expected_output_schema": "Edited AGENTS.md with an explicit change-type-to-segment table and the docs/<slug> branch rename, plus a grep-based test asserting that content.",
+      "satisfies_acs": ["AC8"],
+      "estimated_tokens": 7000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R3.S1", "assertion": "AGENTS.md's versioning section states the per-type segment rule (fix/chore/refactor to patch, feat to minor, docs no bump, major reserved pre-1.0.0) and its branch-naming section lists docs/<slug> instead of spec/<slug>" }
+      ]
+    },
+    {
+      "task_id": "t4-versioning-check",
+      "source_ids": ["R4.S2", "R4.S3", "R4.S4", "R4.S5"],
+      "dependencies": ["t2-branch-prefix", "t3-agents-md-versioning"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Non-trivial deterministic module (git-diff scoping, per-plugin bump/changelog detection, segment reverse-mapping) with clear scenario-derived acceptance criteria; the meatiest code task.",
+      "instructions": "Implement the policy-driven versioning check for R4.S2-R4.S5 as a reusable Node ESM module. Reuse the .sdd-kit.json reader from t2-branch-prefix to obtain versioningPolicy and changelogPath. Reuse the change-type-to-segment table introduced in AGENTS.md by t3-agents-md-versioning (encode the same mapping in code). For versioningPolicy 'plugin-changelog': for each plugin whose files a branch touched (layout plugins/<name>/.claude-plugin/plugin.json and plugins/<name>/CHANGELOG.md per the spec's Assumptions), detect whether plugin.json's version was bumped and whether a new CHANGELOG.md heading was added, and whether the bumped segment matches the segment expected for the branch's type (reverse-mapped through branchPrefixes). Emit a warning naming the plugin and the specific gap: missing bump and/or missing changelog entry (R4.S3), or wrong segment stating branch type, actual segment and expected segment (R4.S4). A fully compliant plugin yields no warning (R4.S2). For 'changelog-only' (honoring changelogPath, default CHANGELOG.md): warn only when non-trivial code changes lack a new entry, with no segment check (R4.S5). Return warnings as data (do not exit non-zero). Add unit tests with fixtures for each scenario. This module is consumed by t5-validate-wiring and t6-verify-gate.",
+      "expected_output_schema": "A Node ESM versioning-check module returning a list of warnings for plugin-changelog (missing bump, missing changelog, wrong segment) and changelog-only (missing entry) policies, with unit tests covering R4.S2-R4.S5.",
+      "satisfies_acs": ["AC10", "AC11", "AC12", "AC13"],
+      "estimated_tokens": 16000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R4.S2", "assertion": "Under plugin-changelog, a plugin with a correctly-segmented version bump and a matching new changelog heading produces no warning" },
+        { "ref": "R4.S3", "assertion": "Under plugin-changelog, a touched plugin missing its version bump and/or a new changelog heading produces a warning naming the plugin and the specific missing piece" },
+        { "ref": "R4.S4", "assertion": "Under plugin-changelog, a plugin bumped by the wrong segment produces a warning stating the branch type, the segment bumped, and the segment expected" },
+        { "ref": "R4.S5", "assertion": "Under changelog-only, non-trivial changes without a new entry in the configured changelog file produce a warning with no segment-level check" }
+      ]
+    },
+    {
+      "task_id": "t5-validate-wiring",
+      "source_ids": ["R4.S1"],
+      "dependencies": ["t2-branch-prefix", "t3-agents-md-versioning", "t4-versioning-check"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded integration wiring the check into the existing bash gate without ever altering its exit code; clear acceptance criterion.",
+      "instructions": "Implement R4.S1: wire the versioning-check module built by t4-versioning-check into scripts/validate.sh as a non-blocking step that reads versioningPolicy from the repo-root .sdd-kit.json (via the reader from t2-branch-prefix; segment table from t3-agents-md-versioning) and prints any returned warnings but NEVER changes validate.sh's exit code. When versioningPolicy is 'disabled', absent, or unset, print no version/changelog warning at all. Add a test asserting that on a disabled/absent policy no warning is printed and validate.sh still exits 0.",
+      "expected_output_schema": "Modified scripts/validate.sh invoking the versioning-check module non-blockingly, plus a test proving disabled/absent policy prints nothing and exit code stays 0.",
+      "satisfies_acs": ["AC9"],
+      "estimated_tokens": 8000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R4.S1", "assertion": "With versioningPolicy disabled or absent, running scripts/validate.sh prints no version/changelog warning and exits 0" }
+      ]
+    },
+    {
+      "task_id": "t6-verify-gate",
+      "source_ids": ["R5.S1", "R5.S2", "R5.S3", "R5.S4", "R5.S5"],
+      "dependencies": ["t4-versioning-check"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded change to verify-tools' archive gate reusing an existing module, with five scenario-derived acceptance criteria.",
+      "instructions": "Implement R5.S1-R5.S5. Add a policy-driven pre-archive gate to plugins/sdd-kit/scripts/verify-tools.mjs so that, when all ACs are green and archiveIfGreen would otherwise run, it first runs the versioning check from t4-versioning-check scoped to the files the spec's execution touched. Under 'disabled'/unset policy, archive exactly as today with no extra check (R5.S1). Under 'plugin-changelog': archive when every touched plugin has a matching bump and changelog entry (R5.S2); refuse to archive and report exactly which plugin is missing its bump and/or changelog when one is missing (R5.S3); when bump+changelog exist but the segment is wrong, print a warning naming the mismatch but still archive (R5.S4). Under 'changelog-only', refuse to archive and report the missing changelog entry when non-trivial changes lack one (R5.S5). Update plugins/sdd-kit/skills/verify/SKILL.md prose to document this gate. Add unit tests in the existing verify-tools test style covering all five scenarios.",
+      "expected_output_schema": "Modified verify-tools.mjs archive gate plus verify SKILL.md prose and unit tests covering R5.S1-R5.S5 (disabled no-op, compliant archives, missing bump/changelog blocks, wrong segment warns-not-blocks, changelog-only missing entry blocks).",
+      "satisfies_acs": ["AC14", "AC15", "AC16", "AC17", "AC18"],
+      "estimated_tokens": 14000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R5.S1", "assertion": "With policy disabled or unset, a spec with all ACs green archives with no additional check" },
+        { "ref": "R5.S2", "assertion": "With plugin-changelog and every touched plugin compliant, verify archives normally" },
+        { "ref": "R5.S3", "assertion": "With plugin-changelog and a touched plugin missing its bump and/or changelog, verify does not archive and reports the specific plugin" },
+        { "ref": "R5.S4", "assertion": "With plugin-changelog and a touched plugin whose segment is wrong (bump and changelog present), verify warns about the mismatch but still archives" },
+        { "ref": "R5.S5", "assertion": "With changelog-only and a missing required changelog entry, verify does not archive and reports the missing entry" }
+      ]
+    },
+    {
+      "task_id": "t7-repo-config",
+      "source_ids": ["R4.S2"],
+      "dependencies": ["t2-branch-prefix", "t3-agents-md-versioning"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Small but [auto]-verified deliverable: writes the repo's own config and a test asserting its contents, so it is a code_writer task rather than a pure file drop.",
+      "instructions": "Create this repo's own root .sdd-kit.json for AC19: set versioningPolicy to 'plugin-changelog' and a branchPrefixes map consistent with the renamed docs/<slug> convention documented in AGENTS.md by t3-agents-md-versioning (and parseable by the reader from t2-branch-prefix). Without this the feature stays inert here (default policy is disabled). Add a test asserting the file exists with versioningPolicy 'plugin-changelog' and a branchPrefixes map matching AGENTS.md's prefixes (feat/fix/chore/refactor/docs), per AC19 and the compliant-landing expectation in R4.S2.",
+      "expected_output_schema": "A root .sdd-kit.json with versioningPolicy plugin-changelog and an AGENTS.md-consistent branchPrefixes map, plus a test asserting its presence and contents.",
+      "satisfies_acs": ["AC19"],
+      "estimated_tokens": 5000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC19", "assertion": "The repo root .sdd-kit.json exists with versioningPolicy plugin-changelog and a branchPrefixes map consistent with AGENTS.md's docs/<slug> branch convention" }
+      ]
+    },
+    {
+      "task_id": "t8-e2e-full-flow",
+      "source_ids": ["R-E2E.S1"],
+      "dependencies": ["t1-spec-writer-change-type", "t2-branch-prefix", "t3-agents-md-versioning", "t4-versioning-check", "t5-validate-wiring", "t6-verify-gate", "t7-repo-config"],
+      "agent_type": "reviewer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Integrative confirmation of the full fix-classified flow end to end; a manual (AC-E2E [manual]) judgment across all prior tasks' outputs, not a re-runnable unit test.",
+      "instructions": "Confirm R-E2E.S1 (satisfying AC-E2E, which is [manual]) by exercising the full flow on a throwaway spec authored with Change type: fix touching plugins/sdd-kit/, combining the outputs of t1-spec-writer-change-type, t2-branch-prefix, t3-agents-md-versioning, t4-versioning-check, t5-validate-wiring, t6-verify-gate and t7-repo-config: plan-executor creates a fix/<slug> branch; before any version bump exists verify refuses to archive and reports the missing bump/changelog for sdd-kit; after a patch-segment bump and a matching CHANGELOG.md entry are added, scripts/validate.sh prints no warning for sdd-kit and re-running verify archives the spec. Produce an end-to-end verification report of each step's result.",
+      "expected_output_schema": "An end-to-end verification report walking the fix-classified flow: fix/<slug> branch created, verify blocks before the bump with a specific report, and archives successfully once a correct patch bump + changelog entry exist.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 4000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["t1-spec-writer-change-type"],
+      "R2": ["t2-branch-prefix"],
+      "R3": ["t3-agents-md-versioning"],
+      "R4": ["t4-versioning-check", "t5-validate-wiring", "t7-repo-config"],
+      "R5": ["t6-verify-gate"],
+      "R-E2E": ["t8-e2e-full-flow"]
+    },
+    "acs": {
+      "AC1": ["t1-spec-writer-change-type"],
+      "AC2": ["t1-spec-writer-change-type"],
+      "AC3": ["t1-spec-writer-change-type"],
+      "AC4": ["t1-spec-writer-change-type"],
+      "AC5": ["t2-branch-prefix"],
+      "AC6": ["t2-branch-prefix"],
+      "AC7": ["t2-branch-prefix"],
+      "AC8": ["t3-agents-md-versioning"],
+      "AC9": ["t5-validate-wiring"],
+      "AC10": ["t4-versioning-check"],
+      "AC11": ["t4-versioning-check"],
+      "AC12": ["t4-versioning-check"],
+      "AC13": ["t4-versioning-check"],
+      "AC14": ["t6-verify-gate"],
+      "AC15": ["t6-verify-gate"],
+      "AC16": ["t6-verify-gate"],
+      "AC17": ["t6-verify-gate"],
+      "AC18": ["t6-verify-gate"],
+      "AC19": ["t7-repo-config"],
+      "AC-E2E": ["t8-e2e-full-flow"]
+    }
+  }
+}

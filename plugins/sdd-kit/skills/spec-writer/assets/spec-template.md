@@ -4,6 +4,8 @@
 
 {1 párrafo: qué problema resuelve, por qué ahora, para quién es. Sin detalles de implementación.}
 
+Change type: {feat|fix|chore|refactor|docs}
+
 ## Scope
 
 **In scope:**

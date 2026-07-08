@@ -1,0 +1,86 @@
+{
+  "plan_id": "plan-change-type-versioning-policy-001",
+  "source_spec": "spec.md",
+  "branch": "fix/change-type-versioning-policy",
+  "started_at": "2026-07-07T22:12:54.673Z",
+  "tasks": {
+    "t1-spec-writer-change-type": {
+      "status": "done",
+      "estimated_tokens": 9000,
+      "actual_tokens": 80000,
+      "deviation": 71000,
+      "test_cmd": "node --test plugins/sdd-kit/test/spec-writer-change-type.test.mjs",
+      "commit": "e8da589",
+      "incidencia": null
+    },
+    "t2-branch-prefix": {
+      "status": "done",
+      "estimated_tokens": 14000,
+      "actual_tokens": 50000,
+      "deviation": 36000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/branch-prefix.test.mjs",
+      "commit": "e94a955",
+      "incidencia": null
+    },
+    "t3-agents-md-versioning": {
+      "status": "done",
+      "estimated_tokens": 7000,
+      "actual_tokens": 35000,
+      "deviation": 28000,
+      "test_cmd": "node --test plugins/sdd-kit/test/agents-md-versioning.test.mjs",
+      "commit": "2c55920",
+      "incidencia": null
+    },
+    "t4-versioning-check": {
+      "status": "done",
+      "estimated_tokens": 16000,
+      "actual_tokens": 55000,
+      "deviation": 39000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/versioning-check.test.mjs",
+      "commit": "5f192da",
+      "incidencia": null
+    },
+    "t5-validate-wiring": {
+      "status": "done",
+      "estimated_tokens": 8000,
+      "actual_tokens": 55000,
+      "deviation": 47000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/validate-versioning-wiring.test.mjs",
+      "commit": "f89c379",
+      "incidencia": null
+    },
+    "t6-verify-gate": {
+      "status": "done",
+      "estimated_tokens": 14000,
+      "actual_tokens": 65000,
+      "deviation": 51000,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/verify-versioning-gate.test.mjs",
+      "commit": "eeae6e3",
+      "incidencia": null
+    },
+    "t7-repo-config": {
+      "status": "done",
+      "estimated_tokens": 5000,
+      "actual_tokens": 9000,
+      "deviation": 4000,
+      "test_cmd": "node --test plugins/sdd-kit/test/repo-config.test.mjs",
+      "commit": "cdfddef",
+      "incidencia": null
+    },
+    "t8-e2e-full-flow": {
+      "status": "done",
+      "estimated_tokens": 4000,
+      "actual_tokens": 55000,
+      "deviation": 51000,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": "manual AC-E2E confirmation, no artifact/commit — verified via throwaway fixture, report only"
+    }
+  },
+  "pause": {
+    "reason": "budget: actual > 2x estimated executed",
+    "real_tokens": 115000,
+    "estimated_tokens": 16000,
+    "at_task": "t2-branch-prefix"
+  }
+}

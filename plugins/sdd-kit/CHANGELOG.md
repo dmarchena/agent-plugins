@@ -4,6 +4,33 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.3.5
+
+- `spec-writer` now records an explicit `Change type` (feat/fix/chore/
+  refactor/docs) per spec, recommending one from the one-liner, surfacing
+  a dominant-side/split tradeoff for a mixed fix+feature one-liner, and
+  honoring a valid leading type word on `/sdd-kit:spec` (skips the
+  question and echoes the type back) instead of always assuming `feat`.
+- `plan-executor`'s `init` resolves the created branch's prefix from that
+  `Change type` through an optional repo-root `.sdd-kit.json`
+  `branchPrefixes` map (falling back to the identity default, or to
+  `feat` with a recommendation note when no `Change type` is recorded),
+  instead of always hardcoding `feat/<slug>`. An explicit empty-string
+  prefix produces a branch named exactly `<slug>`.
+- `AGENTS.md` now documents which semver segment each change type bumps
+  at landing (fix/chore/refactor → patch, feat → minor, docs → no bump,
+  major reserved pre-1.0.0) and renames the `spec/<slug>` branch entry to
+  `docs/<slug>`.
+- Added an optional, policy-driven versioning check (`.sdd-kit.json`'s
+  `versioningPolicy`: `disabled` (default) / `plugin-changelog` /
+  `changelog-only`) reused in two places: a non-blocking warning in
+  `scripts/validate.sh`, and a pre-archive gate in `verify` that blocks
+  archiving when a touched plugin is missing its version bump or
+  changelog entry (warning-only, still archiving, when only the bumped
+  segment is wrong).
+- This repo's own root `.sdd-kit.json` now opts itself into
+  `versioningPolicy: "plugin-changelog"`.
+
 ## 0.3.4
 
 - Fixed the single-task `complete` path (`exec-tools.mjs complete SPECDIR

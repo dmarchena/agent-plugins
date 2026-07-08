@@ -4,6 +4,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { checkVersioning } from './exec/versioning-check.mjs';
+import { currentBranch } from './exec/git.mjs';
 
 /**
  * Thrown when a required SPECDIR input (execution_plan.json or spec.md) is
@@ -622,13 +624,165 @@ export function assembleReport(
 }
 
 // ---------------------------------------------------------------------------
-// archiveIfGreen — T7: archive the SPECDIR once every AC is green
-// (R7, R7.S1, R7.S2, R7.S3).
+// versioningGate — T6: policy-driven pre-archive versioning check
+// (R5, R5.S1-R5.S5).
 // ---------------------------------------------------------------------------
 
 function runGit(args, cwd) {
   return spawnSync('git', args, { cwd, encoding: 'utf8' });
 }
+
+// Same heading regex as exec/versioning-check.mjs's readChangelogHeadings —
+// duplicated here (rather than importing an unexported helper) because this
+// module reads changelog TEXT AT A REF (via `git show`), not from a live file
+// on disk, so it can't reuse that function's fs.readFileSync directly.
+function parseChangelogHeadings(text) {
+  if (!text) return [];
+  const headings = [];
+  for (const line of text.split('\n')) {
+    const match = /^##\s+(.+?)\s*$/.exec(line);
+    if (match) headings.push(match[1]);
+  }
+  return headings;
+}
+
+function parsePluginVersion(text) {
+  if (!text) return null;
+  try {
+    const raw = JSON.parse(text);
+    return typeof raw.version === 'string' ? raw.version : null;
+  } catch {
+    return null;
+  }
+}
+
+const PLUGIN_PATH_RE = /^plugins\/([^/]+)\//;
+
+function touchedPluginNames(touchedFiles) {
+  const seen = [];
+  for (const file of touchedFiles) {
+    const match = PLUGIN_PATH_RE.exec(file.replace(/\\/g, '/'));
+    if (match && !seen.includes(match[1])) seen.push(match[1]);
+  }
+  return seen;
+}
+
+// Reads `ref:filePath` via `git show`; returns null when the ref or path
+// doesn't exist (e.g. the plugin/changelog is brand new on this branch).
+function readAtRef(ref, filePath, cwd) {
+  const res = runGit(['show', `${ref}:${filePath}`], cwd);
+  return res.status === 0 ? res.stdout : null;
+}
+
+// Files changed between the merge-base of `baseRef`/HEAD and HEAD — i.e. the
+// files this branch's own commits actually touched, not the full diff to
+// baseRef's current tip. Returns `[]` (rather than throwing) when `baseRef`
+// doesn't exist or the repo has no common history with it, so a caller with
+// versioningPolicy 'disabled' is never forced to have a real `main` branch.
+function computeTouchedFiles(cwd, baseRef) {
+  const mergeBaseRes = runGit(['merge-base', baseRef, 'HEAD'], cwd);
+  if (mergeBaseRes.status !== 0) return [];
+  const base = mergeBaseRes.stdout.trim();
+  const diffRes = runGit(['diff', base, 'HEAD', '--name-only'], cwd);
+  if (diffRes.status !== 0) return [];
+  return diffRes.stdout.split('\n').map((line) => line.trim()).filter(Boolean);
+}
+
+// Builds the `before` baseline `checkVersioning` expects (see its own
+// docstring), reading each relevant file's content AT the merge-base commit
+// via `git show` rather than assuming a real working tree checkout of
+// baseRef exists.
+function buildVersioningBaseline(cwd, baseRef, policy, touchedFiles, changelogPath) {
+  const mergeBaseRes = runGit(['merge-base', baseRef, 'HEAD'], cwd);
+  const base = mergeBaseRes.status === 0 ? mergeBaseRes.stdout.trim() : baseRef;
+
+  if (policy === 'plugin-changelog') {
+    const before = {};
+    for (const plugin of touchedPluginNames(touchedFiles)) {
+      const versionText = readAtRef(base, `plugins/${plugin}/.claude-plugin/plugin.json`, cwd);
+      const changelogText = readAtRef(base, `plugins/${plugin}/CHANGELOG.md`, cwd);
+      before[plugin] = {
+        version: parsePluginVersion(versionText),
+        changelogHeadings: parseChangelogHeadings(changelogText),
+      };
+    }
+    return before;
+  }
+
+  if (policy === 'changelog-only') {
+    const changelogText = readAtRef(base, changelogPath, cwd);
+    return { changelogHeadings: parseChangelogHeadings(changelogText) };
+  }
+
+  return {};
+}
+
+/**
+ * Runs R5's policy-driven versioning gate, scoped to the files this branch's
+ * own commits touched (via `git diff <merge-base with baseRef> HEAD
+ * --name-only`), immediately before `archiveIfGreen` would otherwise archive.
+ *
+ * Deliberate fast path (R5.S1, AC14): when `config.versioningPolicy` is
+ * `'disabled'` (or unset, `readConfig`'s own default), this returns
+ * `{ touchedFiles: [], warnings: [], blocking: [] }` WITHOUT computing
+ * touched files, reading any git history, or calling `checkVersioning` at
+ * all — not merely an empty result of running the check.
+ *
+ * Otherwise it computes `touchedFiles` and the `before` baseline (reading
+ * each relevant file's content at the merge-base via `git show`, never
+ * assuming a real checkout of `baseRef`), calls `checkVersioning` from
+ * `exec/versioning-check.mjs`, and splits its warnings into `blocking`
+ * (anything except `'wrong-segment'`) vs. the full `warnings` list — a
+ * `'wrong-segment'` warning (R5.S4) is reported but never blocks; every
+ * other kind (`'missing-bump'`, `'missing-changelog'`,
+ * `'missing-bump-and-changelog'`, `'missing-changelog-entry'`) does
+ * (R5.S3, R5.S5).
+ *
+ * @param {object} args
+ * @param {string} args.cwd
+ * @param {{versioningPolicy: string, branchPrefixes: Record<string,string>, changelogPath: string}} args.config
+ *   - as returned by `readConfig` (exec/config.mjs).
+ * @param {string} [args.branchPrefix] - literal branch-name prefix (e.g. the
+ *   `fix` in `fix/<slug>`), used for `plugin-changelog`'s segment check.
+ *   Defaults to the current branch's own prefix segment (via
+ *   `currentBranch(cwd)`, split on `/`) when omitted.
+ * @param {string} [args.baseRef] - ref to diff against for the touched-files
+ *   list and the "before" baseline. Defaults to `'main'`.
+ * @returns {{
+ *   touchedFiles: string[],
+ *   warnings: {plugin: string|null, kind: string, message: string}[],
+ *   blocking: {plugin: string|null, kind: string, message: string}[],
+ * }}
+ */
+export function versioningGate({ cwd, config, branchPrefix, baseRef = 'main' }) {
+  const policy = (config && config.versioningPolicy) || 'disabled';
+  if (policy === 'disabled') {
+    return { touchedFiles: [], warnings: [], blocking: [] };
+  }
+
+  const resolvedBranchPrefix =
+    branchPrefix !== undefined ? branchPrefix : (currentBranch(cwd).split('/')[0] || '');
+
+  const touchedFiles = computeTouchedFiles(cwd, baseRef);
+  const changelogPath = (config && config.changelogPath) || 'CHANGELOG.md';
+  const before = buildVersioningBaseline(cwd, baseRef, policy, touchedFiles, changelogPath);
+
+  const warnings = checkVersioning({
+    cwd,
+    touchedFiles,
+    config,
+    branchPrefix: resolvedBranchPrefix,
+    before,
+  });
+  const blocking = warnings.filter((w) => w.kind !== 'wrong-segment');
+
+  return { touchedFiles, warnings, blocking };
+}
+
+// ---------------------------------------------------------------------------
+// archiveIfGreen — T7: archive the SPECDIR once every AC is green
+// (R7, R7.S1, R7.S2, R7.S3; gated by versioningGate for R5, R5.S1-R5.S5).
+// ---------------------------------------------------------------------------
 
 /**
  * Archives `specDir` to a sibling `archived/<slug>/` directory (i.e.
@@ -645,21 +799,63 @@ function runGit(args, cwd) {
  * this refuses before running ANY git command — neither `specDir` nor the
  * pre-existing destination is touched.
  *
+ * Versioning gate (R5, R5.S1-R5.S5): once the checklist itself is fully
+ * green, and only when the caller opts in via `options.versioning` (an
+ * object carrying at least `config`, as returned by `readConfig` from
+ * `exec/config.mjs`), this runs `versioningGate` BEFORE touching git at all.
+ * When `config.versioningPolicy` is `'disabled'`/unset, or `options.versioning`
+ * is omitted entirely, this adds no behavior beyond today's R7 (R5.S1) — it
+ * doesn't even call `versioningGate`. Otherwise: any blocking warning
+ * (everything except `'wrong-segment'`) refuses to archive and reports
+ * exactly which plugin/changelog and which gap (R5.S3, R5.S5), same shape as
+ * the not-all-ACs-green refusal; a `'wrong-segment'`-only result (R5.S4)
+ * does NOT block — archiving proceeds normally and the warning rides along
+ * on the success result as `versioningWarnings` for the caller to print.
+ *
  * @param {string} specDir
  * @param {{allGreen: boolean, acs: Array<{ac_id: string, green: boolean, reason?: string}>}} report
- * @param {{cwd?: string}} [options]
+ * @param {{
+ *   cwd?: string,
+ *   versioning?: {
+ *     config: {versioningPolicy: string, branchPrefixes: Record<string,string>, changelogPath: string},
+ *     branchPrefix?: string,
+ *     baseRef?: string,
+ *   },
+ * }} [options]
  * @returns {
- *   | { archived: true, destination: string, commit: string }
+ *   | { archived: true, destination: string, commit: string, versioningWarnings?: Array<{plugin: string|null, kind: string, message: string}> }
  *   | { archived: false, reason: 'not all ACs green', notGreenAcs: Array<{ac_id: string, reason?: string}> }
  *   | { archived: false, reason: 'collision', destination: string }
+ *   | { archived: false, reason: 'versioning policy not satisfied', versioningWarnings: Array<{plugin: string|null, kind: string, message: string}> }
  * }
  */
-export function archiveIfGreen(specDir, report, { cwd } = {}) {
+export function archiveIfGreen(specDir, report, { cwd, versioning } = {}) {
   if (!report.allGreen) {
     const notGreenAcs = report.acs
       .filter((a) => !a.green)
       .map((a) => ({ ac_id: a.ac_id, reason: a.reason }));
     return { archived: false, reason: 'not all ACs green', notGreenAcs };
+  }
+
+  const gitCwd = cwd || process.cwd();
+
+  let versioningWarnings = [];
+  const policy = versioning && versioning.config && (versioning.config.versioningPolicy || 'disabled');
+  if (versioning && policy && policy !== 'disabled') {
+    const gate = versioningGate({
+      cwd: gitCwd,
+      config: versioning.config,
+      branchPrefix: versioning.branchPrefix,
+      ...(versioning.baseRef !== undefined ? { baseRef: versioning.baseRef } : {}),
+    });
+    versioningWarnings = gate.warnings;
+    if (gate.blocking.length > 0) {
+      return {
+        archived: false,
+        reason: 'versioning policy not satisfied',
+        versioningWarnings: gate.blocking,
+      };
+    }
   }
 
   const resolvedSpecDir = path.resolve(specDir);
@@ -669,8 +865,6 @@ export function archiveIfGreen(specDir, report, { cwd } = {}) {
   if (fs.existsSync(destination)) {
     return { archived: false, reason: 'collision', destination };
   }
-
-  const gitCwd = cwd || process.cwd();
 
   // git mv requires the destination's parent directory to already exist.
   fs.mkdirSync(path.dirname(destination), { recursive: true });
@@ -691,5 +885,10 @@ export function archiveIfGreen(specDir, report, { cwd } = {}) {
   const hashRes = runGit(['rev-parse', '--short', 'HEAD'], gitCwd);
   const commit = hashRes.stdout.trim();
 
-  return { archived: true, destination, commit };
+  return {
+    archived: true,
+    destination,
+    commit,
+    ...(versioningWarnings.length > 0 ? { versioningWarnings } : {}),
+  };
 }
