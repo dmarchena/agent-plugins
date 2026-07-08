@@ -1,0 +1,54 @@
+{
+  "plan_id": "token-cost-cli-plan",
+  "source_spec": "docs/specs/token-cost-cli/spec.md",
+  "branch": "feat/token-cost-cli",
+  "started_at": "2026-07-08T22:37:19.003Z",
+  "tasks": {
+    "T1-model-weighting": {
+      "status": "done",
+      "estimated_tokens": 34000,
+      "actual_tokens": 28000,
+      "deviation": -6000,
+      "test_cmd": "node --test plugins/claude-token-debug/test/token-cost.test.mjs",
+      "commit": "83585d9",
+      "incidencia": null
+    },
+    "T2-scan-split": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 45000,
+      "deviation": 5000,
+      "test_cmd": "node --test plugins/claude-token-debug/test/token-cost.test.mjs",
+      "commit": "f015e59",
+      "incidencia": null
+    },
+    "T3-io": {
+      "status": "done",
+      "estimated_tokens": 34000,
+      "actual_tokens": 45000,
+      "deviation": 11000,
+      "test_cmd": "node --test plugins/claude-token-debug/test/token-cost.test.mjs",
+      "commit": "5422279",
+      "incidencia": null
+    },
+    "T4-wire-skill": {
+      "status": "done",
+      "estimated_tokens": 22000,
+      "actual_tokens": 35000,
+      "deviation": 13000,
+      "test_cmd": "grep -q \"token-cost.mjs\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md && grep -qi -- \"--json\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md && grep -qi -- \"--boundary\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md && grep -q \"strings -n\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md && grep -q \"dd if=\" plugins/claude-token-debug/skills/token-cost-debug/SKILL.md",
+      "commit": "b3d42aa",
+      "incidencia": null
+    },
+    "T5-e2e": {
+      "status": "done",
+      "estimated_tokens": 16000,
+      "actual_tokens": 1200,
+      "deviation": -14800,
+      "test_cmd": "node --test plugins/claude-token-debug/test/token-cost.test.mjs",
+      "commit": "ad3c862",
+      "incidencia": null
+    }
+  },
+  "pause": null
+}
