@@ -28,15 +28,15 @@
       "actual_tokens": 55000,
       "deviation": 25000,
       "test_cmd": "node --test plugins/sdd-kit/test/verify-skill-cli.test.mjs",
-      "commit": null,
+      "commit": "321d282",
       "incidencia": null
     },
     "T4-e2e-test": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 45000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 42000,
+      "deviation": -3000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec-verify-e2e.test.mjs",
       "commit": null,
       "incidencia": null
     }
