@@ -23,11 +23,11 @@
       "incidencia": null
     },
     "T3-state-only-commit": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 50000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 30000,
+      "deviation": -20000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/verifier-commit.test.mjs",
       "commit": null,
       "incidencia": null
     },
@@ -46,7 +46,7 @@
       "actual_tokens": 50000,
       "deviation": 10000,
       "test_cmd": "node --test plugins/sdd-kit/test/verifier-docs.test.mjs",
-      "commit": null,
+      "commit": "10a0291",
       "incidencia": null
     },
     "T6-e2e": {
