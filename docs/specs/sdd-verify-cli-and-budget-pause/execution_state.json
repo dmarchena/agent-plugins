@@ -37,7 +37,7 @@
       "actual_tokens": 42000,
       "deviation": -3000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec-verify-e2e.test.mjs",
-      "commit": null,
+      "commit": "079ff87",
       "incidencia": null
     }
   },

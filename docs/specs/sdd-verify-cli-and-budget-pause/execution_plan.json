@@ -1,0 +1,121 @@
+{
+  "plan_id": "sdd-verify-cli-and-budget-pause",
+  "project_name": "sdd-kit",
+  "global_objective": "Cut the SDD-flow orchestrator token tax (the #15 slice independent of #16): give the verify stage a CLI so it is driven by one-line commands instead of loading its ~900-line library and authoring driver scripts, and remove the exec budget auto-pause that halts healthy over-budget runs and forces a resume round-trip.",
+  "source_spec": "docs/specs/sdd-verify-cli-and-budget-pause/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 185000,
+  "tasks": [
+    {
+      "task_id": "T1-verify-cli",
+      "source_ids": ["R1", "R1.S1", "R1.S2", "R1.S3"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation with clear acceptance criteria (AC1-AC3) built over the existing exec CLI as a template; sonnet code_writer.",
+      "instructions": "Implement R1 per R1.S1, R1.S2 and R1.S3: add a command-line entry to the verify tooling module exposing its deterministic stages (ground check, report assembly, archive-if-green) as subcommands, mirroring the existing exec-tools CLI's argv dispatch, JSON-with-status stdout, and process-exit-code shape. R1.S2: on a SPECDIR missing a required input file, exit non-zero surfacing the VerifyInputError message that names the missing file, archiving nothing. R1.S3: the report subcommand accepts a manual-verdicts input file (same shape of contract as the exec batch-completion path) and incorporates those verdicts without ever blocking on interactive input. Keep the module's existing exported functions importable — wrap them, do not replace them. Satisfy AC1, AC2 and AC3. No prior task output is consumed (no dependencies).",
+      "expected_output_schema": "Updated verify tooling module exposing a CLI dispatcher whose subcommands print JSON objects carrying a status field and use process exit codes, with a report subcommand that consumes a manual-verdicts input file; plus tests covering AC1, AC2 and AC3.",
+      "satisfies_acs": ["AC1", "AC2", "AC3"],
+      "estimated_tokens": 70000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R1.S1",
+          "assertion": "invoking each deterministic verify subcommand as a one-line node command against a green SPECDIR prints a JSON object carrying a status field on stdout and exits zero, and the archive subcommand relocates the SPECDIR under the archived specs directory"
+        },
+        {
+          "ref": "AC2",
+          "assertion": "a verify subcommand run against a SPECDIR missing a required input file exits non-zero and surfaces the VerifyInputError message naming the missing file, and no archived copy is produced"
+        },
+        {
+          "ref": "AC3",
+          "assertion": "the report subcommand supplied a manual-verdicts input file incorporates those verdicts into the assembled report and never blocks reading interactive input"
+        }
+      ]
+    },
+    {
+      "task_id": "T2-drop-budget-pause",
+      "source_ids": ["R2", "R2.S1", "R2.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded behavioral change to the exec next-batch path with a regression guard, clear acceptance criteria (AC4-AC5); sonnet code_writer.",
+      "instructions": "Implement R2 per R2.S1 and R2.S2: change the exec tooling so requesting the next batch no longer emits a budget-paused status nor records a pause when cumulative real tokens exceed twice the estimate of already-run tasks on an otherwise-healthy run; the deviation must still be surfaced in the exec report. R2.S2: leave the genuine-failure path untouched, so a task failing its verification twice is still blocked and its dependents skipped. Satisfy AC4 and AC5. No prior task output is consumed (no dependencies).",
+      "expected_output_schema": "Updated exec tooling whose next-batch path never returns a budget-paused status nor writes a pause entry on healthy over-budget runs while preserving retry-once-then-block failure handling; plus tests covering AC4 and AC5.",
+      "satisfies_acs": ["AC4", "AC5"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R2.S1",
+          "assertion": "requesting the next batch when cumulative real tokens exceed twice the estimate of already-run tasks yet every task is green returns a ready batch and never a budget-paused status, and no pause entry is written to the execution state"
+        },
+        {
+          "ref": "AC5",
+          "assertion": "a task that fails its verification twice is still blocked and its dependent tasks skipped, unchanged by the removal of the budget pause"
+        }
+      ]
+    },
+    {
+      "task_id": "T3-verify-skill-cli",
+      "source_ids": ["R1"],
+      "dependencies": ["T1-verify-cli"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Prose update to the verify SKILL.md following the CLI shape produced upstream; doc_writer sonnet.",
+      "instructions": "Complete the driven-by-CLI half of R1 that AC6 verifies: update the verify SKILL.md so every deterministic verify step is driven with a node CLI one-liner over the subcommands delivered by T1-verify-cli, and so it instructs no importing of the verify tooling module and no authoring of driver scripts. Consume T1-verify-cli's output (the subcommand names and their JSON-with-status contract) as the commands to document. Satisfy AC6.",
+      "expected_output_schema": "Updated verify/SKILL.md that drives every deterministic verify step via node CLI one-liners and instructs no module import or driver-script authoring.",
+      "satisfies_acs": ["AC6"],
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "T4-e2e-test",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["T1-verify-cli", "T2-drop-budget-pause"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Author a bounded fixture-driven integration test from the defined walkthrough R-E2E.S1; sonnet code_writer.",
+      "instructions": "Implement AC-E2E per R-E2E.S1 by authoring a fixture-driven end-to-end test: on a healthy over-budget plan it drives exec to completion with no pause recorded (relying on T2-drop-budget-pause), then runs the verify subcommands delivered by T1-verify-cli to produce an all-green report and relocate the SPECDIR under the archived specs directory. Consume the CLI from T1-verify-cli and the pause-free next-batch behavior from T2-drop-budget-pause. Satisfy AC-E2E.",
+      "expected_output_schema": "A fixture-driven end-to-end test asserting a healthy over-budget exec run reaches completion with no pause, the verify subcommands yield an all-green report, and the SPECDIR is archived under the archived specs directory.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 45000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R-E2E.S1",
+          "assertion": "the walkthrough drives execution to completion with no pause recorded on a healthy over-budget plan, then runs the verify subcommands to produce an all-green report and relocate the SPECDIR under the archived specs directory"
+        },
+        {
+          "ref": "AC-E2E",
+          "assertion": "the end-to-end fixture test asserts completion without pause, an all-green verify report, and the archived SPECDIR location, all driven through command-line one-liners"
+        }
+      ]
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1-verify-cli", "T3-verify-skill-cli"],
+      "R2": ["T2-drop-budget-pause"],
+      "R-E2E": ["T4-e2e-test"]
+    },
+    "acs": {
+      "AC1": ["T1-verify-cli"],
+      "AC2": ["T1-verify-cli"],
+      "AC3": ["T1-verify-cli"],
+      "AC4": ["T2-drop-budget-pause"],
+      "AC5": ["T2-drop-budget-pause"],
+      "AC6": ["T3-verify-skill-cli"],
+      "AC-E2E": ["T4-e2e-test"]
+    }
+  }
+}
