@@ -9,21 +9,41 @@ the fuller per-step guidance, phrasing examples, and edge cases.
 Work through these steps in order, but stay conversational — this is an
 interview, not a wizard with rigid pages.
 
-1. **Anchor first.** Ask for the one-liner: what is this feature/change, and
-   why does it need to exist (the problem, the user, or the driver behind
-   it). This is genuinely open-ended — there's nothing sensible to offer as
-   multiple choice yet. Don't move on until this is a real answer, not just
-   a title.
+1. **Anchor first.** Before asking anything, check whether `/sdd-kit:spec`'s
+   argument text has a leading word that case-insensitively matches one of
+   `feat`/`fix`/`chore`/`refactor`/`docs`.
+   - If it matches, the change type is pre-supplied: strip that word, treat
+     the remaining text as the one-liner, and echo the recognized type back
+     in a single line (e.g. "Change type: fix (from the command argument)")
+     — no separate confirmation question, and skip step 2 entirely.
+   - If it doesn't match (including when there's no argument at all), treat
+     the whole argument text — including that non-matching leading word,
+     which is not stripped — as the one-liner if present, otherwise ask for
+     it: what is this feature/change, and why does it need to exist (the
+     problem, the user, or the driver behind it). This is genuinely
+     open-ended — there's nothing sensible to offer as multiple choice yet.
+     Don't move on until this is a real answer, not just a title.
 
-2. **Calibrate depth.** Run the lite/full check in the main document.
+2. **Change type.** Skip this step if step 1 already recorded the type from
+   the leading word. Otherwise, right after the one-liner is settled, present
+   `feat`/`fix`/`chore`/`refactor`/`docs` as lettered options (A/B/C/D/E),
+   mark one recommended based on the one-liner's content, and record the
+   chosen value as a `Change type: <value>` line near the top of the written
+   spec. If the one-liner clearly mixes a bug fix with new capability (e.g.
+   "fix the crash and also add X"), don't silently classify it — present the
+   tradeoff explicitly: (A, recommended when one side is clearly bigger)
+   classify by the dominant/larger side of the change, or (B) split this into
+   two separate specs, one per side. Let the user decide; don't guess.
 
-3. **Scope next.** Ask what's *out* of scope / non-goals, framed as options
+3. **Calibrate depth.** Run the lite/full check in the main document.
+
+4. **Scope next.** Ask what's *out* of scope / non-goals, framed as options
    when you can already guess likely exclusions from the one-liner (see
    "Ask with options" below). This step is the one people skip and it's the
    biggest source of rework later — push for at least one or two explicit
    exclusions, even if the user says "everything's in scope."
 
-4. **Functional requirements, one capability at a time.** For each distinct
+5. **Functional requirements, one capability at a time.** For each distinct
    capability the user mentions, draft a requirement (`### R<n> — <name>`)
    with SHALL/MUST/SHOULD language, then get the happy path and (in lite
    mode) one edge case or failure mode — offer your best guess at the likely
@@ -40,7 +60,7 @@ interview, not a wizard with rigid pages.
    that answer becomes the `[auto]` probe in the acceptance criteria, or
    `[manual]` with a stated reason if it genuinely can't be automated.
 
-5. **Technical requirements.** Ask about stack/framework, integrations,
+6. **Technical requirements.** Ask about stack/framework, integrations,
    performance, security/privacy, data/storage — but only what's actually
    relevant to this change, and only in as much depth as lite/full calls
    for. Mark a field "N/A" rather than inventing content just to fill the
@@ -48,22 +68,22 @@ interview, not a wizard with rigid pages.
    mark every remaining technical field N/A in one pass instead of asking
    about each field individually.
 
-6. **End-to-end scenario, then acceptance criteria.** Once the functional
+7. **End-to-end scenario, then acceptance criteria.** Once the functional
    requirements feel solid, draft one integrative scenario (`R-E2E`) that
    walks the whole feature end to end — per-requirement checks can all pass
    while the composition fails, so this is what decides "feature complete".
    Then assemble the acceptance checklist: one line per scenario,
    `- [ ] AC<n> → R<x>.S<y> [auto|manual] — <observable probe>`, reusing
-   the probes gathered in step 4 instead of re-asking. Maximize `[auto]`;
+   the probes gathered in step 5 instead of re-asking. Maximize `[auto]`;
    treat every `[manual]` as a cost that needs justifying. Confirm the
    checklist explicitly with the user — this is what "done" will mean once
    someone (or some agent) checks the work later.
 
-7. **Assumptions & open questions.** Anything the user is unsure about or
+8. **Assumptions & open questions.** Anything the user is unsure about or
    wants to defer, log it explicitly instead of silently guessing on their
    behalf. Offer "resolve now" vs "flag for later" as the options here too.
 
-8. **Know when to stop.** The spec is ready when every requirement has at
+9. **Know when to stop.** The spec is ready when every requirement has at
    least one scenario, scope/non-goals are explicit, and there's no
    unresolved TBD the user actually cares about. In lite mode, don't exceed
    what lite mode calls for just for thoroughness's sake. Summarize what you

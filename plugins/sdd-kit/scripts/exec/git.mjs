@@ -15,8 +15,13 @@ export function currentBranch(cwd = process.cwd()) {
   return res.stdout.trim();
 }
 
-export function ensureBranch(slug, cwd = process.cwd()) {
-  const branch = `feat/${slug}`;
+// `prefix` (R2): the branch-prefix resolved from the spec's Change type
+// through the project's `.sdd-kit.json` (see exec/config.mjs). Defaults to
+// 'feat' for backward compatibility with callers that don't resolve one. An
+// explicit empty string (R2.S2 — a project config maps a type to '') drops
+// the prefix entirely: the branch is then exactly `slug`, no leading slash.
+export function ensureBranch(slug, cwd = process.cwd(), prefix = 'feat') {
+  const branch = prefix === '' ? slug : `${prefix}/${slug}`;
   const verify = run(['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`], cwd);
   const exists = verify.status === 0;
   if (exists) {

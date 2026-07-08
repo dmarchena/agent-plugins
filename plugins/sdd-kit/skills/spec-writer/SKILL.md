@@ -1,7 +1,7 @@
 ---
 name: spec-writer
 description: Use this skill whenever the user wants to draft, flesh out, or "grill me until it's done" a software specification (spec.md) before any planning or coding happens. Trigger on requests like "ayúdame a definir la spec de...", "quiero especificar esta feature", "hazme preguntas hasta sacar los requisitos", "necesito la spec funcional y técnica de X", "vamos a nailar los criterios de aceptación antes de implementar", or any request to turn a rough feature idea into a structured requirements document via an interview instead of writing it themselves. Also use this whenever the user references spec-driven development, OpenSpec-style requirements/scenarios, or wants to avoid vibe-coding by locking down scope first. Do NOT use this for writing implementation plans, task breakdowns, architecture decisions, or code — this skill stops at the finished spec.md artifact.
-argument-hint: "[idea de la feature en una línea]"
+argument-hint: "[feat|fix|chore|refactor|docs] <idea de la feature en una línea>"
 allowed-tools: AskUserQuestion, Read, Write, Edit
 ---
 
@@ -21,8 +21,9 @@ background.
 
 Before anything else, decide how much rigor this change actually needs. This
 is the single biggest lever for keeping the interview — and its token cost —
-proportional to the change. Ask this as the very first options question,
-right after hearing the one-liner:
+proportional to the change. Ask this as the next options question, right
+after the one-liner is established and the change type is recorded (see
+"Interview process" below):
 
 - **Lite** (recommend this by default) — short interview, 1 happy-path +
   1 edge-case scenario per requirement, compact acceptance checklist. Right
@@ -67,25 +68,40 @@ the full per-step guidance (phrasing, edge cases, how the E2E scenario and
 acceptance checklist get assembled); the essentials that must never be
 skipped:
 
-1. **Anchor first.** Ask for the one-liner: what is this feature/change, and
-   why it needs to exist. Don't move on until it's a real answer.
-2. **Calibrate depth** (above).
-3. **Scope.** Push for at least one or two explicit non-goals, even if the
+1. **Anchor first.** Before asking anything, check whether `/sdd-kit:spec`'s
+   argument has a leading word that case-insensitively matches one of
+   `feat`/`fix`/`chore`/`refactor`/`docs`. If it does, treat the rest of the
+   argument text as the one-liner and echo the recognized type back in one
+   line — the change-type question in step 2 is skipped. If it doesn't match
+   (or there's no argument), treat the whole argument text as the one-liner
+   when given, otherwise ask for it: what is this feature/change, and why it
+   needs to exist. Don't move on until it's a real answer.
+2. **Change type.** If step 1 already supplied the type via the leading
+   word, this step is done — just carry the recorded value forward. Otherwise,
+   now that the one-liner is established, present `feat`/`fix`/`chore`/
+   `refactor`/`docs` as options with one recommended based on the one-liner,
+   and record the chosen value as a `Change type: <value>` line near the top
+   of the written spec. If the one-liner describes both fixing a bug and
+   adding new capability, don't guess — present the tradeoff explicitly:
+   classify by the dominant/larger side of the change, or split into two
+   separate specs.
+3. **Calibrate depth** (above).
+4. **Scope.** Push for at least one or two explicit non-goals, even if the
    user says "everything's in scope."
-4. **Functional requirements, one capability at a time.** Draft `### R<n>`
+5. **Functional requirements, one capability at a time.** Draft `### R<n>`
    with SHALL/MUST/SHOULD language, then `#### R<n>.S<m>` scenarios in
    Given/When/Then form. Every THEN must name a concrete observable — never
    "shows an error" or "works correctly". Before moving on, settle two
    one-liners: does this requirement depend on another (`Depende de:`), and
    how would each scenario be checked mechanically (the `[auto]`/`[manual]`
    probe).
-5. **Technical requirements** — only what's relevant; mark the rest N/A.
-6. **End-to-end scenario (`R-E2E`), then the acceptance checklist** — one
+6. **Technical requirements** — only what's relevant; mark the rest N/A.
+7. **End-to-end scenario (`R-E2E`), then the acceptance checklist** — one
    line per scenario. Maximize `[auto]`; treat every `[manual]` as a cost
    that needs justifying. Confirm the checklist explicitly with the user.
-7. **Assumptions & open questions** — log anything deferred instead of
+8. **Assumptions & open questions** — log anything deferred instead of
    silently guessing.
-8. **Know when to stop.** Ready when every requirement has a scenario, scope
+9. **Know when to stop.** Ready when every requirement has a scenario, scope
    is explicit, and there's no unresolved TBD the user cares about. In lite
    mode, don't exceed what lite mode calls for just for thoroughness's sake.
 
