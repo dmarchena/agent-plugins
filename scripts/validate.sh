@@ -5,7 +5,11 @@
 #      falla ante campos ausentes (version, description, author) o manifiestos rotos.
 #   2) Formato semver X.Y.Z de la `version` de cada plugin.json: `--strict` avisa si
 #      falta pero NO valida el formato, así que lo comprobamos aquí explícitamente.
-#   3) Drift entre shared/<script> y sus copias vendorizadas
+#   3) Fixtures de plan-writer (plugins/sdd-kit/test/run.mjs).
+#   4) Suite autoritativa de shared/token-cost.mjs (shared/test/token-cost.test.mjs):
+#      única fuente de test para el script compartido; sus copias vendorizadas
+#      no llevan test propio.
+#   5) Drift entre shared/<script> y sus copias vendorizadas
 #      (plugins/<plugin>/scripts/<script>, generadas por shared/build.sh):
 #      ver scripts/drift-check.sh.
 # Requisitos: `claude` CLI y `jq` en el PATH.
@@ -31,6 +35,9 @@ done
 
 echo "▶ Validando fixtures de plan-writer (plan-tools.mjs)…"
 node "$ROOT"/plugins/sdd-kit/test/run.mjs || fail=1
+
+echo "▶ Ejecutando la suite autoritativa de shared/token-cost.mjs (shared/test/token-cost.test.mjs)…"
+node --test "$ROOT"/shared/test/token-cost.test.mjs || fail=1
 
 echo "▶ Comprobando drift entre shared/ y las copias vendorizadas (scripts/drift-check.sh)…"
 "$ROOT"/scripts/drift-check.sh "$ROOT" || fail=1

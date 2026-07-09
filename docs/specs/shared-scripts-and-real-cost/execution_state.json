@@ -19,15 +19,15 @@
       "actual_tokens": 58505,
       "deviation": 34505,
       "test_cmd": "node --test /Users/dmarchena/ai/agent-plugins/scripts/test/drift-check.test.mjs",
-      "commit": null,
+      "commit": "15f9bbb",
       "incidencia": null
     },
     "T3-shared-source-of-truth": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 18000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 61371,
+      "deviation": 43371,
+      "test_cmd": "node --test shared/test/token-cost.test.mjs",
       "commit": null,
       "incidencia": null
     },
