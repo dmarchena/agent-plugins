@@ -62,8 +62,8 @@ Branch on `status`: **`run`** → `batch` is the list of `task_id`s
 ready now (≤3); execute them per **§2**/**§3**, then loop.
 **`complete`** → go to **§7 Final report**. **`stalled`** → no runnable
 tasks remain but some are pending; go to **§7**, the report explains
-what's blocked. Token deviation (real vs. estimated) never pauses the
-loop — it's purely informational, surfaced in **§7**'s report (see §5).
+what's blocked. Token deviation never pauses the loop — purely
+informational, see **§7**.
 
 ## 2. Execute a task: the TDD executor brief
 
@@ -113,27 +113,11 @@ three cases — see `assets/task-brief-detail.md` for the full `reason:
 each.
 
 When the batch has more than one task, close all of them in a SINGLE
-invocation instead of one `complete` per task — write the entries and run
-`complete --batch` in the SAME Bash call (heredoc + command, not a separate
-Write step), cutting orchestrator round-trips (R2.S1):
-
-```
-cat > /tmp/batch.json <<'EOF'
-[
-  { "task_id": "<id>", "tokens": <N>, "test_cmd": "<cmd>", "rojo": "pass|fail",
-    "verde": "pass|fail", "files": ["a.mjs", "b.mjs"] }
-]
-EOF
-node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs complete SPECDIR --batch /tmp/batch.json
-```
-
-Same fields as the single-task flags, one entry per task; `files` is still
-REQUIRED for every non-`verifier` entry — omitting it refuses the WHOLE
-batch rather than falling back to staging the whole tree. Returns
-`{ status: "batch", results: [...] }`, one per-task result in the
-single-task shape; a task that doesn't reach green is `not-done` in its own
-entry and does NOT block or revert its siblings (R2.S2/AC5). A lone task
-still uses the single-task form above.
+`complete --batch` invocation instead of one `complete` per task, cutting
+orchestrator round-trips (R2.S1) — same fields as the single-task flags,
+one entry per task; a task that doesn't reach green is `not-done` in its
+own entry and does NOT block or revert its siblings (R2.S2/AC5). Full
+command shape: `assets/task-brief-detail.md`.
 
 Never mark a task done yourself or with git directly; only a `done` from
 `complete` is authoritative, and it owns the commit.
@@ -152,9 +136,8 @@ See `assets/failures-and-resume.md` for the full commands and decision
 rules covering the two ways execution branches off the happy path: a
 failed attempt retried **exactly once** then blocked (§5.1), and resuming
 a SPECDIR with existing state, which re-runs every `done` task's test
-first and stops for the user on broken ground (§6). Token deviation (real
-tokens vs. estimate, per task or for the whole run) never blocks or pauses
-execution — it's purely informational, reported in **§7**.
+first and stops for the user on broken ground (§6). Token deviation never
+blocks or pauses execution — purely informational, reported in **§7**.
 
 ## 7. Final report
 
@@ -163,12 +146,12 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs report SPECDIR
 ```
 
 Relay to the user: the branch, counts (done / blocked / skipped), tokens
-**real vs estimated** (per task and, when available, the transcript-measured
-`real_cost` total — purely informational, never a reason to have paused),
-any blocked/skipped tasks with their `incidencia`, and the spec ACs the
-completed tasks declare satisfied (R-E2E.S1). This skill guarantees the **task** level (TDD tests green);
-it does not run the spec's full acceptance checklist — that's the verify
-stage. It does not open a PR or merge — commits stay on the plan branch.
+**real vs estimated** (per task and, when available, the `real_cost`
+total), any blocked/skipped tasks with their `incidencia`, and the spec
+ACs the completed tasks declare satisfied (R-E2E.S1). This skill
+guarantees the **task** level (TDD tests green); it does not run the
+spec's full acceptance checklist — that's the verify stage. It does not
+open a PR or merge — commits stay on the plan branch.
 
 ## Autonomy
 
@@ -178,6 +161,5 @@ happens automatically per verified task on the plan branch (never on
 main/master; the git module refuses). **Stop and ask the user** only for:
 an invalid plan (§0), a `no-red` incidence (§3), broken ground on resume
 (§5), or a genuine ambiguity an executor bounced back that the spec/plan
-can't resolve. Token deviation alone is never a reason to stop. Don't
-re-decide the plan's subagent/model assignments and don't re-plan on the
-fly.
+can't resolve. Don't re-decide the plan's subagent/model assignments and
+don't re-plan on the fly.

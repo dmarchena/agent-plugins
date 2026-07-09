@@ -25,7 +25,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkBudgets } from '../scripts/budget-guard.mjs';
+import { checkBudgets, runGuard } from '../scripts/budget-guard.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILLS_DIR = path.join(__dirname, '..', 'skills');
@@ -159,4 +159,9 @@ test('R2.S2 (AC4): checkBudgets flags the skill whose body exceeds its ceiling, 
   const { exceeded } = checkBudgets(counts, ceilings);
 
   assert.deepEqual(exceeded, [{ skill: 'plan-writer', count: 220, ceiling: 210 }]);
+});
+
+test('R3.S1 (AC5): runGuard reports no exceeded skill once SKILL.md bodies are trimmed under their derived ceiling', () => {
+  const { exceeded } = runGuard();
+  assert.deepEqual(exceeded, [], `skills over their token ceiling: ${JSON.stringify(exceeded)}`);
 });

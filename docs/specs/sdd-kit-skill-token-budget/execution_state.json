@@ -19,15 +19,15 @@
       "actual_tokens": 50195,
       "deviation": 40195,
       "test_cmd": "node --test --test-name-pattern \"R2\\.(S1|S2)\" plugins/sdd-kit/test/skill-slimming.test.mjs",
-      "commit": null,
+      "commit": "dea881d",
       "incidencia": null
     },
     "T3-trim-skills": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 15000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 209461,
+      "deviation": 194461,
+      "test_cmd": "node --test plugins/sdd-kit/test/skill-slimming.test.mjs",
       "commit": null,
       "incidencia": null
     },

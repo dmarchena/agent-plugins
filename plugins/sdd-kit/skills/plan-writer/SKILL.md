@@ -64,7 +64,10 @@ Read `assets/agent-roles.md` — the fixed catalog of `agent_type` →
 `subagent`, `model`, and a one-line `justification`, applying the
 most-austere-that-qualifies rule: mechanical, low-judgment work
 → `haiku`; bounded implementation with clear acceptance criteria →
-`sonnet`; design, critical review, or trade-off decisions → `opus`. The task backing the spec's mandated `R-E2E`/`AC-E2E` requirement (run the whole suite, confirm it's green, no code to write) MUST be emitted with `agent_type: "verifier"` instead of `terminal_operator`, `test_contract: null` same as any other non-`code_writer` role — see `assets/agent-roles.md`'s `verifier` row.
+`sonnet`; design, critical review, or trade-off decisions → `opus`. The
+`R-E2E`/`AC-E2E` task MUST use `agent_type: "verifier"` instead of `terminal_operator`
+(`test_contract: null`) — see `assets/agent-roles.md`'s `verifier` row for
+full detail.
 
 ## Write granular instructions
 

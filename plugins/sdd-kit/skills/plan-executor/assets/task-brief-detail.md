@@ -56,6 +56,31 @@ implement. Its completion path is deliberately different from a
   state file (`execution_state.json`) — no `--files` list is required and
   no code files are ever swept in, since none were touched.
 
+## Closing a multi-task batch in one call (§3)
+
+When the batch has more than one task, close all of them in a SINGLE
+invocation instead of one `complete` per task — write the entries and run
+`complete --batch` in the SAME Bash call (heredoc + command, not a separate
+Write step), cutting orchestrator round-trips (R2.S1):
+
+```
+cat > /tmp/batch.json <<'EOF'
+[
+  { "task_id": "<id>", "tokens": <N>, "test_cmd": "<cmd>", "rojo": "pass|fail",
+    "verde": "pass|fail", "files": ["a.mjs", "b.mjs"] }
+]
+EOF
+node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs complete SPECDIR --batch /tmp/batch.json
+```
+
+Same fields as the single-task flags, one entry per task; `files` is still
+REQUIRED for every non-`verifier` entry — omitting it refuses the WHOLE
+batch rather than falling back to staging the whole tree. Returns
+`{ status: "batch", results: [...] }`, one per-task result in the
+single-task shape; a task that doesn't reach green is `not-done` in its own
+entry and does NOT block or revert its siblings (R2.S2/AC5). A lone task
+still uses the single-task form above.
+
 ## The three `not-done` reasons (§3)
 
 - `reason: "no-red"` (`incidencia: "sin evidencia de rojo"`) — the test
