@@ -19,15 +19,15 @@
       "actual_tokens": 35000,
       "deviation": 0,
       "test_cmd": "node --test plugins/sdd-kit/test/verify-coverage-cross-check.test.mjs",
-      "commit": null,
+      "commit": "c55a8ba",
       "incidencia": null
     },
     "T3": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 25000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 25000,
+      "deviation": 0,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-ac-parser.test.mjs plugins/sdd-kit/test/verify-coverage-cross-check.test.mjs plugins/sdd-kit/test/verify-tools.test.mjs",
       "commit": null,
       "incidencia": null
     }
