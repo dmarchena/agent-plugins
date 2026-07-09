@@ -10,15 +10,15 @@
       "actual_tokens": 54439,
       "deviation": 16439,
       "test_cmd": "node shared/test/build.test.mjs",
-      "commit": null,
+      "commit": "b8445cf",
       "incidencia": null
     },
     "T2-drift-check": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 24000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 58505,
+      "deviation": 34505,
+      "test_cmd": "node --test /Users/dmarchena/ai/agent-plugins/scripts/test/drift-check.test.mjs",
       "commit": null,
       "incidencia": null
     },
