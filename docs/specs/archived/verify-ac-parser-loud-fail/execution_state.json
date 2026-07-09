@@ -28,7 +28,7 @@
       "actual_tokens": 25000,
       "deviation": 0,
       "test_cmd": "node --test plugins/sdd-kit/test/verify-ac-parser.test.mjs plugins/sdd-kit/test/verify-coverage-cross-check.test.mjs plugins/sdd-kit/test/verify-tools.test.mjs",
-      "commit": null,
+      "commit": "f4f0f3a",
       "incidencia": null
     }
   },

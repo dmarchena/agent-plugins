@@ -1,0 +1,90 @@
+{
+  "plan_id": "verify-ac-parser-loud-fail",
+  "project_name": "sdd-kit",
+  "global_objective": "Hacer imposible que verify pierda en silencio un AC: la carga del SPECDIR aborta ruidosamente ante una línea de checklist mal formada o ante un AC del plan ausente del checklist, en lugar de descartarlo sin aviso.",
+  "source_spec": "docs/specs/verify-ac-parser-loud-fail/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 105000,
+  "tasks": [
+    {
+      "task_id": "T1",
+      "source_ids": ["R1", "R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementación acotada con criterios de aceptación claros (AC1, AC2) sobre una función existente; TDD con contrato de test derivado del spec.",
+      "instructions": "Implementa R1 (ver R1.S1 y R1.S2 en el spec). En plugins/sdd-kit/scripts/verify-tools.mjs: hacer que el parseo de la sección `## Acceptance Criteria` detecte líneas de lista markdown (guion seguido de espacio) que NO encajen en el formato de ítem AC (AC_ITEM_RE), y que loadSpecdir aborte con VerifyInputError cuyo mensaje identifique la línea ofensora. No afectar líneas de continuación de texto envuelto (no empiezan por guion) ni reglas horizontales `---`. Añadir fixtures bajo plugins/sdd-kit/test/fixtures/verify/ y tests en plugins/sdd-kit/test/ siguiendo el patrón de verify-tools.test.mjs (assert.throws contra VerifyInputError). Satisface AC1 y AC2. Sin dependencias de otras tareas.",
+      "expected_output_schema": "Diff sobre plugins/sdd-kit/scripts/verify-tools.mjs (parseAcChecklist/loadSpecdir) + fixtures y tests nuevos bajo plugins/sdd-kit/test/ que verifican que un checklist válido con continuación carga sin error y que una línea de lista con ref no estándar aborta la carga nombrando la línea.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 45000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "AC1",
+          "assertion": "un SPECDIR con checklist válido cuya descripción se envuelve en una segunda línea sin guion carga sin error y devuelve todos los ítems AC con la descripción plegada en una sola cadena"
+        },
+        {
+          "ref": "AC2",
+          "assertion": "un SPECDIR con una línea de lista bajo Acceptance Criteria cuya referencia no encaja en el formato de ítem AC aborta la carga con un error de entrada cuyo mensaje incluye el texto de la línea ofensora"
+        }
+      ]
+    },
+    {
+      "task_id": "T2",
+      "source_ids": ["R2", "R2.S1", "R2.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementación acotada con criterios claros (AC3, AC4); R2 es independiente de R1 (Depende de: —), sin dependencias de otras tareas.",
+      "instructions": "Implementa R2 (ver R2.S1 y R2.S2 en el spec). En plugins/sdd-kit/scripts/verify-tools.mjs, añadir en loadSpecdir un cross-check: comparar el conjunto de ac_id del checklist parseado contra las claves de plan.coverage.acs y abortar con VerifyInputError nombrando cualquier ac_id presente en la cobertura del plan pero ausente del checklist; no disparar cuando coverage.acs está vacío o ausente. Solo el sentido plan→checklist (el inverso ya lo cubre plan-executor). Añadir fixtures bajo plugins/sdd-kit/test/fixtures/verify/ y tests en plugins/sdd-kit/test/ siguiendo el patrón de verify-tools.test.mjs. Satisface AC3 y AC4. Sin dependencias de otras tareas.",
+      "expected_output_schema": "Diff sobre plugins/sdd-kit/scripts/verify-tools.mjs (loadSpecdir) + fixtures y tests nuevos que verifican que cobertura y checklist coincidentes cargan sin error y que un ac_id de la cobertura ausente del checklist aborta la carga nombrando ese ac_id.",
+      "satisfies_acs": ["AC3", "AC4"],
+      "estimated_tokens": 35000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "AC3",
+          "assertion": "un SPECDIR donde cada ac_id de la cobertura del plan tiene su línea correspondiente en el checklist carga sin error y el checklist contiene un ítem por cada ac_id de la cobertura"
+        },
+        {
+          "ref": "AC4",
+          "assertion": "un SPECDIR cuya cobertura del plan incluye un ac_id ausente del checklist parseado aborta la carga con un error de entrada cuyo mensaje nombra ese ac_id"
+        }
+      ]
+    },
+    {
+      "task_id": "T3",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["T1", "T2"],
+      "agent_type": "verifier",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "Recorrido E2E: correr la suite ya existente y confirmar verde más el aborto E2E, sin escribir código de producción ni fase roja.",
+      "instructions": "Verifica R-E2E (ver R-E2E.S1 en el spec). No escribas código de producción. Corre la suite de tests de sdd-kit (node --test sobre plugins/sdd-kit/test/) y confirma que está en verde, incluidos los tests añadidos por T1 y T2. Además, sobre un SPECDIR por lo demás archivable (todas las tareas done, tests en verde) pero con una línea de checklist con ref no estándar como en R1.S2, confirma que el flujo de verify termina con exit code ≠ 0 mencionando la línea ofensora y que el directorio del spec NO se mueve a su ruta de archivado. Satisface AC-E2E. Depende de T1 y T2.",
+      "expected_output_schema": "Reporte de resultado: salida de la suite (node --test) en verde y comprobación de que el flujo de verify sobre el SPECDIR con ref mal formada devuelve exit code ≠ 0 mencionando la línea y no archiva el directorio del spec.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1"],
+      "R2": ["T2"],
+      "R-E2E": ["T3"]
+    },
+    "acs": {
+      "AC1": ["T1"],
+      "AC2": ["T1"],
+      "AC3": ["T2"],
+      "AC4": ["T2"],
+      "AC-E2E": ["T3"]
+    }
+  }
+}

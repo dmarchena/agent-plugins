@@ -4,6 +4,18 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.5.3
+
+- Fixed `verify-tools.mjs`'s AC checklist parser silently dropping any list
+  line under `## Acceptance Criteria` that didn't match the expected AC
+  item format — an AC with a malformed or non-standard reference simply
+  vanished from verification instead of counting as not-green, letting a
+  spec archive (`allGreen === true`) with a criterion that was never really
+  checked (issue #8). `loadSpecdir` now aborts loudly with
+  `VerifyInputError` naming the offending line, and separately cross-checks
+  the parsed checklist's `ac_id`s against `plan.coverage.acs`, aborting and
+  naming any AC the plan expects but the checklist never received.
+
 ## 0.5.2
 
 - Fixed `exec-tools.mjs`'s `complete --batch` path: a batch entry for a
