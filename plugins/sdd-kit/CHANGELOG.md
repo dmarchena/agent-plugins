@@ -4,6 +4,18 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.5.1
+
+- Fixed `plan-executor`'s `SKILL.md` and `assets/failures-and-resume.md`,
+  which still documented a `{ status: "paused", reason: "budget" }` path
+  and instructed the orchestrating agent to stop the loop and ask the user
+  on a 2x token deviation — that pause behavior was removed from
+  `exec-tools.mjs`'s `next` in 0.4.1 (it only ever returns `run`/`complete`/
+  `stalled`), but the skill docs were never updated to match, causing the
+  agent to (wrongly) stop and ask on healthy over-budget runs. Token
+  deviation is now documented as purely informational, exactly matching
+  the code.
+
 ## 0.5.0
 
 - `exec-tools.mjs`'s `report` subcommand now wires `exec/real-cost.mjs`'s

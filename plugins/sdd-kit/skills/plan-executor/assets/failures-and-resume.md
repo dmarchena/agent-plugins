@@ -1,10 +1,16 @@
-# Plan Executor — failures, budget, and resume (full detail)
+# Plan Executor — failures and resume (full detail)
 
-Referenced from `SKILL.md` §5 ("Failures, budget, and resume"). These are
-the off-the-happy-path branches of the executor loop: a task failing twice,
-the token budget getting exceeded, and resuming a SPECDIR that already has
-state on disk. They don't fire on every run, so the exact commands and
-decision rules live here instead of in the always-loaded body.
+Referenced from `SKILL.md` §5 ("Failures and resume"). These are the
+off-the-happy-path branches of the executor loop: a task failing twice,
+and resuming a SPECDIR that already has state on disk. They don't fire on
+every run, so the exact commands and decision rules live here instead of
+in the always-loaded body.
+
+Token deviation (real tokens vs. estimate) does **not** belong here: it
+never blocks, pauses, or otherwise branches the loop off the happy path —
+it's purely informational, reported per task in `complete`'s `deviation`
+field and for the whole run in `report`'s `real_cost`/`real_cost_over_budget`
+(see `exec/budget.mjs`'s `realCostOverBudget()`).
 
 ### 5.1 One retry, then block the DAG branch
 
@@ -23,18 +29,10 @@ This marks the task `blocked` and its transitive dependents `skipped`;
 independent DAG branches keep going. Resume the loop at §1 of the main
 document — `next` will route around the blocked subtree (R6.S1 / AC10).
 
-### 5.2 Budget pause
-
-`next` returns `{ status: "paused", reason: "budget", real, estimated,
-at_task }` when accumulated real tokens exceed **2×** the estimate of the
-tasks already run. The pause is recorded in state (`pause`). **Stop the
-loop** and ask the user whether to refine the plan (back to plan-writer) or
-continue anyway (R6.S2 / AC11). Only resume on their say-so.
-
 ## 6. Resume
 
 When invoked on a SPECDIR that already has `execution_state.json` (after a
-pause, a block, or a closed session), resume instead of `init`:
+block or a closed session), resume instead of `init`:
 
 ```
 node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs resume SPECDIR
