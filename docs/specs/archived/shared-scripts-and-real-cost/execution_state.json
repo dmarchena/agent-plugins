@@ -64,7 +64,7 @@
       "actual_tokens": 42960,
       "deviation": 27960,
       "test_cmd": "bash scripts/validate.sh",
-      "commit": null,
+      "commit": "ce074cf",
       "incidencia": null
     }
   },
