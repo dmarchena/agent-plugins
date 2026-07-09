@@ -272,7 +272,11 @@ function scanSubagentsDir(subagentsDir) {
 export function analyzeSession(sessionFilePath) {
   const sessionDir = path.dirname(sessionFilePath);
   const sessionName = path.basename(sessionFilePath).replace(/\.jsonl$/, '');
-  const subagentsDir = path.join(sessionDir, 'subagents');
+  // Real Claude Code layout: a session's subagents/ dir is nested under a
+  // directory named after the session id, sibling to the flat .jsonl file —
+  // NOT directly under sessionDir (verified against a real
+  // ~/.claude/projects/<project>/<session-uuid>/subagents/ tree).
+  const subagentsDir = path.join(sessionDir, sessionName, 'subagents');
 
   const orchestrator = scanTranscript(sessionFilePath);
   const { subagents, subTotal } = scanSubagentsDir(subagentsDir);
@@ -491,7 +495,10 @@ export function analyze(target) {
   const sessionFilePath = resolveSessionPath(opts);
 
   const sessionDir = path.dirname(sessionFilePath);
-  const subagentsDir = path.join(sessionDir, 'subagents');
+  const sessionName = path.basename(sessionFilePath).replace(/\.jsonl$/, '');
+  // See analyzeSession()'s comment: subagents/ nests under a
+  // session-id-named directory, not directly under sessionDir.
+  const subagentsDir = path.join(sessionDir, sessionName, 'subagents');
 
   const orchestrator = scanOrchestratorTranscript(sessionFilePath, opts.boundary);
   const { subagents, subTotal } = scanSubagentsDir(subagentsDir);
