@@ -55,23 +55,23 @@
       "actual_tokens": 103698,
       "deviation": 75698,
       "test_cmd": "cd plugins/sdd-kit && node --test test/verify-real-cost.test.mjs",
-      "commit": null,
+      "commit": "781eba5",
       "incidencia": null
     },
     "T7-e2e-suite": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 15000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 42960,
+      "deviation": 27960,
+      "test_cmd": "bash scripts/validate.sh",
       "commit": null,
       "incidencia": null
     }
   },
   "pause": {
     "reason": "budget: actual > 2x estimated executed",
-    "real_tokens": 174315,
-    "estimated_tokens": 80000,
-    "at_task": "T4-real-cost-compute"
+    "real_tokens": 436048,
+    "estimated_tokens": 194000,
+    "at_task": "T7-e2e-suite"
   }
 }
