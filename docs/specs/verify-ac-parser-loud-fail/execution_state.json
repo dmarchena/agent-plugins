@@ -10,15 +10,15 @@
       "actual_tokens": 55000,
       "deviation": 10000,
       "test_cmd": "node --test plugins/sdd-kit/test/verify-ac-parser.test.mjs",
-      "commit": null,
+      "commit": "badefc7",
       "incidencia": null
     },
     "T2": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 35000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 35000,
+      "deviation": 0,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-coverage-cross-check.test.mjs",
       "commit": null,
       "incidencia": null
     },
