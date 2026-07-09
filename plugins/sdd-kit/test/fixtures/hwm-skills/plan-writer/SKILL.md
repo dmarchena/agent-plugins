@@ -64,9 +64,7 @@ Read `assets/agent-roles.md` — the fixed catalog of `agent_type` →
 `subagent`, `model`, and a one-line `justification`, applying the
 most-austere-that-qualifies rule: mechanical, low-judgment work
 → `haiku`; bounded implementation with clear acceptance criteria →
-`sonnet`; design, critical review, or trade-off decisions → `opus`. For the
-`R-E2E`/`AC-E2E` task's `agent_type`, see `assets/e2e-task-assignment.md`
-(verifier vs. code_writer) and `assets/agent-roles.md`'s matching rows.
+`sonnet`; design, critical review, or trade-off decisions → `opus`.
 
 ## Write granular instructions
 

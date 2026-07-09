@@ -1,0 +1,54 @@
+{
+  "plan_id": "sdd-kit-skill-token-budget-plan",
+  "source_spec": "spec.md",
+  "branch": "fix/sdd-kit-skill-token-budget",
+  "started_at": "2026-07-09T21:49:01.556Z",
+  "tasks": {
+    "T1-tokenizer": {
+      "status": "done",
+      "estimated_tokens": 8000,
+      "actual_tokens": 37767,
+      "deviation": 29767,
+      "test_cmd": "node --test plugins/sdd-kit/test/tokenizer.test.mjs",
+      "commit": "6a84a12",
+      "incidencia": null
+    },
+    "T2-budget-guard": {
+      "status": "done",
+      "estimated_tokens": 10000,
+      "actual_tokens": 50195,
+      "deviation": 40195,
+      "test_cmd": "node --test --test-name-pattern \"R2\\.(S1|S2)\" plugins/sdd-kit/test/skill-slimming.test.mjs",
+      "commit": "dea881d",
+      "incidencia": null
+    },
+    "T3-trim-skills": {
+      "status": "done",
+      "estimated_tokens": 15000,
+      "actual_tokens": 209461,
+      "deviation": 194461,
+      "test_cmd": "node --test plugins/sdd-kit/test/skill-slimming.test.mjs",
+      "commit": "71f20f8",
+      "incidencia": null
+    },
+    "T4-wire-validate": {
+      "status": "done",
+      "estimated_tokens": 3000,
+      "actual_tokens": 30940,
+      "deviation": 27940,
+      "test_cmd": "node --test plugins/sdd-kit/test/validate-sh-budget-guard.test.mjs",
+      "commit": "8387209",
+      "incidencia": null
+    },
+    "T5-e2e-verify": {
+      "status": "done",
+      "estimated_tokens": 4000,
+      "actual_tokens": 37173,
+      "deviation": 33173,
+      "test_cmd": "bash scripts/validate.sh",
+      "commit": "d24f579",
+      "incidencia": null
+    }
+  },
+  "pause": null
+}

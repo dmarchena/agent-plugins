@@ -1,8 +1,8 @@
 // Guard test for the R1 token-reduction pass (docs/specs/sdd-kit-token-reduction,
-// task R1-slim). Verifies the slimmed SKILL.md files still satisfy R1.S1/R1.S2:
+// task R1-slim) and the R2 token-budget guard (docs/specs/sdd-kit-skill-token-budget,
+// task T2-budget-guard). Verifies the slimmed SKILL.md files still satisfy
+// R1.S1/R1.S2/R2.S1/R2.S2:
 //
-//   AC1 - the combined line count of the 4 SKILL.md bodies is <= 491 (>=30%
-//         less than the pre-slimming baseline of 702).
 //   AC2 - every rule anchor in plan-executor/assets/rule-anchors.json (the
 //         manifest captured from the SKILL.md files BEFORE slimming) is still
 //         reachable: either it's a literal substring of the SKILL.md body, or
@@ -12,6 +12,10 @@
 //         relative path somewhere in its skill's SKILL.md (no orphans) -
 //         except rule-anchors.json itself, which is a meta manifest consumed
 //         by tests, not skill content moved out of a SKILL.md.
+//   AC4 (R2) - checkBudgets() from budget-guard.mjs correctly reports skills
+//         under/over their derived per-skill token ceiling (synthetic data
+//         only; the real SKILL.md vs. HWM-fixture comparison is runGuard(),
+//         covered by a later task, not here).
 //
 // Run against the pre-slimming state, this test is RED (AC1 fails: 702 > 491).
 // After slimming, it must be GREEN.
@@ -21,6 +25,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkBudgets, runGuard } from '../scripts/budget-guard.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILLS_DIR = path.join(__dirname, '..', 'skills');
@@ -32,17 +37,11 @@ const MANIFEST_PATH = path.join(
 );
 
 const SKILLS = ['spec-writer', 'plan-writer', 'plan-executor', 'verify'];
-const MAX_TOTAL_LINES = 491;
 
 // Assets that are meta-artifacts consumed by the guard tests themselves,
 // not reference content moved out of a SKILL.md body - exempt from the
 // "must be referenced by path" orphan check in AC3.
 const ORPHAN_EXEMPT_ASSETS = new Set(['plan-executor/assets/rule-anchors.json']);
-
-function countLines(content) {
-  // wc -l semantics: number of newline characters in the file.
-  return (content.match(/\n/g) || []).length;
-}
 
 function skillDir(skill) {
   return path.join(SKILLS_DIR, skill);
@@ -76,21 +75,6 @@ function relFromSkillMd(skill, assetPath) {
 function relFromSkillsDir(assetPath) {
   return path.relative(SKILLS_DIR, assetPath).split(path.sep).join('/');
 }
-
-test('AC1: combined SKILL.md body line count is <= 491 (>=30% less than 702)', () => {
-  const perSkill = {};
-  let total = 0;
-  for (const skill of SKILLS) {
-    const lines = countLines(readSkillMd(skill));
-    perSkill[skill] = lines;
-    total += lines;
-  }
-  assert.ok(
-    total <= MAX_TOTAL_LINES,
-    `combined SKILL.md lines = ${total} (${JSON.stringify(perSkill)}), ` +
-      `expected <= ${MAX_TOTAL_LINES}`,
-  );
-});
 
 test('AC2: every rule anchor is reachable from its SKILL.md body or a referenced asset', () => {
   const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
@@ -137,4 +121,47 @@ test('AC3: every asset file is referenced by its relative path in its SKILL.md (
       );
     }
   }
+});
+
+test('R2.S1 (AC3): checkBudgets reports no exceeded skill when every body is under its ceiling', () => {
+  const counts = {
+    'spec-writer': 100,
+    'plan-writer': 200,
+    'plan-executor': 300,
+    verify: 50,
+  };
+  const ceilings = {
+    'spec-writer': 105,
+    'plan-writer': 210,
+    'plan-executor': 315,
+    verify: 52,
+  };
+
+  const { exceeded } = checkBudgets(counts, ceilings);
+
+  assert.deepEqual(exceeded, []);
+});
+
+test('R2.S2 (AC4): checkBudgets flags the skill whose body exceeds its ceiling, naming it with its current count and its ceiling', () => {
+  const counts = {
+    'spec-writer': 100,
+    'plan-writer': 220,
+    'plan-executor': 300,
+    verify: 50,
+  };
+  const ceilings = {
+    'spec-writer': 105,
+    'plan-writer': 210,
+    'plan-executor': 315,
+    verify: 52,
+  };
+
+  const { exceeded } = checkBudgets(counts, ceilings);
+
+  assert.deepEqual(exceeded, [{ skill: 'plan-writer', count: 220, ceiling: 210 }]);
+});
+
+test('R3.S1 (AC5): runGuard reports no exceeded skill once SKILL.md bodies are trimmed under their derived ceiling', () => {
+  const { exceeded } = runGuard();
+  assert.deepEqual(exceeded, [], `skills over their token ceiling: ${JSON.stringify(exceeded)}`);
 });

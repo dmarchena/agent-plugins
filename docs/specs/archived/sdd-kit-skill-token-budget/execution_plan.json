@@ -1,0 +1,112 @@
+{
+  "plan_id": "sdd-kit-skill-token-budget-plan",
+  "project_name": "Presupuesto de tokens por SKILL.md",
+  "global_objective": "Revertir la regresion de tamano de los 4 SKILL.md de sdd-kit sustituyendo el guard de lineas por un presupuesto de tokens por skill (tokenizador lightweight stdlib-only), recortando el contenido reinflado sin perder anchors, y enganchando el guard a la validacion unica de CI.",
+  "source_spec": "spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 40000,
+  "tasks": [
+    {
+      "task_id": "T1-tokenizer",
+      "source_ids": ["R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementacion acotada con criterios de aceptacion claros (funcion pura determinista, sin deps, monotonia); apta para sonnet.",
+      "instructions": "Implementa el tokenizador lightweight de R1: un modulo stdlib-only (ESM .mjs, sin dependencias npm, sin red) que exporta una funcion pura texto -> entero que estima el numero de tokens de forma determinista. Debe satisfacer R1.S1 (misma entrada -> mismo entero; sin imports de node_modules ni red) y R1.S2 (un texto superconjunto obtiene un recuento estrictamente mayor). No hardcodees techos ni midas SKILL.md aqui: esta tarea solo entrega el contador reutilizable que consumira T2-guard.",
+      "expected_output_schema": "Modulo .mjs stdlib-only exportando una funcion de conteo de tokens determinista, con su test node:test que cubre R1.S1 y R1.S2.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 8000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R1.S1", "assertion": "tokenizar dos veces la misma cadena devuelve el mismo entero, y el modulo no importa ningun paquete de node_modules ni accede a la red" },
+        { "ref": "R1.S2", "assertion": "un texto que es superconjunto de otro obtiene un recuento estrictamente mayor que el subconjunto" }
+      ]
+    },
+    {
+      "task_id": "T2-budget-guard",
+      "source_ids": ["R2.S1", "R2.S2"],
+      "dependencies": ["T1-tokenizer"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementacion acotada con AC claros (guard por-skill que sale 0/no-0 y localiza al infractor); consume el contador de T1-tokenizer; apta para sonnet.",
+      "instructions": "Reescribe el AC de tamano del guard skill-slimming para satisfacer R2: sustituye el conteo de lineas por un presupuesto de tokens POR SKILL usando el tokenizador entregado por T1-tokenizer. Deriva el techo de cada skill midiendo su SKILL.md en el commit high-water-mark (ver Assumptions del spec) con ESE tokenizador y aplicando el margen de mantenimiento por defecto del spec; no hardcodees un numero suelto. Debe satisfacer R2.S1 (los 4 bajo techo -> exit 0, sin excedidos) y R2.S2 (un cuerpo por encima -> exit != 0 con mensaje que nombra skill + recuento + techo). Conserva intactos los checks de accesibilidad de anchors/assets existentes del guard (skill-slimming AC2/AC3); solo se reemplaza el AC1 de lineas.",
+      "expected_output_schema": "Guard skill-slimming con su AC de tamano expresado como presupuesto de tokens por skill (techos derivados del HWM), exit 0/no-0 segun R2.S1/R2.S2, y sus checks de accesibilidad AC2/AC3 preservados.",
+      "satisfies_acs": ["AC3", "AC4"],
+      "estimated_tokens": 10000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R2.S1", "assertion": "con los cuatro cuerpos por debajo de su techo derivado, el guard termina con exito y no reporta ningun skill excedido" },
+        { "ref": "R2.S2", "assertion": "con un cuerpo por encima de su techo, el guard termina en error nombrando el skill infractor, su recuento actual y su techo" }
+      ]
+    },
+    {
+      "task_id": "T3-trim-skills",
+      "source_ids": ["R3.S1"],
+      "dependencies": ["T2-budget-guard"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Edicion de contenido de documentacion siguiendo un esquema (mover prosa a assets bajo techo) con red de seguridad mecanica (el guard de T2 y los checks de anchors); apta para sonnet.",
+      "instructions": "Cumple R3.S1: recorta los 4 SKILL.md por debajo de su presupuesto de tokens (definido por el guard de T2-budget-guard), moviendo el contenido reinflado a assets/ del propio skill. Prioriza verify (el mayor exceso) y plan-executor. No pierdas accesibilidad de ningun rule anchor: cada anchor debe seguir en el cuerpo o en un asset referenciado por ruta (skill-slimming AC2/AC3 deben quedar verdes). Done = el guard de T2-budget-guard pasa y los checks de accesibilidad siguen verdes. No cambies el comportamiento observable de las skills.",
+      "expected_output_schema": "Los 4 SKILL.md por debajo de su techo de tokens, con el contenido excedente movido a assets/ referenciados por ruta y todos los anchors accesibles.",
+      "satisfies_acs": ["AC5"],
+      "estimated_tokens": 15000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "T4-wire-validate",
+      "source_ids": ["R4.S1"],
+      "dependencies": ["T2-budget-guard"],
+      "agent_type": "terminal_operator",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "Edicion mecanica acotada de scripts/validate.sh siguiendo el patron existente de propagacion de exit (|| fail=1); trabajo de bajo juicio, apto para haiku.",
+      "instructions": "Cumple R4.S1: engancha el guard de presupuesto de T2-budget-guard a scripts/validate.sh de modo que corra en cada validacion (CI y local) y su fallo marque la validacion como fallida, siguiendo el patron existente de propagacion de exit del script. No alteres las demas comprobaciones de validate.sh.",
+      "expected_output_schema": "scripts/validate.sh ejecutando el guard de presupuesto de tokens y propagando su fallo al exit code de la validacion.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 3000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "T5-e2e-verify",
+      "source_ids": ["R4.S1"],
+      "dependencies": ["T2-budget-guard", "T3-trim-skills", "T4-wire-validate"],
+      "agent_type": "verifier",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "Tarea que respalda el AC-E2E: corre la validacion completa ya existente y confirma verde + rojo-al-inflar, sin escribir codigo ni fase roja; rol verifier segun el catalogo.",
+      "instructions": "Respalda AC-E2E ejecutando el recorrido completo end-to-end: corre bash scripts/validate.sh en el repo real y confirma que pasa (exit 0) con los SKILL.md ya recortados por T3-trim-skills y el guard enganchado por T4-wire-validate; despues infla un SKILL.md por encima de su techo, vuelve a correr la validacion y confirma que sale != 0 nombrando el guard de presupuesto, y restaura el estado. No escribas codigo de produccion.",
+      "expected_output_schema": "Confirmacion observable de que validate.sh pasa con los skills recortados y falla al inflar un SKILL.md por encima de su techo.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 4000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1-tokenizer"],
+      "R2": ["T2-budget-guard"],
+      "R3": ["T3-trim-skills"],
+      "R4": ["T4-wire-validate", "T5-e2e-verify"]
+    },
+    "acs": {
+      "AC1": ["T1-tokenizer"],
+      "AC2": ["T1-tokenizer"],
+      "AC3": ["T2-budget-guard"],
+      "AC4": ["T2-budget-guard"],
+      "AC5": ["T3-trim-skills"],
+      "AC-E2E": ["T4-wire-validate", "T5-e2e-verify"]
+    }
+  }
+}

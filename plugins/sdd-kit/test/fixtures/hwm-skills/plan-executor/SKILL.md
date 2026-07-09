@@ -52,7 +52,7 @@ skip `init`, go to `assets/failures-and-resume.md` §6 Resume instead.
 
 ## 1. The task loop
 
-Repeat until a subcommand reports `complete` or `stalled`:
+Repeat until a subcommand reports `complete`, `stalled`, or `paused`:
 
 ```
 node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs next SPECDIR
@@ -60,10 +60,10 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs next SPECDIR
 
 Branch on `status`: **`run`** → `batch` is the list of `task_id`s
 ready now (≤3); execute them per **§2**/**§3**, then loop.
-**`complete`** → go to **§7 Final report**. **`stalled`** → no runnable
-tasks remain but some are pending; go to **§7**, the report explains
-what's blocked. Token deviation never pauses the loop — purely
-informational, see **§7**.
+**`paused`** (`reason: "budget"`) → see `assets/failures-and-resume.md`
+§5.2, stop the loop and ask the user. **`complete`** → go to **§7 Final
+report**. **`stalled`** → no runnable tasks remain but some are pending;
+go to **§7**, the report explains what's blocked.
 
 ## 2. Execute a task: the TDD executor brief
 
@@ -112,13 +112,6 @@ three cases — see `assets/task-brief-detail.md` for the full `reason:
 "no-red"` / `"rerun-failed"` / `"not-green"` breakdown and what to do for
 each.
 
-When the batch has more than one task, close all of them in a SINGLE
-`complete --batch` invocation instead of one `complete` per task, cutting
-orchestrator round-trips (R2.S1) — same fields as the single-task flags,
-one entry per task; a task that doesn't reach green is `not-done` in its
-own entry and does NOT block or revert its siblings (R2.S2/AC5). Full
-command shape: `assets/task-brief-detail.md`.
-
 Never mark a task done yourself or with git directly; only a `done` from
 `complete` is authoritative, and it owns the commit.
 
@@ -130,14 +123,14 @@ boundaries** by the scripts — never edit it by hand, and never edit
 R5 / AC9). Real consumption (`actual_tokens`, `deviation`) lives in state,
 not the plan. A half-done task never appears as `done`.
 
-## 5. Failures and resume
+## 5. Failures, budget, and resume
 
 See `assets/failures-and-resume.md` for the full commands and decision
-rules covering the two ways execution branches off the happy path: a
-failed attempt retried **exactly once** then blocked (§5.1), and resuming
-a SPECDIR with existing state, which re-runs every `done` task's test
-first and stops for the user on broken ground (§6). Token deviation never
-blocks or pauses execution — purely informational, reported in **§7**.
+rules covering the three ways execution branches off the happy path: a
+failed attempt retried **exactly once** then blocked (§5.1), a budget
+pause when real tokens exceed 2× the estimate (§5.2), and resuming a
+SPECDIR with existing state, which re-runs every `done` task's test first
+and stops for the user on broken ground (§6).
 
 ## 7. Final report
 
@@ -146,12 +139,11 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs report SPECDIR
 ```
 
 Relay to the user: the branch, counts (done / blocked / skipped), tokens
-**real vs estimated** (per task and, when available, the `real_cost`
-total), any blocked/skipped tasks with their `incidencia`, and the spec
-ACs the completed tasks declare satisfied (R-E2E.S1). This skill
-guarantees the **task** level (TDD tests green); it does not run the
-spec's full acceptance checklist — that's the verify stage. It does not
-open a PR or merge — commits stay on the plan branch.
+**real vs estimated**, any blocked/skipped tasks with their `incidencia`,
+whether a budget pause fired, and the spec ACs the completed tasks declare
+satisfied (R-E2E.S1). This skill guarantees the **task** level (TDD tests green);
+it does not run the spec's full acceptance checklist — that's the verify
+stage. It does not open a PR or merge — commits stay on the plan branch.
 
 ## Autonomy
 
@@ -159,7 +151,7 @@ Operate autonomously through the loop: validate, batch, delegate, verify,
 commit, advance — without stepping the user through each task. Commit
 happens automatically per verified task on the plan branch (never on
 main/master; the git module refuses). **Stop and ask the user** only for:
-an invalid plan (§0), a `no-red` incidence (§3), broken ground on resume
-(§5), or a genuine ambiguity an executor bounced back that the spec/plan
-can't resolve. Don't re-decide the plan's subagent/model assignments and
-don't re-plan on the fly.
+an invalid plan (§0), a `no-red` incidence (§3), a budget pause or broken
+ground on resume (§5), or a genuine ambiguity an executor bounced back
+that the spec/plan can't resolve. Don't re-decide the plan's subagent/model
+assignments and don't re-plan on the fly.

@@ -1,7 +1,7 @@
 ---
 name: spec-writer
 description: Use this skill whenever the user wants to draft, flesh out, or "grill me until it's done" a software specification (spec.md) before any planning or coding happens. Trigger on requests like "ayúdame a definir la spec de...", "quiero especificar esta feature", "hazme preguntas hasta sacar los requisitos", "necesito la spec funcional y técnica de X", "vamos a nailar los criterios de aceptación antes de implementar", or any request to turn a rough feature idea into a structured requirements document via an interview instead of writing it themselves. Also use this whenever the user references spec-driven development, OpenSpec-style requirements/scenarios, or wants to avoid vibe-coding by locking down scope first. Do NOT use this for writing implementation plans, task breakdowns, architecture decisions, or code — this skill stops at the finished spec.md artifact.
-argument-hint: "[feat|fix|chore|refactor|docs] <idea de la feature en una línea>"
+argument-hint: "[idea de la feature en una línea]"
 allowed-tools: AskUserQuestion, Read, Write, Edit
 ---
 
@@ -21,8 +21,8 @@ background.
 
 Before anything else, decide how much rigor this change actually needs. This
 is the single biggest lever for keeping the interview — and its token cost —
-proportional to the change. Ask this right after the one-liner and change
-type are settled (see "Interview process" below):
+proportional to the change. Ask this as the very first options question,
+right after hearing the one-liner:
 
 - **Lite** (recommend this by default) — short interview, 1 happy-path +
   1 edge-case scenario per requirement, compact acceptance checklist. Right
@@ -52,9 +52,12 @@ checkable) or `[manual]` (needs human judgment — justify why), plus the
 observable probe to check. See `assets/rationale.md` for why this shape is
 fixed across every spec.
 
-A spec describes observable **behavior**, not implementation — be **exact
-about the observable** but agnostic about the mechanism. Full reasoning:
-`assets/rationale.md`.
+A spec describes observable **behavior**, not implementation — if something
+could change (which library, which internal function name, which file)
+without changing what the user experiences, it belongs in a later
+design/plan doc. Acceptance criteria follow the same rule: be **exact about
+the observable** but agnostic about the mechanism. See `assets/rationale.md`
+for the full reasoning.
 
 ## Interview process
 
@@ -64,49 +67,42 @@ the full per-step guidance (phrasing, edge cases, how the E2E scenario and
 acceptance checklist get assembled); the essentials that must never be
 skipped:
 
-1. **Anchor first.** Before asking anything, check whether `/sdd-kit:spec`'s
-   argument has a leading word that case-insensitively matches one of
-   `feat`/`fix`/`chore`/`refactor`/`docs`. If it does, treat the rest of the
-   argument text as the one-liner and echo the recognized type back in one
-   line — the change-type question in step 2 is skipped. If it doesn't match
-   (or there's no argument), treat the whole argument text as the one-liner
-   when given, otherwise ask for it: what is this feature/change, and why it
-   needs to exist. Don't move on until it's a real answer.
-2. **Change type.** If step 1 already supplied the type via the leading
-   word, this step is done — just carry the recorded value forward. Otherwise,
-   now that the one-liner is established, present `feat`/`fix`/`chore`/
-   `refactor`/`docs` as options with one recommended based on the one-liner,
-   and record the chosen value as a `Change type: <value>` line near the top
-   of the written spec. If the one-liner describes both fixing a bug and
-   adding new capability, don't guess — present the tradeoff explicitly:
-   classify by the dominant/larger side of the change, or split into two
-   separate specs.
-3. **Calibrate depth** (above).
-4. **Scope.** Push for at least one or two explicit non-goals, even if the
+1. **Anchor first.** Ask for the one-liner: what is this feature/change, and
+   why it needs to exist. Don't move on until it's a real answer.
+2. **Calibrate depth** (above).
+3. **Scope.** Push for at least one or two explicit non-goals, even if the
    user says "everything's in scope."
-5. **Functional requirements.** Draft `### R<n>` scenarios in Given/When/Then
-   form. Every THEN must name a concrete observable — never "shows an error"
-   or "works correctly". Before moving on, settle two one-liners: `Depende
-   de:` and the `[auto]`/`[manual]` probe.
-6. **Technical requirements** — only what's relevant; mark the rest N/A.
-7. **`R-E2E`, then the acceptance checklist** — one line per scenario,
-   maximizing `[auto]`. Confirm the checklist explicitly with the user.
-8. **Assumptions & open questions** — log anything deferred.
-9. **Know when to stop.** Ready when every requirement has a scenario and
-   scope is explicit; in lite mode, don't exceed what it calls for.
+4. **Functional requirements, one capability at a time.** Draft `### R<n>`
+   with SHALL/MUST/SHOULD language, then `#### R<n>.S<m>` scenarios in
+   Given/When/Then form. Every THEN must name a concrete observable — never
+   "shows an error" or "works correctly". Before moving on, settle two
+   one-liners: does this requirement depend on another (`Depende de:`), and
+   how would each scenario be checked mechanically (the `[auto]`/`[manual]`
+   probe).
+5. **Technical requirements** — only what's relevant; mark the rest N/A.
+6. **End-to-end scenario (`R-E2E`), then the acceptance checklist** — one
+   line per scenario. Maximize `[auto]`; treat every `[manual]` as a cost
+   that needs justifying. Confirm the checklist explicitly with the user.
+7. **Assumptions & open questions** — log anything deferred instead of
+   silently guessing.
+8. **Know when to stop.** Ready when every requirement has a scenario, scope
+   is explicit, and there's no unresolved TBD the user cares about. In lite
+   mode, don't exceed what lite mode calls for just for thoroughness's sake.
 
 ## Interview style
 
-- **Default to multiple choice, with one recommendation.** Present 2-4
-  options with one recommended and a one-line reason; reserve open
-  questions for things that can't be enumerated (one-liner, exact wording,
-  names).
+- **Default to multiple choice, with one recommendation.** For any question
+  with a finite, guessable set of answers, present 2-4 concrete options,
+  mark one recommended, give a one-line reason. Reserve genuinely open
+  questions for things that can't be enumerated (the one-liner, exact
+  wording, names).
 - One question (or one tightly related set) at a time.
 - **Reflect back short, and only what changed** — 1-3 bullet lines, not a
   restated wall of text.
 - **Don't assemble the spec until the end.** Keep compact running notes
-  instead of drafting the full spec.md mid-interview — regenerating it
-  repeatedly is the single biggest token cost in this skill.
+  instead of drafting or printing the full spec.md mid-interview —
+  repeatedly regenerating the whole document is the single biggest token
+  cost in this skill.
 - Default to 1 happy-path + 1 edge case per requirement (lite mode); go
   beyond that only for a requirement the user flags high-risk, or in full
   mode.
@@ -117,11 +113,13 @@ See `assets/interview-steps.md` for the full version with phrasing examples.
 
 When the interview is complete, read `assets/spec-template.md` and write the
 finished file to **`docs/specs/<slug>/spec.md`** (creating the directory,
-`<slug>` a kebab-case slug) — the shared home for the whole chain:
-`plan-writer` later drops its `execution_plan.json` alongside. First and
-only time the full document gets written; show the user the finished spec
-and ask if anything needs adjusting.
+`<slug>` a kebab-case slug from the feature name) — the shared home for the
+whole chain: `plan-writer` later drops its `execution_plan.json` alongside.
+This should be the first and only time the full document gets written out;
+show the user the finished spec and ask if anything needs adjusting.
 
-Two constraints: it must be **self-contained** — a verification agent with
-no access to this interview must run the checklist from the file alone —
-and in lite mode it should stay lean (~120 lines as a guide).
+Two constraints on the written file: it must be **self-contained** — a
+verification agent with no access to this interview must be able to run
+the acceptance checklist from the file alone — and in lite mode it
+should stay lean (~120 lines as a guide): the spec is itself context that
+every later plan/verify session will carry.
