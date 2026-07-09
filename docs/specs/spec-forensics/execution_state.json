@@ -1,0 +1,63 @@
+{
+  "plan_id": "spec-forensics-v1",
+  "source_spec": "docs/specs/spec-forensics/spec.md",
+  "branch": "feat/spec-forensics",
+  "started_at": "2026-07-09T22:54:33.874Z",
+  "tasks": {
+    "exec-persist-agentid": {
+      "status": "done",
+      "estimated_tokens": 90000,
+      "actual_tokens": 84296,
+      "deviation": -5704,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/*.test.mjs",
+      "commit": null,
+      "incidencia": null
+    },
+    "forensics-per-task": {
+      "status": "pending",
+      "estimated_tokens": 110000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "forensics-orchestrator-pause": {
+      "status": "pending",
+      "estimated_tokens": 80000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "forensics-readonly-degrade": {
+      "status": "pending",
+      "estimated_tokens": 70000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "forensics-skill": {
+      "status": "pending",
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "forensics-e2e-integration": {
+      "status": "pending",
+      "estimated_tokens": 90000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    }
+  },
+  "pause": null
+}

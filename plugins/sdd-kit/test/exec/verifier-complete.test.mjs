@@ -171,7 +171,12 @@ test('R2.S1: complete on a verifier task whose suite passes returns done, state 
 
     const state = stateOf(absSpecDir);
     assert.strictEqual(state.tasks['task-verify'].status, 'done', 'R2.S1: state entry flips to done');
-    assert.strictEqual(state.tasks['task-verify'].incidencia, null, 'R2.S1: no no-red incidencia is recorded in state');
+    // Not strictly null: exec-persist-agentid (R1.S2) records its OWN,
+    // orthogonal incidencia ('agentId no obtenido...') on any done task
+    // completed without --agent-id, which this fixture doesn't pass. This
+    // test's actual concern (per its title/comment above) is only that no
+    // *no-red* incidencia fires for a verifier task's passing re-run.
+    assert.notStrictEqual(state.tasks['task-verify'].incidencia, 'no red evidence', 'R2.S1: no no-red incidencia is recorded in state');
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }

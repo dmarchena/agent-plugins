@@ -47,6 +47,10 @@ test('initState: creates initial state with all tasks pending', () => {
     assert.equal(entry.test_cmd, null);
     assert.equal(entry.commit, null);
     assert.equal(entry.incidencia, null);
+    // R1.S1/R1.S3: agentId/sessionId scaffolding must exist from init, null
+    // until a subagent actually completes the task.
+    assert.equal(entry.agentId, null);
+    assert.equal(entry.sessionId, null);
   }
 });
 
@@ -82,6 +86,62 @@ test('recordResult: with actual_tokens null leaves deviation null', () => {
   assert.equal(entry.test_cmd, null);
   assert.equal(entry.commit, null);
   assert.equal(entry.incidencia, null);
+});
+
+test('recordResult: R1.S1 persists the executing subagent agentId/sessionId', () => {
+  const state = initState(samplePlan);
+
+  recordResult(state, 'task-a', {
+    status: 'done',
+    actual_tokens: 1200,
+    test_cmd: 'node --test test/a.test.mjs',
+    commit: 'abc1234',
+    incidencia: null,
+    agentId: 'agent-xyz',
+    sessionId: 'session-123',
+  });
+
+  const entry = state.tasks['task-a'];
+  assert.equal(entry.agentId, 'agent-xyz');
+  assert.equal(entry.sessionId, 'session-123');
+});
+
+test('recordResult: R1.S2 defaults agentId/sessionId to null when not passed', () => {
+  const state = initState(samplePlan);
+
+  recordResult(state, 'task-b', { status: 'done' });
+
+  const entry = state.tasks['task-b'];
+  assert.equal(entry.agentId, null);
+  assert.equal(entry.sessionId, null);
+});
+
+test('read: R1.S3 normalizes pre-schema entries lacking agentId/sessionId to null without throwing', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'exec-state-legacy-'));
+  const statePath = path.join(tmpDir, 'execution_state.json');
+  try {
+    // Hand-written legacy state: task entries have none of the new keys.
+    const legacyState = {
+      plan_id: 'plan-legacy-001',
+      source_spec: 'spec.md',
+      branch: 'feat/plan-legacy-001',
+      started_at: new Date().toISOString(),
+      tasks: {
+        'task-a': {
+          status: 'done', estimated_tokens: 1000, actual_tokens: 1000,
+          deviation: 0, test_cmd: null, commit: 'abc123', incidencia: null,
+        },
+      },
+      pause: null,
+    };
+    fs.writeFileSync(statePath, JSON.stringify(legacyState, null, 2));
+
+    const loaded = read(statePath);
+    assert.equal(loaded.tasks['task-a'].agentId, null);
+    assert.equal(loaded.tasks['task-a'].sessionId, null);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 
 test('markSkipped: marks each given id as "skipped"', () => {

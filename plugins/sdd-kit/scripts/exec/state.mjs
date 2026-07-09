@@ -21,6 +21,8 @@ export function initState(plan) {
       test_cmd: null,
       commit: null,
       incidencia: null,
+      agentId: null,
+      sessionId: null,
     };
   }
   return {
@@ -37,12 +39,15 @@ export function initState(plan) {
  * Records the result of a task in the state.
  * @param {object} state
  * @param {string} taskId
- * @param {{status: string, actual_tokens?: number|null, test_cmd?: string|null, commit?: string|null, incidencia?: string|null}} result
+ * @param {{status: string, actual_tokens?: number|null, test_cmd?: string|null, commit?: string|null, incidencia?: string|null, agentId?: string|null, sessionId?: string|null}} result
  */
 export function recordResult(
   state,
   taskId,
-  { status, actual_tokens = null, test_cmd = null, commit = null, incidencia = null }
+  {
+    status, actual_tokens = null, test_cmd = null, commit = null, incidencia = null,
+    agentId = null, sessionId = null,
+  }
 ) {
   const entry = state.tasks[taskId];
   entry.status = status;
@@ -51,6 +56,8 @@ export function recordResult(
   entry.test_cmd = test_cmd;
   entry.commit = commit;
   entry.incidencia = incidencia;
+  entry.agentId = agentId;
+  entry.sessionId = sessionId;
 }
 
 /**
@@ -99,5 +106,14 @@ export function persist(statePath, state) {
  * @returns {object} state
  */
 export function read(statePath) {
-  return JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  // R1.S3: backward-compatible load — a pre-schema state's task entries may
+  // lack agentId/sessionId entirely; normalize them to null in place so
+  // every caller (cmdNext, cmdComplete, cmdCompleteBatch, cmdResume,
+  // cmdReport, cmdBlock) sees the current shape without throwing.
+  for (const entry of Object.values(state.tasks || {})) {
+    if (!('agentId' in entry)) entry.agentId = null;
+    if (!('sessionId' in entry)) entry.sessionId = null;
+  }
+  return state;
 }

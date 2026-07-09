@@ -143,6 +143,7 @@ function cmdNext(specDir) {
 function completeOne(plan, state, statePath, entry) {
   const {
     taskId, tokens, testCmd, rojo, verde, message, files = null,
+    agentId = null, sessionId = null,
   } = entry;
   const task = plan.tasks.find((t) => t.task_id === taskId);
   if (!task) return { status: 'error', task_id: taskId, error: 'UNKNOWN_TASK: ' + taskId };
@@ -152,6 +153,10 @@ function completeOne(plan, state, statePath, entry) {
 
   if (res.done) {
     const msg = message || `${taskId}: test + implementation (green verified)`;
+    // R1.S2: a task can still reach 'done' with no agentId join (e.g. the
+    // orchestrator couldn't recover it) — this must degrade gracefully, not
+    // abort the run, but it does leave a paper trail via incidencia.
+    const doneIncidencia = agentId == null ? 'agentId no obtenido para esta tarea' : null;
     // Persist this task's OWN status/tokens/test_cmd before committing, so
     // the commit captures its own flip, not the previous task's (the bug
     // this fixes). The commit hash can't be known before the commit exists
@@ -160,10 +165,16 @@ function completeOne(plan, state, statePath, entry) {
     // before this fix — it's a convenience cache (also recoverable via
     // `git log`, since the message includes the task_id), not the
     // substantive audit data, so it's fine for it to trail its own commit.
-    recordResult(state, taskId, { status: 'done', actual_tokens: tokens, test_cmd: testCmd, commit: null });
+    recordResult(state, taskId, {
+      status: 'done', actual_tokens: tokens, test_cmd: testCmd, commit: null,
+      incidencia: doneIncidencia, agentId, sessionId,
+    });
     persist(statePath, state);
     const hash = commitTask(taskId, msg, process.cwd(), files, statePath);
-    recordResult(state, taskId, { status: 'done', actual_tokens: tokens, test_cmd: testCmd, commit: hash });
+    recordResult(state, taskId, {
+      status: 'done', actual_tokens: tokens, test_cmd: testCmd, commit: hash,
+      incidencia: doneIncidencia, agentId, sessionId,
+    });
     persist(statePath, state);
     return { status: 'done', task_id: taskId, commit: hash, actual_tokens: tokens, deviation: state.tasks[taskId].deviation };
   }
@@ -172,7 +183,9 @@ function completeOne(plan, state, statePath, entry) {
   const incidencia = res.reason === 'no-red' ? 'no red evidence'
     : res.reason === 'rerun-failed' ? 'orchestrator rerun failed after reported green'
       : 'subagent did not report green';
-  recordResult(state, taskId, { status: 'pending', actual_tokens: tokens, test_cmd: testCmd, incidencia });
+  recordResult(state, taskId, {
+    status: 'pending', actual_tokens: tokens, test_cmd: testCmd, incidencia, agentId, sessionId,
+  });
   persist(statePath, state);
   return { status: 'not-done', task_id: taskId, reason: res.reason, incidencia, rerun_output: res.rerun_output };
 }
@@ -189,6 +202,8 @@ function cmdComplete(specDir, taskId, flags) {
   const testCmd = flags['test-cmd'] === true || flags['test-cmd'] === undefined ? null : String(flags['test-cmd']);
   const tokens = flags.tokens !== undefined && flags.tokens !== true ? parseInt(flags.tokens, 10) : null;
   const message = (flags.message && flags.message !== true) ? String(flags.message) : null;
+  const agentId = (flags['agent-id'] && flags['agent-id'] !== true) ? String(flags['agent-id']) : null;
+  const sessionId = (flags['session-id'] && flags['session-id'] !== true) ? String(flags['session-id']) : null;
 
   // R1.S2: the single-task path must never fall back to git.mjs's `add -A`
   // whole-tree stage — it requires an explicit, non-empty, comma-separated
@@ -211,7 +226,7 @@ function cmdComplete(specDir, taskId, flags) {
   }
 
   const result = completeOne(plan, state, p.state, {
-    taskId, tokens, testCmd, rojo: flags.rojo, verde: flags.verde, message, files,
+    taskId, tokens, testCmd, rojo: flags.rojo, verde: flags.verde, message, files, agentId, sessionId,
   });
   out(result);
 }
@@ -275,6 +290,8 @@ function cmdCompleteBatch(specDir, batchPath) {
       rojo: e.rojo,
       verde: e.verde,
       message: e.message || null,
+      agentId: e.agent_id != null ? String(e.agent_id) : null,
+      sessionId: e.session_id != null ? String(e.session_id) : null,
       // `[]` (not `null`) when omitted: pathspecList treats `[]` as "stage
       // only the state file" (safe default for a verifier entry), while
       // `null` means "no restriction" (`git add -A`) — never the right
