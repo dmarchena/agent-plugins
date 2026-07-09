@@ -13,6 +13,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   from `shared/token-cost.mjs`. This is the same shared script
   `claude-token-debug` consumes; `token-cost.mjs` is not yet wired into any
   `sdd-kit` skill by this change.
+- Adds `scripts/exec/real-cost.mjs` with `computeRealCost(opts)`: computes
+  the real cost of one plan-executor run (orchestrator + subagents, USD and
+  tokens, cache_read included) by calling the vendored `token-cost.mjs`'s
+  `analyze()`. The orchestrator side is sliced to its post-boundary portion
+  when a caller-supplied `boundary` substring matches a line in the
+  session's raw transcript (falling back to the orchestrator's full totals
+  when it doesn't); the subagents side is the full, unsliced total across
+  the session's `subagents/` dir, per a documented limitation of
+  `token-cost.mjs` (it has no boundary-awareness for subagent transcripts).
+  Degrades gracefully: when the target session can't be located or parsed,
+  returns `{ unavailable: true, reason }` instead of throwing. Standalone
+  module only — not yet wired into `exec-tools.mjs report` or
+  `verify-tools.mjs`.
 
 ## 0.4.1
 

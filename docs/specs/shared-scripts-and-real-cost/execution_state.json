@@ -32,11 +32,11 @@
       "incidencia": null
     },
     "T4-real-cost-compute": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 46000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 72995,
+      "deviation": 26995,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/exec/real-cost.test.mjs",
       "commit": null,
       "incidencia": null
     },
@@ -68,5 +68,10 @@
       "incidencia": null
     }
   },
-  "pause": null
+  "pause": {
+    "reason": "budget: actual > 2x estimated executed",
+    "real_tokens": 174315,
+    "estimated_tokens": 80000,
+    "at_task": "T4-real-cost-compute"
+  }
 }
