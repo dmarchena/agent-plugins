@@ -4,6 +4,28 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+- `exec-tools.mjs`'s `report` subcommand now wires `exec/real-cost.mjs`'s
+  `computeRealCost()` in: its JSON output gains a `real_cost` block
+  (orchestrator/subagents/total, USD and tokens, cache_read included),
+  sliced to this run via the state's own git branch as the boundary, and a
+  `real_cost_over_budget` indicator from a new `exec/budget.mjs` export,
+  `realCostOverBudget(realCost, estimatedTokensTotal)`. Both fields are
+  purely additive — the pre-existing `tokens.real`/`tokens.estimated`
+  fields are unchanged, and `realCostOverBudget()` is a pure function that
+  never touches state or halts a run: the budget-triggered pause path was
+  already removed from `next` in a prior change, and this only replaces the
+  blind "2x actual_tokens" comparison for the *reported* indicator with one
+  driven by the transcript-measured real_cost total instead.
+- `verify-tools.mjs`'s `report`/`archive` pipeline now also wires in
+  `exec/real-cost.mjs`'s `computeRealCost()`: the printed report gains a
+  top-level `real_cost` block (orchestrator/subagents/total, USD and
+  tokens, cache_read included), sliced via the SPECDIR's own
+  `execution_state.json` `branch` as the boundary. Purely additive — the
+  pre-existing per-task `deviatedTasks` (`actual_tokens`/
+  `estimated_tokens`) reporting is unchanged.
+
 ## 0.4.2
 
 - Adds `scripts/token-cost.mjs`, vendored from the repo-root `shared/`

@@ -22,9 +22,10 @@ import {
 } from './exec/git.mjs';
 import { readConfig, readChangeType, resolvePrefix } from './exec/config.mjs';
 import { rerun, confirm } from './exec/verify.mjs';
-import { blockAndSkip } from './exec/budget.mjs';
+import { blockAndSkip, realCostOverBudget } from './exec/budget.mjs';
 import { resumeGround } from './exec/resume.mjs';
 import { extractIds } from './exec/extract.mjs';
+import { computeRealCost } from './exec/real-cost.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -307,10 +308,17 @@ function cmdReport(specDir) {
     estTotal += st.estimated_tokens;
     if (st.status === 'done') for (const ac of (task.satisfies_acs || [])) acs.add(ac);
   }
+  // real_cost / real_cost_over_budget: T5-exec-report-signal. Purely
+  // additive, report-only fields — computeRealCost() never throws (worst
+  // case { unavailable, reason }) and realCostOverBudget() is a pure
+  // function that cannot pause or halt the run; see exec/budget.mjs.
+  const realCost = computeRealCost({ boundary: state.branch });
+  const realCostOverBudgetIndicator = realCostOverBudget(realCost, plan.estimated_tokens_total);
   out({
     status: 'report', branch: state.branch, counts: counts(state),
     tokens: { real: realTotal, estimated: estTotal }, per_task: per,
     acs_satisfechos: [...acs].sort(), pause: state.pause,
+    real_cost: realCost, real_cost_over_budget: realCostOverBudgetIndicator,
   });
 }
 

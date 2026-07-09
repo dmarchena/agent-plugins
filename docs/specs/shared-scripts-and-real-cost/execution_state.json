@@ -37,15 +37,15 @@
       "actual_tokens": 72995,
       "deviation": 26995,
       "test_cmd": "cd plugins/sdd-kit && node --test test/exec/real-cost.test.mjs",
-      "commit": null,
+      "commit": "17c26a9",
       "incidencia": null
     },
     "T5-exec-report-signal": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 40000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 85040,
+      "deviation": 45040,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/exec/report-real-cost.test.mjs",
       "commit": null,
       "incidencia": null
     },
