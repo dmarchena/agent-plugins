@@ -37,15 +37,15 @@
       "actual_tokens": 30940,
       "deviation": 27940,
       "test_cmd": "node --test plugins/sdd-kit/test/validate-sh-budget-guard.test.mjs",
-      "commit": null,
+      "commit": "8387209",
       "incidencia": null
     },
     "T5-e2e-verify": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 4000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 37173,
+      "deviation": 33173,
+      "test_cmd": "bash scripts/validate.sh",
       "commit": null,
       "incidencia": null
     }
