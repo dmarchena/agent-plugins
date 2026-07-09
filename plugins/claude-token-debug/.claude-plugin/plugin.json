@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "claude-token-debug",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Debugging toolkit for measuring where Claude Code's real token spend goes: subagent cost/turns, built-in agent prompts and tool schemas.",
   "author": {
     "name": "dmarchena",

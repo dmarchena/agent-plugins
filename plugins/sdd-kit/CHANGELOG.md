@@ -4,7 +4,7 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## Unreleased
+## 0.5.0
 
 - `exec-tools.mjs`'s `report` subcommand now wires `exec/real-cost.mjs`'s
   `computeRealCost()` in: its JSON output gains a `real_cost` block
@@ -25,9 +25,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `execution_state.json` `branch` as the boundary. Purely additive — the
   pre-existing per-task `deviatedTasks` (`actual_tokens`/
   `estimated_tokens`) reporting is unchanged.
-
-## 0.4.2
-
 - Adds `scripts/token-cost.mjs`, vendored from the repo-root `shared/`
   directory via `shared/build.sh` (a new cross-plugin vendoring mechanism):
   `sdd-kit` opts in with a `"sharedScripts": ["token-cost.mjs"]` field in
