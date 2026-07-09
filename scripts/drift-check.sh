@@ -5,9 +5,9 @@
 # generated copy instead of editing shared/<script> and re-running
 # shared/build.sh.
 #
-# Uses the same declaration convention as shared/build.sh: a plugin opts a
-# script in via a top-level `sharedScripts` array in its
-# `.claude-plugin/plugin.json`, e.g. `"sharedScripts": ["token-cost.mjs"]`.
+# Uses the same declaration convention as shared/build.sh: shared/manifest.json
+# maps each plugin name to the list of shared scripts it consumes, e.g.
+# `{ "claude-token-debug": ["token-cost.mjs"] }`.
 #
 # Usage: scripts/drift-check.sh [ROOT_DIR]
 #   ROOT_DIR defaults to the repo root (parent of this script's directory).
@@ -30,12 +30,16 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="${1:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 SHARED_DIR="$ROOT/shared"
+MANIFEST="$SHARED_DIR/manifest.json"
 fail=0
 
-for pj in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do
-  [ -e "$pj" ] || continue
-  plugin_dir="$(dirname "$(dirname "$pj")")"
-  plugin_name="$(basename "$plugin_dir")"
+if [ ! -f "$MANIFEST" ]; then
+  echo "✔ sin drift: no hay shared/manifest.json, nada que comprobar"
+  exit 0
+fi
+
+for plugin_name in $(jq -r 'keys[]' "$MANIFEST"); do
+  plugin_dir="$ROOT/plugins/$plugin_name"
 
   while IFS= read -r script; do
     [ -n "$script" ] || continue
@@ -57,7 +61,7 @@ for pj in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do
       echo "✘ drift detected: '$dest' no coincide con '$src' — alguien editó la copia vendorizada a mano. Re-ejecuta shared/build.sh." >&2
       fail=1
     fi
-  done < <(jq -r '.sharedScripts[]? // empty' "$pj")
+  done < <(jq -r --arg p "$plugin_name" '.[$p][]? // empty' "$MANIFEST")
 done
 
 if [ "$fail" -ne 0 ]; then

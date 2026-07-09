@@ -3,10 +3,14 @@
 # it as a dependency, so each plugin ships a self-contained, byte-identical
 # copy without a runtime cross-plugin import.
 #
-# Declaration format: a plugin opts into a shared script by listing it in a
-# top-level `sharedScripts` array in its `.claude-plugin/plugin.json`, e.g.:
+# Declaration format: shared/manifest.json maps each plugin name to the list
+# of shared scripts it consumes, e.g.:
 #
-#   "sharedScripts": ["token-cost.mjs"]
+#   { "claude-token-debug": ["token-cost.mjs"] }
+#
+# (Not declared as a field inside plugin.json: `claude plugin validate
+# --strict` rejects unknown top-level fields there, so the manifest lives
+# under shared/ instead.)
 #
 # Each entry is a filename that must exist directly under shared/ (this
 # directory). For every plugin/script pair this build copies
@@ -34,12 +38,16 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="${1:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 SHARED_DIR="$ROOT/shared"
+MANIFEST="$SHARED_DIR/manifest.json"
 fail=0
 
-for pj in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do
-  [ -e "$pj" ] || continue
-  plugin_dir="$(dirname "$(dirname "$pj")")"
-  plugin_name="$(basename "$plugin_dir")"
+if [ ! -f "$MANIFEST" ]; then
+  echo "✔ vendoring build complete (no shared/manifest.json, nothing to vendor)"
+  exit 0
+fi
+
+for plugin_name in $(jq -r 'keys[]' "$MANIFEST"); do
+  plugin_dir="$ROOT/plugins/$plugin_name"
 
   while IFS= read -r script; do
     [ -n "$script" ] || continue
@@ -53,7 +61,7 @@ for pj in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do
     mkdir -p "$dest_dir"
     cp "$src" "$dest_dir/$script"
     echo "✔ vendored $script -> plugins/$plugin_name/scripts/$script"
-  done < <(jq -r '.sharedScripts[]? // empty' "$pj")
+  done < <(jq -r --arg p "$plugin_name" '.[$p][]? // empty' "$MANIFEST")
 done
 
 if [ "$fail" -ne 0 ]; then

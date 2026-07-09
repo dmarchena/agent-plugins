@@ -16,8 +16,8 @@ function makeFixtureRoot() {
 }
 
 // Builds a fixture tree with one shared script and one plugin that declares
-// it via `sharedScripts`, vendoring a copy with the given content (defaults
-// to matching the shared original).
+// it via shared/manifest.json, vendoring a copy with the given content
+// (defaults to matching the shared original).
 function buildFixture({ sharedContent, vendoredContent, omitVendored = false }) {
   const fixtureRoot = makeFixtureRoot();
   const sharedDir = path.join(fixtureRoot, 'shared');
@@ -33,11 +33,14 @@ function buildFixture({ sharedContent, vendoredContent, omitVendored = false }) 
         name: 'fixture-plugin',
         version: '0.0.1',
         description: 'fixture plugin for drift-check tests',
-        sharedScripts: ['token-cost.mjs'],
       },
       null,
       2,
     ),
+  );
+  fs.writeFileSync(
+    path.join(sharedDir, 'manifest.json'),
+    JSON.stringify({ 'fixture-plugin': ['token-cost.mjs'] }, null, 2),
   );
 
   if (!omitVendored) {

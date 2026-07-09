@@ -56,11 +56,14 @@ test('R1.S2: if a plugin declares a shared script that does not exist under shar
         name: 'ghost-plugin',
         version: '0.0.1',
         description: 'fixture plugin for R1.S2',
-        sharedScripts: ['does-not-exist.mjs'],
       },
       null,
       2,
     ),
+  );
+  fs.writeFileSync(
+    path.join(fixtureRoot, 'shared', 'manifest.json'),
+    JSON.stringify({ 'ghost-plugin': ['does-not-exist.mjs'] }, null, 2),
   );
 
   let threw = false;

@@ -6,6 +6,5 @@
   "author": {
     "name": "dmarchena",
     "email": "dvmarchena@gmail.com"
-  },
-  "sharedScripts": ["token-cost.mjs"]
+  }
 }

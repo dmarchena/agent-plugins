@@ -28,7 +28,7 @@
       "actual_tokens": 61371,
       "deviation": 43371,
       "test_cmd": "node --test shared/test/token-cost.test.mjs",
-      "commit": null,
+      "commit": "7284894",
       "incidencia": null
     },
     "T4-real-cost-compute": {

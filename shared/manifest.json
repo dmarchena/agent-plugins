@@ -1,0 +1,4 @@
+{
+  "claude-token-debug": ["token-cost.mjs"],
+  "sdd-kit": ["token-cost.mjs"]
+}
