@@ -4,6 +4,16 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.4.2
+
+- Adds `scripts/token-cost.mjs`, vendored from the repo-root `shared/`
+  directory via `shared/build.sh` (a new cross-plugin vendoring mechanism):
+  `sdd-kit` opts in with a `"sharedScripts": ["token-cost.mjs"]` field in
+  `.claude-plugin/plugin.json`, and the build copies it in byte-identical
+  from `shared/token-cost.mjs`. This is the same shared script
+  `claude-token-debug` consumes; `token-cost.mjs` is not yet wired into any
+  `sdd-kit` skill by this change.
+
 ## 0.4.1
 
 - `verify-tools.mjs` exposes its deterministic stages as CLI subcommands
