@@ -64,10 +64,9 @@ Read `assets/agent-roles.md` — the fixed catalog of `agent_type` →
 `subagent`, `model`, and a one-line `justification`, applying the
 most-austere-that-qualifies rule: mechanical, low-judgment work
 → `haiku`; bounded implementation with clear acceptance criteria →
-`sonnet`; design, critical review, or trade-off decisions → `opus`. The
-`R-E2E`/`AC-E2E` task MUST use `agent_type: "verifier"` instead of `terminal_operator`
-(`test_contract: null`) — see `assets/agent-roles.md`'s `verifier` row for
-full detail.
+`sonnet`; design, critical review, or trade-off decisions → `opus`. For the
+`R-E2E`/`AC-E2E` task's `agent_type`, see `assets/e2e-task-assignment.md`
+(verifier vs. code_writer) and `assets/agent-roles.md`'s matching rows.
 
 ## Write granular instructions
 

@@ -181,7 +181,10 @@ function runTask(repo, specDir, taskId, tokens) {
 // --- test --------------------------------------------------------------------
 
 test('R-E2E.S1/AC-E2E: exec reaches complete (never paused) despite a healthy task blowing past 2x its token estimate, then the verify CLI one-liners report all-green and archive the SPECDIR', () => {
-  const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'exec-verify-e2e-'));
+  // realpathSync: on macOS os.tmpdir() is /var/folders/... (a symlink to
+  // /private/var/...); the archive CLI returns a canonicalized destination, so
+  // the fixture root must be canonical too for the path string comparisons.
+  const repo = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'exec-verify-e2e-')));
   try {
     const specDir = path.join('docs', 'specs', SLUG);
     const absSpecDir = path.join(repo, specDir);
