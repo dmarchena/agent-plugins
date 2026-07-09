@@ -30,10 +30,22 @@ const AC_SECTION_RE = /^##\s+Acceptance Criteria\s*$/;
 const OTHER_H2_RE = /^##\s+/;
 const AC_ITEM_RE =
   /^-\s*(?:\[[^\]]*\]\s*)?(AC-E2E|AC\d+)\s*→\s*(R-E2E(?:\.S\d+)?|R\d+(?:\.S\d+)?)\s*\[(auto|manual)\]\s*—\s*(.+)$/;
+// Any markdown list item line (a dash followed by a space), used to detect
+// AC-shaped lines that fail AC_ITEM_RE instead of silently treating them as
+// a wrapped description continuation (R1).
+const LIST_ITEM_RE = /^-\s/;
 
 // Parses the "## Acceptance Criteria" section of a spec.md into an array of
 // { ac_id, ref, tag, description }, folding wrapped description lines (lines
 // that continue a bullet's text on the next line) into a single string.
+//
+// R1: a line under this section that IS a markdown list item (starts with
+// "- ") but does NOT match AC_ITEM_RE is a malformed AC entry (e.g. a
+// non-standard ref like "R7-catálogos") — this throws VerifyInputError
+// naming the offending line rather than silently dropping it. Lines that are
+// not list items (wrapped description continuations, "---" horizontal
+// rules, blank lines) are unaffected and keep folding into the current
+// item's description exactly as before.
 function parseAcChecklist(specText) {
   const lines = specText.split(/\r?\n/);
   const checklist = [];
@@ -65,6 +77,12 @@ function parseAcChecklist(specText) {
       };
       checklist.push(current);
       continue;
+    }
+
+    if (LIST_ITEM_RE.test(line)) {
+      throw new VerifyInputError(
+        `malformed Acceptance Criteria list item (does not match the expected AC format): ${line}`
+      );
     }
 
     const trimmed = line.trim();
@@ -119,6 +137,23 @@ export function loadSpecdir(specDir) {
   const specText = fs.readFileSync(specPath, 'utf8');
   const checklist = parseAcChecklist(specText);
   const coverageAcs = (plan.coverage && plan.coverage.acs) || {};
+
+  // R2: cross-check plan.coverage.acs against the parsed checklist — every
+  // ac_id the plan claims to cover must have a matching checklist item, or
+  // that AC would silently vanish from verify's verdict (never green, never
+  // reported as not-green either). Only this direction (plan -> checklist);
+  // the inverse (checklist ac_id absent from the plan) is out of scope here,
+  // already covered by plan-executor's check-plan. A no-op when
+  // plan.coverage.acs is empty/absent.
+  const checklistAcIds = new Set(checklist.map((item) => item.ac_id));
+  const missingFromChecklist = Object.keys(coverageAcs).filter(
+    (acId) => !checklistAcIds.has(acId)
+  );
+  if (missingFromChecklist.length > 0) {
+    throw new VerifyInputError(
+      `plan.coverage.acs names AC id(s) missing from the spec.md checklist: ${missingFromChecklist.join(', ')}`
+    );
+  }
 
   const statePath = path.join(specDir, 'execution_state.json');
   let taskState = null;
