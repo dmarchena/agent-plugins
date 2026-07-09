@@ -1,0 +1,36 @@
+{
+  "plan_id": "verify-ac-parser-loud-fail",
+  "source_spec": "docs/specs/verify-ac-parser-loud-fail/spec.md",
+  "branch": "fix/verify-ac-parser-loud-fail",
+  "started_at": "2026-07-09T12:00:57.650Z",
+  "tasks": {
+    "T1": {
+      "status": "done",
+      "estimated_tokens": 45000,
+      "actual_tokens": 55000,
+      "deviation": 10000,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-ac-parser.test.mjs",
+      "commit": "badefc7",
+      "incidencia": null
+    },
+    "T2": {
+      "status": "done",
+      "estimated_tokens": 35000,
+      "actual_tokens": 35000,
+      "deviation": 0,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-coverage-cross-check.test.mjs",
+      "commit": "c55a8ba",
+      "incidencia": null
+    },
+    "T3": {
+      "status": "done",
+      "estimated_tokens": 25000,
+      "actual_tokens": 25000,
+      "deviation": 0,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-ac-parser.test.mjs plugins/sdd-kit/test/verify-coverage-cross-check.test.mjs plugins/sdd-kit/test/verify-tools.test.mjs",
+      "commit": "f4f0f3a",
+      "incidencia": null
+    }
+  },
+  "pause": null
+}

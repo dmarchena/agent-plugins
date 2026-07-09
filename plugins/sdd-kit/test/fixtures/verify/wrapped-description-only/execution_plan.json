@@ -1,0 +1,12 @@
+{
+  "plan_id": "fixture-wrapped-description-only",
+  "source_spec": "spec.md",
+  "tasks": [
+    { "task_id": "T1" }
+  ],
+  "coverage": {
+    "acs": {
+      "AC1": ["T1"]
+    }
+  }
+}

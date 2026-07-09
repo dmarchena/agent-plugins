@@ -1,0 +1,12 @@
+{
+  "plan_id": "fixture-malformed-ac-line",
+  "source_spec": "spec.md",
+  "tasks": [
+    { "task_id": "T1" }
+  ],
+  "coverage": {
+    "acs": {
+      "AC1": ["T1"]
+    }
+  }
+}
