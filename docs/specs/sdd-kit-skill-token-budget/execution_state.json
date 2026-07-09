@@ -1,0 +1,54 @@
+{
+  "plan_id": "sdd-kit-skill-token-budget-plan",
+  "source_spec": "spec.md",
+  "branch": "fix/sdd-kit-skill-token-budget",
+  "started_at": "2026-07-09T21:49:01.556Z",
+  "tasks": {
+    "T1-tokenizer": {
+      "status": "done",
+      "estimated_tokens": 8000,
+      "actual_tokens": 37767,
+      "deviation": 29767,
+      "test_cmd": "node --test plugins/sdd-kit/test/tokenizer.test.mjs",
+      "commit": null,
+      "incidencia": null
+    },
+    "T2-budget-guard": {
+      "status": "pending",
+      "estimated_tokens": 10000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T3-trim-skills": {
+      "status": "pending",
+      "estimated_tokens": 15000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T4-wire-validate": {
+      "status": "pending",
+      "estimated_tokens": 3000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "T5-e2e-verify": {
+      "status": "pending",
+      "estimated_tokens": 4000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    }
+  },
+  "pause": null
+}
