@@ -64,7 +64,23 @@ Read `assets/agent-roles.md` — the fixed catalog of `agent_type` →
 `subagent`, `model`, and a one-line `justification`, applying the
 most-austere-that-qualifies rule: mechanical, low-judgment work
 → `haiku`; bounded implementation with clear acceptance criteria →
-`sonnet`; design, critical review, or trade-off decisions → `opus`. The task backing the spec's mandated `R-E2E`/`AC-E2E` requirement (run the whole suite, confirm it's green, no code to write) MUST be emitted with `agent_type: "verifier"` instead of `terminal_operator`, `test_contract: null` same as any other non-`code_writer` role — see `assets/agent-roles.md`'s `verifier` row.
+`sonnet`; design, critical review, or trade-off decisions → `opus`. The task
+backing the spec's mandated `R-E2E`/`AC-E2E` requirement depends on whether the
+end-to-end path is **already covered by the union of the per-requirement
+`code_writer` tests** or needs a **new integration test authored**:
+
+- **Covered by composition** — `AC-E2E` only re-runs what the per-task tests
+  already exercise (run the whole suite, confirm it's green, no code to write):
+  emit that task with `agent_type: "verifier"` (not `terminal_operator`),
+  `test_contract: null` same as any other non-`code_writer` role.
+- **Requires a new integration test** — `AC-E2E` describes a
+  cross-stage/cross-requirement walkthrough that **no per-task test covers**
+  (e.g. exec→verify→archive), so the integration test has to be *written*: emit
+  a `code_writer` node that authors it (with its `test_contract`), optionally
+  followed by a `verifier` node as the final green gate. A `verifier` cannot
+  author code, so the verifier-only shape is wrong for this case.
+
+See `assets/agent-roles.md`'s `verifier` and `code_writer` rows.
 
 ## Write granular instructions
 
