@@ -42,6 +42,9 @@ node --test "$ROOT"/shared/test/token-cost.test.mjs || fail=1
 echo "▶ Comprobando drift entre shared/ y las copias vendorizadas (scripts/drift-check.sh)…"
 "$ROOT"/scripts/drift-check.sh "$ROOT" || fail=1
 
+echo "▶ Validando presupuesto de tokens (budget-guard.mjs)…"
+node "$ROOT"/plugins/sdd-kit/scripts/budget-guard.mjs || fail=1
+
 # Comprobación de versionado/changelog (R4, change-type-versioning-policy):
 # no bloqueante — nunca toca `fail` ni el exit code de este script, con o sin
 # avisos. Silenciosa cuando `versioningPolicy` es "disabled"/ausente (R4.S1).

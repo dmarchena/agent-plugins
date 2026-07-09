@@ -28,15 +28,15 @@
       "actual_tokens": 209461,
       "deviation": 194461,
       "test_cmd": "node --test plugins/sdd-kit/test/skill-slimming.test.mjs",
-      "commit": null,
+      "commit": "71f20f8",
       "incidencia": null
     },
     "T4-wire-validate": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 3000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 30940,
+      "deviation": 27940,
+      "test_cmd": "node --test plugins/sdd-kit/test/validate-sh-budget-guard.test.mjs",
       "commit": null,
       "incidencia": null
     },
