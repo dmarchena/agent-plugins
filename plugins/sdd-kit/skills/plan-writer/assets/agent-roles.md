@@ -15,7 +15,7 @@ la tarea.
 | `doc_writer`        | `general-purpose` | `sonnet` | redactar docs siguiendo un esquema |
 | `reviewer`          | `general-purpose` | `opus`   | revisión crítica / juicio |
 | `architect`         | `Plan`            | `opus`   | diseño / decisiones con trade-offs |
-| `verifier`          | `general-purpose` | `haiku`  | correr la suite ya existente y confirmar verde (sin código, sin fase roja) — la tarea que respalda el `R-E2E`/`AC-E2E` que todo spec exige |
+| `verifier`          | `general-purpose` | `haiku`  | correr la suite ya existente y confirmar verde (sin código, sin fase roja) — respalda el `R-E2E`/`AC-E2E` **cuando la unión de los tests por-tarea ya cubre el camino E2E**; si el `AC-E2E` es transversal y ningún test por-tarea lo cubre, el test de integración hay que **escribirlo** con un nodo `code_writer` (opcionalmente seguido de un `verifier` como green gate final) |
 
 ## Coste real de un subagente: turnos, no prompt fijo
 
