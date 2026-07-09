@@ -9,6 +9,7 @@ import { checkVersioning } from './exec/versioning-check.mjs';
 import { currentBranch } from './exec/git.mjs';
 import { readConfig } from './exec/config.mjs';
 import { rerun } from './exec/verify.mjs';
+import { computeRealCost } from './exec/real-cost.mjs';
 
 /**
  * Thrown when a required SPECDIR input (execution_plan.json or spec.md) is
@@ -108,6 +109,7 @@ function assertRequiredFiles(specDir) {
  *   checklist: Array<{ ac_id: string, ref: string, tag: 'auto'|'manual', description: string }>,
  *   coverageAcs: Record<string, string[]>,
  *   taskState: Record<string, object>|null,
+ *   branch: string|null,
  * }}
  */
 export function loadSpecdir(specDir) {
@@ -120,12 +122,14 @@ export function loadSpecdir(specDir) {
 
   const statePath = path.join(specDir, 'execution_state.json');
   let taskState = null;
+  let branch = null;
   if (fs.existsSync(statePath)) {
     const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
     taskState = state.tasks || {};
+    branch = state.branch || null;
   }
 
-  return { checklist, coverageAcs, taskState };
+  return { checklist, coverageAcs, taskState, branch };
 }
 
 // ---------------------------------------------------------------------------
@@ -501,12 +505,21 @@ export function incompleteCoverage(checklist, coverageAcs, taskState) {
  * `deviatedTasks` — purely informational (R6.S2/AC8): it is NEVER consulted
  * when computing any AC's verdict or the overall `allGreen`.
  *
+ * `realCostResult` (T6-verify-report, R5.S1) is folded into the report
+ * verbatim as `real_cost` — the same `computeRealCost` return shape T4
+ * introduced (`{orchestrator, subagents, total}` or `{unavailable, reason}`),
+ * additive alongside `deviatedTasks`/the per-AC verdicts: it is NEVER
+ * consulted when computing any AC's verdict or the overall `allGreen`
+ * either. Optional (defaults to `null` when omitted) so every existing
+ * caller of this function keeps working unchanged.
+ *
  * @param {Array<{ac_id: string, ref: string, tag: 'auto'|'manual', description: string}>} checklist
  * @param {{green: string[], drift: Array<{ac_id: string, task_id: string, test_cmd: string, output: string}>}} groundCheckResult
  * @param {ReturnType<typeof manualConfirmation>|null} manualTracker
  * @param {{degraded: boolean, reason?: string, tracker?: ReturnType<typeof manualConfirmation>}} degradedResult
  * @param {Array<{ac_id: string, task_id: string, status: string, incidencia?: string|null, reason: string}>} incompleteCoverageResult
  * @param {Array<{task_id: string, actual_tokens: number, estimated_tokens: number, suggestion: string}>} tokenDeviationsResult
+ * @param {{orchestrator:{tokens:number,usd:number},subagents:{tokens:number,usd:number},total:{tokens:number,usd:number}}|{unavailable:true,reason:string}|null} [realCostResult]
  * @returns {{
  *   allGreen: boolean,
  *   acs: Array<{
@@ -518,6 +531,7 @@ export function incompleteCoverage(checklist, coverageAcs, taskState) {
  *     details?: object,
  *   }>,
  *   deviatedTasks: Array<{task_id: string, actual_tokens: number, estimated_tokens: number, suggestion: string}>,
+ *   real_cost: {orchestrator:{tokens:number,usd:number},subagents:{tokens:number,usd:number},total:{tokens:number,usd:number}}|{unavailable:true,reason:string}|null,
  * }}
  */
 export function assembleReport(
@@ -526,7 +540,8 @@ export function assembleReport(
   manualTracker,
   degradedResult,
   incompleteCoverageResult,
-  tokenDeviationsResult
+  tokenDeviationsResult,
+  realCostResult
 ) {
   const acs = [];
 
@@ -623,7 +638,12 @@ export function assembleReport(
 
   const allGreen = acs.every((a) => a.green);
 
-  return { allGreen, acs, deviatedTasks: tokenDeviationsResult || [] };
+  return {
+    allGreen,
+    acs,
+    deviatedTasks: tokenDeviationsResult || [],
+    real_cost: realCostResult !== undefined ? realCostResult : null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -962,12 +982,23 @@ function applyVerdicts(tracker, verdictsPath) {
 // Shared pipeline behind `report` and `archive` (SKILL.md's documented
 // sequence): loadSpecdir -> groundCheck -> build a manual-confirmation
 // tracker for [manual] ACs (skipped when degraded) -> degradedManualRouting
-// -> incompleteCoverage -> tokenDeviations -> assembleReport. Never reads
-// interactive stdin: [manual]/degraded ACs are resolved solely from an
-// optional --verdicts file, and anything left unanswered simply stays
-// 'unanswered' (not green) rather than blocking on a prompt.
-function buildReport(specDir, verdictsPath) {
-  const { checklist, coverageAcs, taskState } = loadSpecdir(specDir);
+// -> incompleteCoverage -> tokenDeviations -> computeRealCost -> assembleReport.
+// Never reads interactive stdin: [manual]/degraded ACs are resolved solely
+// from an optional --verdicts file, and anything left unanswered simply
+// stays 'unanswered' (not green) rather than blocking on a prompt.
+//
+// `realCostOpts` (T6-verify-report): extra options merged into the
+// `computeRealCost` call, ahead of `boundary` (which always comes from the
+// SPECDIR's own execution_state.json `branch`, per T4/T5's convention of
+// stamping the run's branch name into the transcript once at `init`).
+// Production call sites (cmdReport/cmdArchive below) never pass this —
+// it exists so tests can point computeRealCost at a fixture session
+// (`sessionPath`/`projectsRoot`/etc.) instead of auto-discovering the live
+// session. `computeRealCost` never throws, so a missing/unresolvable
+// session degrades to `{ unavailable: true, reason }` rather than failing
+// the whole report.
+function buildReport(specDir, verdictsPath, realCostOpts = {}) {
+  const { checklist, coverageAcs, taskState, branch } = loadSpecdir(specDir);
 
   const groundCheckResult = groundCheck(checklist, coverageAcs, taskState, { rerun });
   const degradedResult = degradedManualRouting(checklist, taskState);
@@ -985,6 +1016,7 @@ function buildReport(specDir, verdictsPath) {
 
   const incompleteCoverageResult = incompleteCoverage(checklist, coverageAcs, taskState);
   const tokenDeviationsResult = tokenDeviations(taskState);
+  const realCostResult = computeRealCost({ boundary: branch, ...realCostOpts });
 
   return assembleReport(
     checklist,
@@ -992,7 +1024,8 @@ function buildReport(specDir, verdictsPath) {
     manualTracker,
     degradedResult,
     incompleteCoverageResult,
-    tokenDeviationsResult
+    tokenDeviationsResult,
+    realCostResult
   );
 }
 

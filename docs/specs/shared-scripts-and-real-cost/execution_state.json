@@ -46,15 +46,15 @@
       "actual_tokens": 85040,
       "deviation": 45040,
       "test_cmd": "cd plugins/sdd-kit && node --test test/exec/report-real-cost.test.mjs",
-      "commit": null,
+      "commit": "c59d282",
       "incidencia": null
     },
     "T6-verify-report": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 28000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 103698,
+      "deviation": 75698,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/verify-real-cost.test.mjs",
       "commit": null,
       "incidencia": null
     },
