@@ -65,8 +65,6 @@
     "**exactly once**: re-delegate to the same subagent",
     "exec-tools.mjs block SPECDIR",
     "marks the task `blocked` and its transitive dependents `skipped`",
-    "exceed **2×** the estimate",
-    "Only resume on their say-so.",
     "re-runs the test command of every `done` task",
     "previously-green test now fails",
     "hand the decision to the user",
