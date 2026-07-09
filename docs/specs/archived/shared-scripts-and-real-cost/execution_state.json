@@ -1,0 +1,77 @@
+{
+  "plan_id": "shared-scripts-and-real-cost",
+  "source_spec": "docs/specs/shared-scripts-and-real-cost/spec.md",
+  "branch": "feat/shared-scripts-and-real-cost",
+  "started_at": "2026-07-09T09:41:55.403Z",
+  "tasks": {
+    "T1-vendoring-build": {
+      "status": "done",
+      "estimated_tokens": 38000,
+      "actual_tokens": 54439,
+      "deviation": 16439,
+      "test_cmd": "node shared/test/build.test.mjs",
+      "commit": "b8445cf",
+      "incidencia": null
+    },
+    "T2-drift-check": {
+      "status": "done",
+      "estimated_tokens": 24000,
+      "actual_tokens": 58505,
+      "deviation": 34505,
+      "test_cmd": "node --test /Users/dmarchena/ai/agent-plugins/scripts/test/drift-check.test.mjs",
+      "commit": "15f9bbb",
+      "incidencia": null
+    },
+    "T3-shared-source-of-truth": {
+      "status": "done",
+      "estimated_tokens": 18000,
+      "actual_tokens": 61371,
+      "deviation": 43371,
+      "test_cmd": "node --test shared/test/token-cost.test.mjs",
+      "commit": "7284894",
+      "incidencia": null
+    },
+    "T4-real-cost-compute": {
+      "status": "done",
+      "estimated_tokens": 46000,
+      "actual_tokens": 72995,
+      "deviation": 26995,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/exec/real-cost.test.mjs",
+      "commit": "17c26a9",
+      "incidencia": null
+    },
+    "T5-exec-report-signal": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 85040,
+      "deviation": 45040,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/exec/report-real-cost.test.mjs",
+      "commit": "c59d282",
+      "incidencia": null
+    },
+    "T6-verify-report": {
+      "status": "done",
+      "estimated_tokens": 28000,
+      "actual_tokens": 103698,
+      "deviation": 75698,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/verify-real-cost.test.mjs",
+      "commit": "781eba5",
+      "incidencia": null
+    },
+    "T7-e2e-suite": {
+      "status": "done",
+      "estimated_tokens": 15000,
+      "actual_tokens": 42960,
+      "deviation": 27960,
+      "test_cmd": "bash scripts/validate.sh",
+      "commit": "ce074cf",
+      "incidencia": null
+    }
+  },
+  "pause": {
+    "reason": "budget: actual > 2x estimated executed",
+    "real_tokens": 436048,
+    "estimated_tokens": 194000,
+    "at_task": "T7-e2e-suite"
+  }
+}

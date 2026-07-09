@@ -13,11 +13,11 @@ import {
   priceMessage,
   analyzeSession,
   analyze,
-} from '../scripts/token-cost.mjs';
+} from '../token-cost.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const CLI_PATH = path.join(__dirname, '..', 'scripts', 'token-cost.mjs');
+const CLI_PATH = path.join(__dirname, '..', 'token-cost.mjs');
 
 function makeFixtureDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'token-cost-fixture-'));

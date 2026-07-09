@@ -1,0 +1,160 @@
+{
+  "plan_id": "shared-scripts-and-real-cost",
+  "project_name": "agent-plugins",
+  "global_objective": "Introducir un mecanismo de vendorizado de scripts compartidos entre plugins (shared/ + build.sh + check de drift) usando token-cost.mjs como primer ciudadano, y con esa logica ya disponible en sdd-kit exponer el coste real por run (orquestador + subagentes, incl. cache_read) en los reports de exec y verify, derivando de ahi el indicador over-budget en lugar del check ciego 2x actual_tokens.",
+  "source_spec": "docs/specs/shared-scripts-and-real-cost/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 209000,
+  "tasks": [
+    {
+      "task_id": "T1-vendoring-build",
+      "source_ids": ["R1", "R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementacion acotada con ACs claros: crear shared/, colocar el modulo compartido, escribir build.sh y las declaraciones por plugin. Logica de shell y de copia con criterios observables.",
+      "instructions": "Cubre R1. Crea la carpeta shared/ en la raiz como fuente de verdad y coloca en ella token-cost.mjs (movido desde plugins/claude-token-debug/scripts/token-cost.mjs; la reubicacion del TEST a shared/ y la eliminacion del duplicado por plugin quedan fuera de esta tarea y las cubre R3). Escribe shared/build.sh que, leyendo una declaracion por plugin de que scripts compartidos consume (formato a tu criterio: campo en plugin.json, fichero por plugin, o shared/manifest.json), copia cada script declarado byte-identico a plugins/<plugin>/scripts/ (R1.S1, AC1). Declara token-cost.mjs como shared-dep en claude-token-debug y en sdd-kit; tras correr build.sh ambos plugins deben tener plugins/<plugin>/scripts/token-cost.mjs con el mismo shasum que shared/token-cost.mjs. Si un plugin declara un script inexistente en shared/, build.sh sale != 0 nombrando shared/<script> y el plugin (R1.S2, AC2). El test existente en plugins/claude-token-debug/test/ debe seguir resolviendo contra la copia vendorizada. Anhade entrada de CHANGELOG por plugin tocado (versioningPolicy plugin-changelog). Node ESM stdlib-only; build.sh en sh/bash POSIX; sin red.",
+      "expected_output_schema": "Carpeta shared/ con token-cost.mjs (source of truth); shared/build.sh ejecutable; declaraciones de shared-deps en claude-token-debug y sdd-kit; tras correr build.sh, plugins/claude-token-debug/scripts/token-cost.mjs y plugins/sdd-kit/scripts/token-cost.mjs byte-identicos a shared/token-cost.mjs (mismo shasum). Entradas de CHANGELOG por plugin.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 38000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {"ref": "R1.S1", "assertion": "Tras ejecutar el build de vendorizado, la copia del script compartido en cada plugin declarante es byte-identica al original en shared/ y el build termina con exito."},
+        {"ref": "R1.S2", "assertion": "Si un plugin declara un script compartido que no existe en shared/, el build falla con codigo != 0 y un mensaje que nombra el origen ausente y el plugin declarante."}
+      ]
+    },
+    {
+      "task_id": "T2-drift-check",
+      "source_ids": ["R2", "R2.S1", "R2.S2"],
+      "dependencies": ["T1-vendoring-build"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementacion acotada de un check determinista con ACs claros; extiende scripts/validate.sh reutilizando el mapeo de vendorizado que produjo T1.",
+      "instructions": "Cubre R2. Extiende scripts/validate.sh para que, por cada script compartido vendorizado (segun las declaraciones que introdujo T1-vendoring-build), compare la copia en plugins/<plugin>/scripts/ con su original en shared/. Si todas coinciden, el check no aporta fallo y validate.sh termina 0 (R2.S1, AC3). Si alguna copia difiere, validate.sh sale != 0 nombrando la ruta vendorizada obsoleta e indicando re-ejecutar shared/build.sh (R2.S2, AC4). No modifiques la logica de vendorizado de T1; solo consumela. Anhade CHANGELOG si aplica.",
+      "expected_output_schema": "scripts/validate.sh con un paso de deteccion de drift: exit 0 cuando toda copia vendorizada == original en shared/; exit != 0 con mensaje que nombra la ruta obsoleta y sugiere re-correr build.sh cuando difiera.",
+      "satisfies_acs": ["AC3", "AC4"],
+      "estimated_tokens": 24000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {"ref": "R2.S1", "assertion": "Con todas las copias vendorizadas en sincronia con su original en shared/, el paso de drift de validate.sh pasa y la validacion termina con exito."},
+        {"ref": "R2.S2", "assertion": "Si una copia vendorizada se edita para diferir de su original en shared/, validate.sh falla con codigo != 0 y un mensaje que identifica la ruta vendorizada obsoleta e indica re-ejecutar el build."}
+      ]
+    },
+    {
+      "task_id": "T3-shared-source-of-truth",
+      "source_ids": ["R3", "R3.S1"],
+      "dependencies": ["T1-vendoring-build", "T2-drift-check"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementacion acotada: reubicar el test autoritativo bajo shared/ y eliminar el duplicado por plugin, garantizando que la suite compartida sigue verde; se apoya en el vendorizado (T1) y el check de drift (T2).",
+      "instructions": "Cubre R3. Mueve el test de token-cost (plugins/claude-token-debug/test/token-cost.test.mjs) a shared/ (p.ej. shared/test/token-cost.test.mjs), ajustando su import al path del modulo en shared/token-cost.mjs, de modo que la suite autoritativa viva junto al original y pase verde (R3.S1). Elimina cualquier token-cost.test.mjs remanente bajo plugins/*/test/ (AC5): las copias vendorizadas no llevan test propio porque el check de drift de T2-drift-check ya garantiza que son identicas al original probado. Asegura que el runner de tests del repo ejecuta el test compartido bajo shared/. Anhade CHANGELOG si aplica.",
+      "expected_output_schema": "shared/test/token-cost.test.mjs como suite autoritativa (verde) junto al original en shared/; ningun token-cost.test.mjs bajo plugins/*/test/; el runner de tests recoge la suite compartida.",
+      "satisfies_acs": ["AC5"],
+      "estimated_tokens": 18000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {"ref": "R3.S1", "assertion": "La suite de test autoritativa del script compartido (ubicada en shared/) pasa, y no queda ningun test duplicado del script bajo el directorio test/ de ningun plugin."}
+      ]
+    },
+    {
+      "task_id": "T4-real-cost-compute",
+      "source_ids": ["R4", "R4.S1", "R4.S2"],
+      "dependencies": ["T3-shared-source-of-truth"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementacion acotada: envolver el token-cost.mjs ya vendorizado en sdd-kit para calcular coste real por run con slicing de boundary y degradacion controlada; criterios observables claros y testeables con fixtures.",
+      "instructions": "Cubre R4. Usando el token-cost.mjs vendorizado dentro de sdd-kit (disponible tras T1-vendoring-build; source-of-truth consolidada en T3-shared-source-of-truth), implementa en sdd-kit el computo del coste real de un run: orquestador + subagentes, incluyendo cache_read, en tokens y USD, dividido en porcion orquestador y porcion subagentes, contando solo turnos en/after el boundary del run y excluyendo actividad previa (R4.S1, AC6). Reutiliza el price table existente de token-cost.mjs (costForUsage) y su slicing --boundary; no modifiques la logica de token-cost.mjs. Si el transcript de sesion no puede localizarse/parsearse, devuelve real_cost como 'unavailable' con una razon breve y termina 0 sin crashear (R4.S2, AC7). Provee fixtures de sesion (con actividad pre-boundary y subagentes) para los tests. Anhade CHANGELOG de sdd-kit.",
+      "expected_output_schema": "Funcion/modulo en sdd-kit que devuelve un objeto real_cost { orchestrator: {tokens, usd}, subagents: {tokens, usd}, total: {tokens, usd} } con cache_read incluido y solo turnos at/after boundary; o { unavailable: true, reason } cuando el transcript no es resoluble. Fixtures de sesion en el test dir de sdd-kit.",
+      "satisfies_acs": ["AC6", "AC7"],
+      "estimated_tokens": 46000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {"ref": "R4.S1", "assertion": "Para una sesion fixture con actividad previa al boundary y transcripts de subagentes, el coste real calculado incluye cache_read, separa porcion orquestador y subagentes, y excluye los turnos anteriores al boundary."},
+        {"ref": "R4.S2", "assertion": "Cuando el transcript de sesion no puede resolverse/parsearse, el coste real se reporta como no disponible con una razon y el comando termina con exito sin crashear."}
+      ]
+    },
+    {
+      "task_id": "T5-exec-report-signal",
+      "source_ids": ["R5", "R5.S1", "R5.S2"],
+      "dependencies": ["T4-real-cost-compute"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementacion acotada en exec-tools/budget: anhadir el bloque real_cost al report de exec y rehacer el indicador over-budget para derivar del coste real; consume el computo de T4.",
+      "instructions": "Cubre R5 en el lado exec. Usando el computo real_cost de T4-real-cost-compute, incluye en el report de exec (plugins/sdd-kit/scripts/exec-tools.mjs report) un bloque real_cost (orquestador + subagentes, tokens incl. cache_read + USD) junto a los campos actual_tokens/estimated ya existentes, sin eliminarlos (R5.S1, AC8). Rehace el indicador over-budget/deviation (plugins/sdd-kit/scripts/exec/budget.mjs) para que derive de real_cost en vez del check ciego real > 2x estimated sobre actual_tokens; en ningun caso pausa o detiene el run (R5.S2, AC9). Provee fixture donde 2x actual_tokens y real_cost discrepan para demostrar que el indicador sigue a real_cost. Anhade CHANGELOG de sdd-kit.",
+      "expected_output_schema": "exec-tools.mjs report emite JSON con actual_tokens/estimated existentes MAS un bloque real_cost (orquestador+subagentes, incl. cache_read, tokens+USD); budget.mjs produce un indicador over-budget derivado de real_cost, nunca gatilla pausa/halt.",
+      "satisfies_acs": ["AC8", "AC9"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {"ref": "R5.S1", "assertion": "El report de exec contiene tanto los campos actual_tokens/estimated preexistentes como el nuevo bloque real_cost con porcion orquestador y subagentes incluyendo cache_read."},
+        {"ref": "R5.S2", "assertion": "Para un run donde 2x actual_tokens y real_cost discrepan, el indicador over-budget sigue a real_cost y en ningun caso pausa o detiene el run."}
+      ]
+    },
+    {
+      "task_id": "T6-verify-report",
+      "source_ids": ["R5", "R5.S1"],
+      "dependencies": ["T4-real-cost-compute"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementacion acotada en verify-tools: anhadir el mismo bloque real_cost al report de verify; consume el computo de T4, deliverable distinto (otro fichero/report) del de exec.",
+      "instructions": "Cubre R5 en el lado verify. Usando el computo real_cost de T4-real-cost-compute, incluye en el report de verify (plugins/sdd-kit/scripts/verify-tools.mjs) el mismo bloque real_cost (orquestador + subagentes, tokens incl. cache_read + USD) junto a los campos actual_tokens/estimated existentes, sin eliminarlos (R5.S1, AC8). No dupliques el computo: reutiliza el modulo que introdujo T4-real-cost-compute. Anhade CHANGELOG de sdd-kit.",
+      "expected_output_schema": "El report de verify (verify-tools.mjs) emite el bloque real_cost (orquestador+subagentes, incl. cache_read, tokens+USD) junto a actual_tokens/estimated preexistentes.",
+      "satisfies_acs": ["AC8"],
+      "estimated_tokens": 28000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {"ref": "R5.S1", "assertion": "El report de verify contiene tanto los campos actual_tokens/estimated preexistentes como el bloque real_cost con porcion orquestador y subagentes incluyendo cache_read."}
+      ]
+    },
+    {
+      "task_id": "T7-e2e-suite",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["T1-vendoring-build", "T2-drift-check", "T3-shared-source-of-truth", "T4-real-cost-compute", "T5-exec-report-signal", "T6-verify-report"],
+      "agent_type": "verifier",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "Recorrido integrador sin codigo nuevo: correr build -> validate -> suite completa y confirmar verde, mas comprobar la ausencia de import cross-plugin y la presencia de real_cost en ambos reports. Rol verifier segun la regla de R-E2E/AC-E2E.",
+      "instructions": "Cubre R-E2E. Ejecuta shared/build.sh, luego scripts/validate.sh (debe pasar), luego la suite de tests completa de ambos plugins y confirma verde. Verifica que plugins/sdd-kit/scripts/token-cost.mjs es byte-identico (shasum) a shared/token-cost.mjs, que sdd-kit no contiene ninguna ruta de import cross-plugin hacia el directorio de claude-token-debug, y que tanto el report de exec (T5-exec-report-signal) como el de verify (T6-verify-report) muestran el bloque real_cost junto a actual_tokens (R-E2E.S1, AC-E2E). No escribas codigo: si algo falla, reporta el fallo exacto sin corregirlo.",
+      "expected_output_schema": "Reporte de verificacion: build.sh 0, validate.sh 0, suite completa verde; copia de sdd-kit byte-identica a shared; sin import cross-plugin en sdd-kit; real_cost presente en report de exec y de verify junto a actual_tokens. Estado global pass/fail con detalle por comprobacion.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 15000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1-vendoring-build"],
+      "R2": ["T2-drift-check"],
+      "R3": ["T3-shared-source-of-truth"],
+      "R4": ["T4-real-cost-compute"],
+      "R5": ["T5-exec-report-signal", "T6-verify-report"],
+      "R-E2E": ["T7-e2e-suite"]
+    },
+    "acs": {
+      "AC1": ["T1-vendoring-build"],
+      "AC2": ["T1-vendoring-build"],
+      "AC3": ["T2-drift-check"],
+      "AC4": ["T2-drift-check"],
+      "AC5": ["T3-shared-source-of-truth"],
+      "AC6": ["T4-real-cost-compute"],
+      "AC7": ["T4-real-cost-compute"],
+      "AC8": ["T5-exec-report-signal", "T6-verify-report"],
+      "AC9": ["T5-exec-report-signal"],
+      "AC-E2E": ["T7-e2e-suite"]
+    }
+  }
+}

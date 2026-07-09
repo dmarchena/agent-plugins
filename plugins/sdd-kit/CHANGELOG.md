@@ -4,6 +4,48 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.5.0
+
+- `exec-tools.mjs`'s `report` subcommand now wires `exec/real-cost.mjs`'s
+  `computeRealCost()` in: its JSON output gains a `real_cost` block
+  (orchestrator/subagents/total, USD and tokens, cache_read included),
+  sliced to this run via the state's own git branch as the boundary, and a
+  `real_cost_over_budget` indicator from a new `exec/budget.mjs` export,
+  `realCostOverBudget(realCost, estimatedTokensTotal)`. Both fields are
+  purely additive — the pre-existing `tokens.real`/`tokens.estimated`
+  fields are unchanged, and `realCostOverBudget()` is a pure function that
+  never touches state or halts a run: the budget-triggered pause path was
+  already removed from `next` in a prior change, and this only replaces the
+  blind "2x actual_tokens" comparison for the *reported* indicator with one
+  driven by the transcript-measured real_cost total instead.
+- `verify-tools.mjs`'s `report`/`archive` pipeline now also wires in
+  `exec/real-cost.mjs`'s `computeRealCost()`: the printed report gains a
+  top-level `real_cost` block (orchestrator/subagents/total, USD and
+  tokens, cache_read included), sliced via the SPECDIR's own
+  `execution_state.json` `branch` as the boundary. Purely additive — the
+  pre-existing per-task `deviatedTasks` (`actual_tokens`/
+  `estimated_tokens`) reporting is unchanged.
+- Adds `scripts/token-cost.mjs`, vendored from the repo-root `shared/`
+  directory via `shared/build.sh` (a new cross-plugin vendoring mechanism):
+  `sdd-kit` opts in with a `"sharedScripts": ["token-cost.mjs"]` field in
+  `.claude-plugin/plugin.json`, and the build copies it in byte-identical
+  from `shared/token-cost.mjs`. This is the same shared script
+  `claude-token-debug` consumes; `token-cost.mjs` is not yet wired into any
+  `sdd-kit` skill by this change.
+- Adds `scripts/exec/real-cost.mjs` with `computeRealCost(opts)`: computes
+  the real cost of one plan-executor run (orchestrator + subagents, USD and
+  tokens, cache_read included) by calling the vendored `token-cost.mjs`'s
+  `analyze()`. The orchestrator side is sliced to its post-boundary portion
+  when a caller-supplied `boundary` substring matches a line in the
+  session's raw transcript (falling back to the orchestrator's full totals
+  when it doesn't); the subagents side is the full, unsliced total across
+  the session's `subagents/` dir, per a documented limitation of
+  `token-cost.mjs` (it has no boundary-awareness for subagent transcripts).
+  Degrades gracefully: when the target session can't be located or parsed,
+  returns `{ unavailable: true, reason }` instead of throwing. Standalone
+  module only — not yet wired into `exec-tools.mjs report` or
+  `verify-tools.mjs`.
+
 ## 0.4.1
 
 - `verify-tools.mjs` exposes its deterministic stages as CLI subcommands
