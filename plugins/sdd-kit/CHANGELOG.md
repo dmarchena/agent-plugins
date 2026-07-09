@@ -4,6 +4,23 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.5.4
+
+- Fixed a token-size regression across the 4 `SKILL.md` files (spec-writer,
+  plan-writer, plan-executor, verify): later PRs had reinflated them +31% in
+  tokens (`verify` doubled, 1220→2607 tok-approx) undetected, because the
+  guard meant to catch this (`skill-slimming.test.mjs`) was never wired into
+  `scripts/validate.sh`. Replaced the guard's size metric from line count
+  (`wc -l`) to a per-skill **token budget**, measured with a new
+  stdlib-only, dependency-free deterministic tokenizer
+  (`plugins/sdd-kit/scripts/tokenizer.mjs`); each skill's ceiling derives
+  from its token count at a known high-water-mark commit plus a maintenance
+  margin, rather than a hardcoded number. Trimmed all 4 `SKILL.md` bodies
+  back under their derived ceilings (moving content to `assets/` with no
+  loss of rule-anchor accessibility) and wired the budget guard into
+  `scripts/validate.sh` so both CI and local runs fail loudly on any future
+  inflation.
+
 ## 0.5.3
 
 - Fixed `verify-tools.mjs`'s AC checklist parser silently dropping any list
