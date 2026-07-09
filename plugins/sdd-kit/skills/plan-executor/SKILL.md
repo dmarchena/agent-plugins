@@ -112,6 +112,29 @@ three cases — see `assets/task-brief-detail.md` for the full `reason:
 "no-red"` / `"rerun-failed"` / `"not-green"` breakdown and what to do for
 each.
 
+When the batch has more than one task, close all of them in a SINGLE
+invocation instead of one `complete` per task — write the entries and run
+`complete --batch` in the SAME Bash call (heredoc + command, not a separate
+Write step), cutting orchestrator round-trips (R2.S1):
+
+```
+cat > /tmp/batch.json <<'EOF'
+[
+  { "task_id": "<id>", "tokens": <N>, "test_cmd": "<cmd>", "rojo": "pass|fail",
+    "verde": "pass|fail", "files": ["a.mjs", "b.mjs"] }
+]
+EOF
+node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs complete SPECDIR --batch /tmp/batch.json
+```
+
+Same fields as the single-task flags, one entry per task; `files` is still
+REQUIRED for every non-`verifier` entry — omitting it refuses the WHOLE
+batch rather than falling back to staging the whole tree. Returns
+`{ status: "batch", results: [...] }`, one per-task result in the
+single-task shape; a task that doesn't reach green is `not-done` in its own
+entry and does NOT block or revert its siblings (R2.S2/AC5). A lone task
+still uses the single-task form above.
+
 Never mark a task done yourself or with git directly; only a `done` from
 `complete` is authoritative, and it owns the commit.
 
@@ -143,8 +166,7 @@ Relay to the user: the branch, counts (done / blocked / skipped), tokens
 **real vs estimated** (per task and, when available, the transcript-measured
 `real_cost` total — purely informational, never a reason to have paused),
 any blocked/skipped tasks with their `incidencia`, and the spec ACs the
-completed tasks declare satisfied (R-E2E.S1). This skill guarantees the
-**task** level (TDD tests green);
+completed tasks declare satisfied (R-E2E.S1). This skill guarantees the **task** level (TDD tests green);
 it does not run the spec's full acceptance checklist — that's the verify
 stage. It does not open a PR or merge — commits stay on the plan branch.
 

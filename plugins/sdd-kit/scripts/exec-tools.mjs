@@ -248,6 +248,21 @@ function cmdCompleteBatch(specDir, batchPath) {
     }
   }
 
+  // R1.S2 (mirrors cmdComplete's issue-#9 guard): a non-verifier entry with
+  // no `files` must refuse the WHOLE batch up front, same as the
+  // unknown-task_id check above — otherwise it would reach completeOne with
+  // `files: null`, and git.mjs#pathspecList treats `null` as "no
+  // restriction", falling through to `git add -A` and sweeping in whatever
+  // else is dirty in the tree. Checked before any entry commits.
+  for (const e of entries) {
+    const task = plan.tasks.find((t) => t.task_id === e.task_id);
+    const isVerifierTask = task.agent_type === 'verifier';
+    const hasFiles = Array.isArray(e.files) && e.files.length > 0;
+    if (!hasFiles && !isVerifierTask) {
+      die("complete --batch: refusing to commit '" + e.task_id + "' without an explicit file list — pass its touched files", 1);
+    }
+  }
+
   const results = [];
   for (const e of entries) {
     // completeOne persists internally (before AND after its commit) so each
@@ -260,7 +275,11 @@ function cmdCompleteBatch(specDir, batchPath) {
       rojo: e.rojo,
       verde: e.verde,
       message: e.message || null,
-      files: Array.isArray(e.files) ? e.files : null,
+      // `[]` (not `null`) when omitted: pathspecList treats `[]` as "stage
+      // only the state file" (safe default for a verifier entry), while
+      // `null` means "no restriction" (`git add -A`) — never the right
+      // fallback for a batch entry that simply didn't name any files.
+      files: Array.isArray(e.files) ? e.files : [],
     });
     results.push(result);
   }

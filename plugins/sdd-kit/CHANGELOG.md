@@ -4,6 +4,23 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.5.2
+
+- Fixed `exec-tools.mjs`'s `complete --batch` path: a batch entry for a
+  non-verifier task with no `files` list fell through to `git add -A`
+  (whole-tree stage), the exact hazard the single-task `complete` path's
+  issue-#9 guard exists to prevent — that guard was never mirrored into the
+  batch path. Now a missing `files` list for a non-verifier entry refuses
+  the WHOLE batch up front (no partial commits), and an entry that
+  legitimately has none (a `verifier` task) defaults to `[]` (stage only
+  the state file) instead of `null` (no restriction).
+- `plan-executor`'s `SKILL.md` now documents the `complete --batch` path
+  (§3): closing a ready batch of 2-3 tasks in ONE invocation (heredoc +
+  command in the same Bash call) instead of one `complete` per task,
+  cutting orchestrator round-trips — the CLI capability already existed
+  but was undocumented, so the orchestrator never used it (issue #15,
+  residual item after 0.5.0/0.5.1).
+
 ## 0.5.1
 
 - Fixed `plan-executor`'s `SKILL.md` and `assets/failures-and-resume.md`,
