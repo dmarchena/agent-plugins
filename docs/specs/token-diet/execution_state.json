@@ -43,7 +43,7 @@
       "actual_tokens": 52496,
       "deviation": -7504,
       "test_cmd": "node --test plugins/token-diet/test/cmd-apply.test.mjs",
-      "commit": null,
+      "commit": "d8de5ef",
       "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
       "sessionId": null
@@ -60,13 +60,13 @@
       "sessionId": null
     },
     "semantic-review": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 40000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 46766,
+      "deviation": 6766,
+      "test_cmd": "node --test plugins/token-diet/test/semantic-review.test.mjs",
       "commit": null,
-      "incidencia": null,
+      "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
       "sessionId": null
     }
