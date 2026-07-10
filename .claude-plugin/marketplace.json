@@ -14,6 +14,11 @@
       "name": "claude-token-debug",
       "source": "./plugins/claude-token-debug",
       "description": "Debugging toolkit for measuring where Claude Code's real token spend goes."
+    },
+    {
+      "name": "token-diet",
+      "source": "./plugins/token-diet",
+      "description": "Explicit-invocation command that analyzes a CLAUDE.md/AGENTS.md target and installs an opt-in token-saving ruleset on confirmation."
     }
   ]
 }

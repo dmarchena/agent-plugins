@@ -1,0 +1,17 @@
+# Changelog
+
+All notable changes to the `token-diet` plugin are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## 1.0.0
+
+- Initial scaffold: `plugin.json`, `README.md`, `AGENTS.md`, registered in
+  the marketplace's `.claude-plugin/marketplace.json`.
+- Added `/token-diet:install`, the plugin's single explicit-invocation
+  command, implementing target resolution and analysis (R1: project vs
+  user target, "no policy" / "no mark" reporting, missing-target offer to
+  create) and copying the rules document to the chosen destination (R3:
+  in-repo relative pointer, out-of-repo "not versioned" warning + absolute
+  pointer). Recommendation (R2) and confirmed apply (R4) are reserved
+  sections, not yet implemented.
