@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { estimateTokens } from './tokenizer.mjs';
+import { emitSuccess, parseFlags } from './lib/cli.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SDD_KIT_ROOT = path.join(__dirname, '..');
@@ -52,50 +53,65 @@ export function checkBudgets(counts, ceilings) {
   return { exceeded };
 }
 
-function skillMdPath(skill) {
-  return path.join(SKILLS_DIR, skill, 'SKILL.md');
+function skillMdPath(skill, skillsDir) {
+  return path.join(skillsDir, skill, 'SKILL.md');
 }
 
-function hwmSkillMdPath(skill) {
-  return path.join(HWM_FIXTURES_DIR, skill, 'SKILL.md');
+function hwmSkillMdPath(skill, hwmFixturesDir) {
+  return path.join(hwmFixturesDir, skill, 'SKILL.md');
 }
 
 /**
  * Integration entry point: reads the real SKILL.md and the HWM fixture for
  * each of the 4 tracked skills, derives ceilings, and checks budgets.
  *
- * @returns {{ exceeded: Array<{skill: string, count: number, ceiling: number}> }}
+ * `skillsDir`/`hwmFixturesDir` default to the real production locations;
+ * they are only ever overridden in tests, to exercise a genuine
+ * over-ceiling gate without touching the real skills.
+ *
+ * @param {{ skillsDir?: string, hwmFixturesDir?: string }} [options]
+ * @returns {{
+ *   exceeded: Array<{skill: string, count: number, ceiling: number}>,
+ *   results: Array<{skill: string, count: number, ceiling: number, withinBudget: boolean}>,
+ * }}
  */
-export function runGuard() {
+export function runGuard({ skillsDir = SKILLS_DIR, hwmFixturesDir = HWM_FIXTURES_DIR } = {}) {
   const counts = {};
   const ceilings = {};
 
   for (const skill of SKILLS) {
-    const realContent = fs.readFileSync(skillMdPath(skill), 'utf8');
-    const hwmContent = fs.readFileSync(hwmSkillMdPath(skill), 'utf8');
+    const realContent = fs.readFileSync(skillMdPath(skill, skillsDir), 'utf8');
+    const hwmContent = fs.readFileSync(hwmSkillMdPath(skill, hwmFixturesDir), 'utf8');
 
     counts[skill] = estimateTokens(realContent);
     ceilings[skill] = deriveCeiling(estimateTokens(hwmContent));
   }
 
-  return checkBudgets(counts, ceilings);
+  const { exceeded } = checkBudgets(counts, ceilings);
+  const exceededSkills = new Set(exceeded.map((e) => e.skill));
+
+  const results = SKILLS.map((skill) => ({
+    skill,
+    count: counts[skill],
+    ceiling: ceilings[skill],
+    withinBudget: !exceededSkills.has(skill),
+  }));
+
+  return { exceeded, results };
 }
 
 const isEntryPoint =
   process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
 
 if (isEntryPoint) {
-  const { exceeded } = runGuard();
-  const exceededSkills = new Set(exceeded.map((e) => e.skill));
+  const flags = parseFlags();
+  const options = {};
+  if (typeof flags['skills-dir'] === 'string') options.skillsDir = flags['skills-dir'];
+  if (typeof flags['hwm-dir'] === 'string') options.hwmFixturesDir = flags['hwm-dir'];
 
-  for (const skill of SKILLS) {
-    if (exceededSkills.has(skill)) {
-      const entry = exceeded.find((e) => e.skill === skill);
-      console.log(`${entry.skill}: ${entry.count} tok > techo ${entry.ceiling}`);
-    } else {
-      console.log(`${skill}: OK`);
-    }
-  }
+  const { results } = runGuard(options);
+  const withinBudget = results.every((r) => r.withinBudget);
 
-  process.exit(exceeded.length === 0 ? 0 : 1);
+  emitSuccess({ results, withinBudget });
+  process.exit(withinBudget ? 0 : 1);
 }
