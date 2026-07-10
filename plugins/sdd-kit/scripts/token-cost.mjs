@@ -10,15 +10,18 @@
 //    shape) plus target resolution (--project/--session/--projects-root,
 //    defaulting to the newest session of the newest-active project) and a
 //    pure, side-effect-free `analyze()` that adds --boundary slicing and
-//    returns the exact shape the CLI's --json flag prints
+//    returns the exact shape the CLI emits under the envelope's `data`
 //    (session/subs/orchestrator/subTotal/orchAll).
 //  - A minimal CLI entry point that is a thin print wrapper over
 //    `analyze()`: it never computes anything itself, only parses argv and
-//    prints either `renderReport()`'s table or `JSON.stringify()`'s output.
+//    emits the shared {ok,data} envelope (see ./lib/cli.mjs) carrying
+//    analyze()'s structured report.
 
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+
+import { emitSuccess, emitError } from './lib/cli.mjs';
 
 // USD per 1,000,000 tokens, list prices (directional, not billing-exact).
 // Edit these inline to update rates. cache_read is the discounted read-hit
@@ -268,7 +271,7 @@ function scanSubagentsDir(subagentsDir) {
 //
 // Kept as-is (own shape: subagents/grand/percentages) for back-compat with
 // existing callers/tests; analyze() below is the new pure function whose
-// shape mirrors the CLI's --json output (R3).
+// shape mirrors the CLI's emitted `data` output (R3).
 export function analyzeSession(sessionFilePath) {
   const sessionDir = path.dirname(sessionFilePath);
   const sessionName = path.basename(sessionFilePath).replace(/\.jsonl$/, '');
@@ -480,8 +483,9 @@ function scanOrchestratorTranscript(filePath, boundarySubstr) {
 // --- Pure analysis (R3) -------------------------------------------------
 
 // The pure, side-effect-free analysis function (R3.S2): writes nothing to
-// stdout/stderr, and returns exactly the shape the CLI's --json flag prints
-// (R3.S1) — top-level keys session/subs/orchestrator/subTotal/orchAll.
+// stdout/stderr, and returns exactly the shape the CLI emits under the
+// envelope's `data` (R3.S1) — top-level keys
+// session/subs/orchestrator/subTotal/orchAll.
 // `target` is either a plain session-file-path string (the common case for
 // direct/importable callers and for the CLI's positional arg) or an options
 // object: { sessionPath, project, session, projectsRoot, boundary }.
@@ -523,40 +527,9 @@ export function analyze(target) {
 
 // --- CLI -----------------------------------------------------------------
 
-function formatUsd(amount) {
-  return `$${amount.toFixed(4)}`;
-}
-
-// Renders analyze()'s return shape as a human-readable table. Pure
-// presentation — takes no fs input of its own, so it never causes the
-// CLI's default path to diverge from what analyze() actually computed.
-export function renderReport(result) {
-  const lines = [];
-  lines.push(`Session: ${result.session}`);
-
-  if (result.subs.length > 0) {
-    lines.push('Subagents:');
-    for (const sub of result.subs) {
-      lines.push(`  ${sub.label}: tokens=${sub.tokens} cost=${formatUsd(sub.cost)}`);
-    }
-  }
-
-  lines.push(`Orchestrator total: tokens=${result.orchestrator.tokens} cost=${formatUsd(result.orchestrator.cost)}`);
-  lines.push(
-    `Grand total: cost=${formatUsd(result.orchAll.cost + result.subTotal.cost)} orchestrator ${result.orchAll.pct}% subagents ${result.subTotal.pct}%`,
-  );
-
-  if (result.orchestrator.boundary && result.orchestrator.boundary.split) {
-    const { pre, post } = result.orchestrator.boundary;
-    lines.push(`Boundary split: pre=${formatUsd(pre.cost)} post=${formatUsd(post.cost)}`);
-  }
-
-  return lines.join('\n');
-}
-
 // Minimal argv parser. Supports a plain positional session-path arg (kept
-// for back-compat with the pre-T3 CLI contract) alongside --json,
-// --project, --session, --projects-root and --boundary flags.
+// for back-compat with the pre-T3 CLI contract) alongside --project,
+// --session, --projects-root and --boundary flags.
 function parseArgs(argv) {
   const opts = {};
   const rest = [];
@@ -564,9 +537,6 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     switch (arg) {
-      case '--json':
-        opts.json = true;
-        break;
       case '--project':
         opts.project = argv[++i];
         break;
@@ -592,8 +562,8 @@ function parseArgs(argv) {
 }
 
 // The CLI is a thin print wrapper: it only parses argv, calls the pure
-// analyze(), and prints either the human-readable table or the JSON
-// document. No cost/scan logic lives here.
+// analyze(), and emits its structured report via the shared {ok,data}
+// envelope (./lib/cli.mjs). No cost/scan logic lives here.
 function main() {
   const opts = parseArgs(process.argv.slice(2));
 
@@ -601,16 +571,11 @@ function main() {
   try {
     result = analyze(opts);
   } catch (err) {
-    process.stderr.write(`${err.message}\n`);
-    process.exitCode = 1;
+    emitError(err.message, 1);
     return;
   }
 
-  if (opts.json) {
-    process.stdout.write(JSON.stringify(result) + '\n');
-  } else {
-    process.stdout.write(renderReport(result) + '\n');
-  }
+  emitSuccess(result);
 }
 
 const isMainModule = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
