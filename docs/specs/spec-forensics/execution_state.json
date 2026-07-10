@@ -28,15 +28,15 @@
       "actual_tokens": 61173,
       "deviation": -18827,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics.test.mjs",
-      "commit": null,
+      "commit": "304f842",
       "incidencia": null
     },
     "forensics-readonly-degrade": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 70000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 53231,
+      "deviation": -16769,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics.test.mjs",
       "commit": null,
       "incidencia": null
     },

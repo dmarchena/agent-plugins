@@ -145,6 +145,29 @@ function formatSummaryLine(taskId, r) {
   );
 }
 
+// Determines the whole-run `incomplete`/`incomplete_reason` flag (R4.S2).
+// This is distinct from a single task's `resolved: false`: it only fires
+// when NOT ONE task in the whole run could be resolved, i.e. join data is
+// missing entirely rather than for just one task among several. Returns
+// null (not incomplete) as soon as any task resolved.
+function determineIncompleteReason(tasks, results) {
+  const anyResolved = Object.values(results).some((r) => r.resolved);
+  if (anyResolved) {
+    return null;
+  }
+
+  const anyUsableAgentId = Object.values(tasks).some((t) => t && t.agentId);
+  if (!anyUsableAgentId) {
+    return 'no agentId recorded for any task';
+  }
+
+  // At least one task had an agentId/sessionId, yet nothing resolved: the
+  // transcript/subagents join data itself is missing (no subagents
+  // directory found for the resolved session, or no matching session file
+  // at all — both read as "the join has nothing to offer").
+  return 'no subagents directory found';
+}
+
 // Builds the `pause_timeline` array (R3.S2) from execution_state.json's
 // top-level `pause` field: null (never paused) yields [], never an error.
 // A non-null pause carries its own recorded accumulated real_tokens figure
@@ -190,12 +213,16 @@ export function runForensics(specDir, opts) {
     real_cost_usd: firstAnalyzed ? firstAnalyzed.subTotal.cost : 0,
   };
   const pause_timeline = buildPauseTimeline(state.pause);
+  const incompleteReason = determineIncompleteReason(tasks, results);
+
+  const output = { tasks: results, orchestrator, subagents_total, pause_timeline };
+  if (incompleteReason) {
+    output.incomplete = true;
+    output.incomplete_reason = incompleteReason;
+  }
 
   const outPath = path.join(specDir, 'forensics.json');
-  fs.writeFileSync(
-    outPath,
-    JSON.stringify({ tasks: results, orchestrator, subagents_total, pause_timeline }, null, 2) + '\n',
-  );
+  fs.writeFileSync(outPath, JSON.stringify(output, null, 2) + '\n');
 
   return { results, lines, outPath, orchestrator, subagents_total, pause_timeline };
 }

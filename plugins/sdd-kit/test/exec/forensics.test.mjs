@@ -17,6 +17,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -278,5 +279,102 @@ test('R3.S2: for a run whose state pause is null, forensics.json pause_timeline 
   } finally {
     fs.rmSync(specDir, { recursive: true, force: true });
     fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+function sha256OfFile(p) {
+  return crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+}
+
+test('R4.S1: after a forensics run the input execution_state.json and execution_plan.json are byte-identical (unchanged SHA-256)', () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-r4s1-'));
+
+  const subUsage = { input_tokens: 400, output_tokens: 80, cache_read_input_tokens: 20, cache_creation_input_tokens: 0 };
+  writeProjectFixture(projectsRoot, 'project-ro', 'session-ro', 'agentRO', subUsage);
+
+  const specDir = makeSpecDir({
+    'task-ro': taskEntry({ estimated_tokens: 500, agentId: 'agentRO', sessionId: 'session-ro' }),
+  });
+
+  // execution_plan.json isn't produced by makeSpecDir; write an arbitrary
+  // fixture here since forensics.mjs must never touch it either.
+  const planPath = path.join(specDir, 'execution_plan.json');
+  fs.writeFileSync(
+    planPath,
+    JSON.stringify({ plan_id: 'plan-forensics-fixture', tasks: ['task-ro'] }, null, 2) + '\n',
+  );
+
+  const statePath = path.join(specDir, 'execution_state.json');
+  const stateHashBefore = sha256OfFile(statePath);
+  const planHashBefore = sha256OfFile(planPath);
+
+  try {
+    const result = runCli(specDir, { TOKEN_COST_PROJECTS_ROOT: projectsRoot });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+
+    assert.equal(
+      sha256OfFile(statePath),
+      stateHashBefore,
+      'execution_state.json must be byte-identical after a forensics run (R4.S1)',
+    );
+    assert.equal(
+      sha256OfFile(planPath),
+      planHashBefore,
+      'execution_plan.json must be byte-identical after a forensics run (R4.S1)',
+    );
+  } finally {
+    fs.rmSync(specDir, { recursive: true, force: true });
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test('R4.S2: with no subagents directory or state lacking agentId, forensics.json has incomplete:true plus an incomplete_reason string, and the process exits with code 0 and no stack trace', () => {
+  // Subcase A: every task lacks a usable agentId.
+  const specDirNoAgent = makeSpecDir({
+    'task-a': taskEntry({ estimated_tokens: 100, agentId: null, sessionId: null }),
+    'task-b': taskEntry({ estimated_tokens: 200, agentId: null, sessionId: null }),
+  });
+  const emptyProjectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-r4s2-noagent-'));
+
+  let reasonNoAgent;
+  try {
+    const result = runCli(specDirNoAgent, { TOKEN_COST_PROJECTS_ROOT: emptyProjectsRoot });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+    assert.equal(result.stderr, '', 'no stack trace expected on stderr');
+
+    const forensics = JSON.parse(fs.readFileSync(path.join(specDirNoAgent, 'forensics.json'), 'utf8'));
+    assert.equal(forensics.incomplete, true, 'forensics.json must be flagged incomplete when no task has an agentId');
+    assert.equal(typeof forensics.incomplete_reason, 'string');
+    assert.ok(forensics.incomplete_reason.length > 0);
+    reasonNoAgent = forensics.incomplete_reason;
+  } finally {
+    fs.rmSync(specDirNoAgent, { recursive: true, force: true });
+    fs.rmSync(emptyProjectsRoot, { recursive: true, force: true });
+  }
+
+  // Subcase B: tasks carry agentId/sessionId, but no subagents directory (no
+  // project dirs at all) exists anywhere under the resolved projects root.
+  const specDirNoSubagents = makeSpecDir({
+    'task-c': taskEntry({ estimated_tokens: 150, agentId: 'agentGhost', sessionId: 'session-ghost' }),
+  });
+  const noTranscriptProjectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-r4s2-nosubagents-'));
+
+  try {
+    const result = runCli(specDirNoSubagents, { TOKEN_COST_PROJECTS_ROOT: noTranscriptProjectsRoot });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+    assert.equal(result.stderr, '', 'no stack trace expected on stderr');
+
+    const forensics = JSON.parse(fs.readFileSync(path.join(specDirNoSubagents, 'forensics.json'), 'utf8'));
+    assert.equal(forensics.incomplete, true, 'forensics.json must be flagged incomplete when no subagents directory is found');
+    assert.equal(typeof forensics.incomplete_reason, 'string');
+    assert.ok(forensics.incomplete_reason.length > 0);
+    assert.notEqual(
+      forensics.incomplete_reason,
+      reasonNoAgent,
+      'the missing-subagents-directory reason must be distinguishable from the missing-agentId reason',
+    );
+  } finally {
+    fs.rmSync(specDirNoSubagents, { recursive: true, force: true });
+    fs.rmSync(noTranscriptProjectsRoot, { recursive: true, force: true });
   }
 });
