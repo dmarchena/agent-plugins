@@ -21,19 +21,19 @@
       "actual_tokens": 18000,
       "deviation": -42000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/lib-cli-migration.test.mjs",
-      "commit": null,
+      "commit": "30d2636",
       "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
       "sessionId": null
     },
     "T3-verify-tools": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 45000,
       "actual_tokens": 38000,
       "deviation": -7000,
       "test_cmd": "node --test plugins/sdd-kit/test/verify-tools-cli-io.test.mjs",
       "commit": null,
-      "incidencia": "no red evidence",
+      "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
       "sessionId": null
     },
