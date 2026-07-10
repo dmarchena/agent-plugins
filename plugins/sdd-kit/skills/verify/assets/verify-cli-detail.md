@@ -9,8 +9,9 @@ already cover.
 
 `node ${CLAUDE_PLUGIN_ROOT}/scripts/verify-tools.mjs <sub> SPECDIR [args]` —
 mirroring the shape `exec-tools.mjs` already uses for plan-executor. Each
-subcommand prints one JSON object with a `status` field to stdout and uses
-process exit codes.
+subcommand prints one `{ ok: true, data: { status, ... } }` envelope to
+stdout — branch on `data.status` — and uses process exit codes only as a
+secondary signal.
 
 Internally these subcommands wrap `loadSpecdir(specDir)` (loads `spec.md`'s
 AC checklist, the plan's `coverage.acs` map, and — when present —

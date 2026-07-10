@@ -36,12 +36,13 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/verify-tools.mjs report SPECDIR [--verdicts <
 node ${CLAUDE_PLUGIN_ROOT}/scripts/verify-tools.mjs archive SPECDIR [--verdicts <path>]
 ```
 
-Each prints one JSON object with a `status` field and always exits 0 —
-branch on `status`, not the exit code. `ground-check` re-runs `[auto]` ACs'
-stored tests and prints the raw green/drift verdict. `report` runs the full
-pipeline and prints `{ status: 'report', allGreen, acs, deviatedTasks }`,
-never blocking on stdin. `archive` re-runs that pipeline and, only when
-`allGreen`, also archives the SPECDIR. Full internals (`loadSpecdir`,
+Each prints one `{ ok: true, data: { status, ... } }` envelope and always
+exits 0 — branch on `data.status`, never the exit code. `ground-check`
+re-runs `[auto]` ACs' stored tests and prints the raw green/drift verdict
+under `data`. `report` runs the full pipeline and prints `{ ok: true, data:
+{ status: 'report', allGreen, acs, deviatedTasks } }`, never blocking on
+stdin. `archive` re-runs that pipeline and, only when `allGreen`, also
+archives the SPECDIR. Full internals (`loadSpecdir`,
 `groundCheck`, `assembleReport`, missing-file handling):
 `assets/verify-cli-detail.md`.
 

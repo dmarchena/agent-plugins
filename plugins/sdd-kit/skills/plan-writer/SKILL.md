@@ -31,9 +31,10 @@ Always run this first, before touching anything else:
 node ${CLAUDE_PLUGIN_ROOT}/scripts/plan-tools.mjs inspect-spec <spec.md>
 ```
 
-- **Exit code ≠ 0** → STOP. Report the exact structural element the
-  validator says is missing (e.g. no `R<n>` IDs found, or no `## Acceptance
-  Criteria` section). Do not write any plan, not even a partial one.
+- **Exit code ≠ 0** → stdout is `{ ok: false, error: { reason } }`; STOP and
+  report the exact structural element `error.reason` names (e.g. no `R<n>`
+  IDs found, or no `## Acceptance Criteria` section). Do not write any plan,
+  not even a partial one.
 - **Exit code 0** → show the user the detected counts, in the form "N
   requirements, M ACs detected", before moving on.
 
@@ -115,9 +116,10 @@ To avoid ever leaving an invalid plan on disk:
    node ${CLAUDE_PLUGIN_ROOT}/scripts/plan-tools.mjs check-plan <spec.md> execution_plan.json.tmp
    ```
 3. **Exit 0** → rename the tmp file to `execution_plan.json`.
-4. **Exit ≠ 0** → delete the tmp file, report the validator's concrete
-   error (schema field/rule, cycle, or coverage gap), and do not leave
-   `execution_plan.json` in an invalid state.
+4. **Exit ≠ 0** → stdout is `{ ok: false, error: { reason } }`; delete the
+   tmp file, report the concrete `error.reason` (schema field/rule, cycle,
+   or coverage gap), and do not leave `execution_plan.json` in an invalid
+   state.
 
 Once written, show the user a short summary (task count, agent/model mix,
 coverage) and confirm.
