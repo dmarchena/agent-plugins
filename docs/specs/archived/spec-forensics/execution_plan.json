@@ -1,0 +1,143 @@
+{
+  "plan_id": "spec-forensics-v1",
+  "project_name": "sdd-kit spec-forensics",
+  "global_objective": "Persist the subagent agentId/sessionId per task in the exec stage and add a read-only spec-forensics stage that turns a finished docs/specs/<slug>/ into a deterministic forensics.json (per-task real cost incl. cache_read, estimate-vs-real, orchestrator-vs-subagent split, budget-pause timeline), reusing the token-cost CLI.",
+  "source_spec": "docs/specs/spec-forensics/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 490000,
+  "tasks": [
+    {
+      "task_id": "exec-persist-agentid",
+      "source_ids": ["R1.S1", "R1.S2", "R1.S3"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation with clear acceptance criteria: extend the exec state contract + state writer with two nullable fields and normalize-on-load; sonnet per the most-austere-that-qualifies rule.",
+      "instructions": "Extend the exec stage so it persists the executing subagent's agentId and sessionId per task, per R1.S1, R1.S2 and R1.S3. In plugins/sdd-kit/skills/plan-executor/assets/execution_state.schema.json add agentId and sessionId (both type [\"string\",\"null\"]) to the task object and to its required list. In plugins/sdd-kit/scripts/exec/state.mjs (and the exec-tools.mjs complete/init entrypoints in plugins/sdd-kit/scripts/exec-tools.mjs) accept and write agentId/sessionId on task completion, record agentId null plus an incidencia when it cannot be obtained (R1.S2) without aborting the run, and on load/resume add agentId/sessionId as null to any task object lacking them (R1.S3). Satisfy AC1, AC2, AC3. Do not change the budget-pause logic or the plan format.",
+      "expected_output_schema": "Updated execution_state.schema.json (task object gains required agentId/sessionId, both nullable) and updated exec state code that writes agentId/sessionId on completion, records null+incidencia on failure, and normalizes pre-schema states on load; all example/emitted states validate against the schema.",
+      "satisfies_acs": ["AC1", "AC2", "AC3"],
+      "estimated_tokens": 90000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R1.S1", "assertion": "A completed task's state entry carries a non-null agentId whose corresponding subagent transcript file exists, sessionId is present, and the state validates against the execution_state schema." },
+        { "ref": "R1.S2", "assertion": "When the agentId cannot be determined, the task entry has agentId null plus a non-null incidencia, the run continues to the next task, and the state still validates." },
+        { "ref": "R1.S3", "assertion": "Loading a state whose task entries lack agentId/sessionId adds them as null without throwing, and the upgraded state validates against the schema." }
+      ]
+    },
+    {
+      "task_id": "forensics-per-task",
+      "source_ids": ["R2.S1", "R2.S2"],
+      "dependencies": ["exec-persist-agentid"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation of the forensics core CLI with clear ACs; reuses the existing token-cost analyze() rather than reimplementing parsing, so sonnet suffices.",
+      "instructions": "Author the forensics core CLI (a forensics.mjs script under plugins/sdd-kit/scripts/) that consumes the agentId persisted by exec-persist-agentid to build the exact task-to-transcript join, per R2.S1 and R2.S2. Reuse claude-token-debug's token-cost analyze() (--json/--boundary) via plugins/sdd-kit/scripts/token-cost.mjs for real per-message costing incl. cache_read; do not reimplement transcript parsing. Write SPECDIR/forensics.json with a tasks map keyed by task_id, each entry carrying numeric real_tokens (counting cache_read_input_tokens), real_cost_usd, estimated_tokens and deviation_real, and print the same per-task figures to stdout. A task whose agentId is null or whose transcript file is absent gets resolved:false with null cost/token fields while other tasks report real figures, exiting 0. Satisfy AC4 and AC5.",
+      "expected_output_schema": "A forensics.mjs CLI that, over a SPECDIR, writes forensics.json with a per-task tasks map (real_tokens incl. cache_read, real_cost_usd, estimated_tokens, deviation_real; resolved:false for unresolved tasks) and prints a readable per-task summary to stdout.",
+      "satisfies_acs": ["AC4", "AC5"],
+      "estimated_tokens": 110000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R2.S1", "assertion": "For a SPECDIR whose tasks carry agentId with matching transcripts, forensics.json lists each task with numeric real_tokens (counting cache-read), real_cost_usd, estimated_tokens and deviation_real, and the same per-task figures are printed to stdout." },
+        { "ref": "R2.S2", "assertion": "A task with null agentId or an absent transcript is reported resolved:false with null cost/token fields while other tasks show real figures, and the process exits with code 0." }
+      ]
+    },
+    {
+      "task_id": "forensics-orchestrator-pause",
+      "source_ids": ["R3.S1", "R3.S2"],
+      "dependencies": ["forensics-per-task"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded extension of the forensics report with the orchestrator split and pause timeline, sourced from existing token-cost fields and the state's pause record; clear ACs, sonnet.",
+      "instructions": "Extend the forensics report produced by forensics-per-task to add the orchestrator-vs-subagent split and the budget-pause timeline, per R3.S1 and R3.S2. Source the split from the token-cost CLI's orchAll/subTotal, writing an orchestrator object and a subagents_total object into forensics.json (each with numeric real_tokens and real_cost_usd). Build pause_timeline from execution_state.json's pause record: one entry with the pause's at_task and accumulated real_tokens when a pause exists, and an empty array when pause is null (no error). Satisfy AC6 and AC7.",
+      "expected_output_schema": "forensics.json additionally contains orchestrator and subagents_total objects (numeric real_tokens/real_cost_usd) and a pause_timeline array (one entry per recorded pause with at_task and real_tokens; empty when pause is null).",
+      "satisfies_acs": ["AC6", "AC7"],
+      "estimated_tokens": 80000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R3.S1", "assertion": "forensics.json includes an orchestrator object and a subagents_total object, each with numeric real_tokens and real_cost_usd, and a pause_timeline entry carrying the recorded pause's at_task and accumulated real_tokens." },
+        { "ref": "R3.S2", "assertion": "For a run whose state pause is null, forensics.json pause_timeline is an empty array and no error is raised." }
+      ]
+    },
+    {
+      "task_id": "forensics-readonly-degrade",
+      "source_ids": ["R4.S1", "R4.S2"],
+      "dependencies": ["forensics-per-task"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded correctness guarantees (never mutate inputs; degrade gracefully) over the forensics CLI; clear ACs, sonnet.",
+      "instructions": "Guarantee that the forensics stage built in forensics-per-task is strictly read-only and degrades gracefully, per R4.S1 and R4.S2. Ensure a forensics run leaves execution_state.json and execution_plan.json byte-for-byte identical (same SHA-256 before/after). When join data is missing (no subagents/ directory, or task objects lacking agentId), write forensics.json with incomplete:true plus an incomplete_reason string naming the missing data, and exit with code 0 without a stack trace. Satisfy AC8 and AC9.",
+      "expected_output_schema": "forensics run provably leaves execution_state.json and execution_plan.json unchanged (SHA-256), and on missing join data emits forensics.json with incomplete:true + incomplete_reason and a non-fatal exit code 0.",
+      "satisfies_acs": ["AC8", "AC9"],
+      "estimated_tokens": 70000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R4.S1", "assertion": "After a forensics run the input execution_state.json and execution_plan.json are byte-identical (unchanged SHA-256)." },
+        { "ref": "R4.S2", "assertion": "With no subagents directory or state lacking agentId, forensics.json has incomplete:true plus an incomplete_reason string, and the process exits with code 0 and no stack trace." }
+      ]
+    },
+    {
+      "task_id": "forensics-skill",
+      "source_ids": ["R-E2E"],
+      "dependencies": ["exec-persist-agentid", "forensics-per-task", "forensics-orchestrator-pause", "forensics-readonly-degrade"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Authoring a thin skill SKILL.md and registering the /sdd-kit:forensics shortcut over the finished CLI is schema-following documentation/config work, not code with a test contract; sonnet doc_writer.",
+      "instructions": "Author the thin spec-forensics skill and the /sdd-kit:forensics shortcut that wraps the CLI delivered by forensics-per-task, forensics-orchestrator-pause and forensics-readonly-degrade (and relies on the agentId persisted by exec-persist-agentid), forming the invocation surface exercised by R-E2E. Add plugins/sdd-kit/skills/spec-forensics/SKILL.md (a thin wrapper that runs forensics.mjs <SPECDIR> and surfaces the summary; no report logic in the skill) and register the /sdd-kit:forensics command in the plugin, mirroring the existing exec/plan/verify shortcuts. Contributes to AC-E2E (the E2E path invokes /sdd-kit:forensics).",
+      "expected_output_schema": "A new plugins/sdd-kit/skills/spec-forensics/SKILL.md (thin wrapper over forensics.mjs) plus a registered /sdd-kit:forensics shortcut, consistent with the existing sdd-kit skill/command conventions.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "forensics-e2e-integration",
+      "source_ids": ["R-E2E.S1"],
+      "dependencies": ["exec-persist-agentid", "forensics-per-task", "forensics-orchestrator-pause", "forensics-readonly-degrade", "forensics-skill"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "AC-E2E is a cross-requirement walkthrough that no per-task test covers (combined fixture + full forensics.json assertion), so the integration test must be authored — a code_writer node per the E2E-task-assignment rule.",
+      "instructions": "Author the end-to-end integration test for R-E2E.S1 that composes the deliverables of exec-persist-agentid, forensics-per-task, forensics-orchestrator-pause, forensics-readonly-degrade and forensics-skill. Build a fixture SPECDIR containing an execution_state.json (tasks with agentId, one task deliberately agentId:null, a recorded pause) and synthetic subagents/agent-*.jsonl transcripts, run the forensics stage (via /sdd-kit:forensics using forensics.mjs <SPECDIR>), and assert forensics.json reports every resolvable task with real_tokens/real_cost_usd/deviation_real, flags the null-agentId task resolved:false, includes the orchestrator/subagents_total split and a one-entry pause_timeline, that execution_state.json and execution_plan.json are byte-identical to before, and that the process exits 0. Satisfy AC-E2E.",
+      "expected_output_schema": "An integration test over a fixture SPECDIR asserting the full forensics.json shape (per-task real/deviation, resolved:false for the null-agentId task, orchestrator/subagents_total split, one-entry pause_timeline), byte-identical inputs, and exit code 0.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 90000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R-E2E.S1", "assertion": "Running the forensics stage over a fixture SPECDIR (tasks with agentId, one deliberately null, a recorded pause, synthetic transcripts) yields a forensics.json with per-task real/deviation figures, the null-agentId task flagged resolved:false, the orchestrator/subagents split and a one-entry pause_timeline, with both input JSONs byte-identical and exit code 0." },
+        { "ref": "AC-E2E", "assertion": "The end-to-end forensics run over the combined fixture satisfies the full AC-E2E probe in a single pass." }
+      ]
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["exec-persist-agentid"],
+      "R2": ["forensics-per-task"],
+      "R3": ["forensics-orchestrator-pause"],
+      "R4": ["forensics-readonly-degrade"],
+      "R-E2E": ["forensics-skill", "forensics-e2e-integration"]
+    },
+    "acs": {
+      "AC1": ["exec-persist-agentid"],
+      "AC2": ["exec-persist-agentid"],
+      "AC3": ["exec-persist-agentid"],
+      "AC4": ["forensics-per-task"],
+      "AC5": ["forensics-per-task"],
+      "AC6": ["forensics-orchestrator-pause"],
+      "AC7": ["forensics-orchestrator-pause"],
+      "AC8": ["forensics-readonly-degrade"],
+      "AC9": ["forensics-readonly-degrade"],
+      "AC-E2E": ["forensics-skill", "forensics-e2e-integration"]
+    }
+  }
+}

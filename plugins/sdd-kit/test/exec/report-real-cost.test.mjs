@@ -193,8 +193,8 @@ function writeProjectsRootFixture(branch, postUsage, subUsage) {
   ];
   fs.writeFileSync(sessionFile, lines.map((l) => JSON.stringify(l)).join('\n') + '\n');
 
-  const subagentsDir = path.join(projectDir, 'subagents');
-  fs.mkdirSync(subagentsDir);
+  const subagentsDir = path.join(projectDir, 'session', 'subagents');
+  fs.mkdirSync(subagentsDir, { recursive: true });
   fs.writeFileSync(
     path.join(subagentsDir, 'agent-fixture1.jsonl'),
     JSON.stringify({ type: 'assistant', message: { model: 'claude-haiku-4-5-20251001', usage: subUsage } }) + '\n',

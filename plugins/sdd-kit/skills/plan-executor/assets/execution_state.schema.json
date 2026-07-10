@@ -29,7 +29,7 @@
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["status", "estimated_tokens", "actual_tokens", "deviation", "test_cmd", "commit", "incidencia"],
+        "required": ["status", "estimated_tokens", "actual_tokens", "deviation", "test_cmd", "commit", "incidencia", "agentId", "sessionId"],
         "properties": {
           "status": {
             "type": "string",
@@ -59,6 +59,14 @@
           "incidencia": {
             "type": ["string", "null"],
             "description": "Motivo si la tarea no llegó a verde limpio (p. ej. 'sin evidencia de rojo', 'rerun-failed'); null si no hay."
+          },
+          "agentId": {
+            "type": ["string", "null"],
+            "description": "Identificador del subagente que ejecutó la tarea; null hasta tenerlo o si el join no está disponible."
+          },
+          "sessionId": {
+            "type": ["string", "null"],
+            "description": "Identificador de la sesión en la que corrió el subagente de la tarea; null hasta tenerlo o si el join no está disponible."
           }
         }
       }

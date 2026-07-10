@@ -1,0 +1,63 @@
+{
+  "plan_id": "spec-forensics-v1",
+  "source_spec": "docs/specs/spec-forensics/spec.md",
+  "branch": "feat/spec-forensics",
+  "started_at": "2026-07-09T22:54:33.874Z",
+  "tasks": {
+    "exec-persist-agentid": {
+      "status": "done",
+      "estimated_tokens": 90000,
+      "actual_tokens": 84296,
+      "deviation": -5704,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/*.test.mjs",
+      "commit": "b7e006b",
+      "incidencia": null
+    },
+    "forensics-per-task": {
+      "status": "done",
+      "estimated_tokens": 110000,
+      "actual_tokens": 68302,
+      "deviation": -41698,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics.test.mjs",
+      "commit": "e33d91e",
+      "incidencia": null
+    },
+    "forensics-orchestrator-pause": {
+      "status": "done",
+      "estimated_tokens": 80000,
+      "actual_tokens": 61173,
+      "deviation": -18827,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics.test.mjs",
+      "commit": "304f842",
+      "incidencia": null
+    },
+    "forensics-readonly-degrade": {
+      "status": "done",
+      "estimated_tokens": 70000,
+      "actual_tokens": 53231,
+      "deviation": -16769,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics.test.mjs",
+      "commit": "14b1a5a",
+      "incidencia": null
+    },
+    "forensics-skill": {
+      "status": "done",
+      "estimated_tokens": 50000,
+      "actual_tokens": 52322,
+      "deviation": 2322,
+      "test_cmd": "test -f plugins/sdd-kit/skills/spec-forensics/SKILL.md && grep -q \"forensics.mjs\" plugins/sdd-kit/skills/spec-forensics/SKILL.md && test -f plugins/sdd-kit/commands/forensics.md && grep -q \"spec-forensics\" plugins/sdd-kit/commands/forensics.md && grep -q '\"version\": \"0.6.0\"' plugins/sdd-kit/.claude-plugin/plugin.json && grep -q \"0.6.0\" plugins/sdd-kit/CHANGELOG.md",
+      "commit": "1c8c8cc",
+      "incidencia": null
+    },
+    "forensics-e2e-integration": {
+      "status": "done",
+      "estimated_tokens": 90000,
+      "actual_tokens": 56641,
+      "deviation": -33359,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-forensics.test.mjs",
+      "commit": "3c17b90",
+      "incidencia": null
+    }
+  },
+  "pause": null
+}

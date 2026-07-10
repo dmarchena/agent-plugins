@@ -30,8 +30,14 @@ function writeSessionFixture(lines) {
   return file;
 }
 
-// Writes a full session tree: a flat <session>.jsonl plus, when `subagents`
-// is provided, a subagents/agent-<id>.jsonl + agent-<id>.meta.json per entry.
+// Writes a full session tree matching the REAL Claude Code layout: a flat
+// <session>.jsonl directly under the project dir, plus, when `subagents` is
+// provided, a SIBLING <session>/subagents/agent-<id>.jsonl +
+// agent-<id>.meta.json per entry — nested under a directory named after the
+// session id, NOT directly under the project dir (verified empirically
+// against a real ~/.claude/projects/<project>/<session-uuid>/subagents/ tree;
+// the previous flat fixture layout matched neither reality nor its own CLI's
+// output, e.g. reporting 0% subagents for a session that spawned real ones).
 // `subagents` is an array of { id, description, lines }. Passing an empty
 // array or omitting it entirely means "no subagents/ dir at all" (R1.S2
 // fixture case) — the caller controls that by omitting the argument.
@@ -44,8 +50,8 @@ function writeSessionTree(orchestratorLines, subagents) {
   );
 
   if (Array.isArray(subagents)) {
-    const subagentsDir = path.join(dir, 'subagents');
-    fs.mkdirSync(subagentsDir);
+    const subagentsDir = path.join(dir, 'session', 'subagents');
+    fs.mkdirSync(subagentsDir, { recursive: true });
     for (const sub of subagents) {
       const transcriptFile = path.join(subagentsDir, `agent-${sub.id}.jsonl`);
       fs.writeFileSync(

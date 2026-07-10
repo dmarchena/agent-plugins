@@ -33,8 +33,8 @@ function writeSessionTree(orchestratorLines, subagents) {
   );
 
   if (Array.isArray(subagents)) {
-    const subagentsDir = path.join(dir, 'subagents');
-    fs.mkdirSync(subagentsDir);
+    const subagentsDir = path.join(dir, 'session', 'subagents');
+    fs.mkdirSync(subagentsDir, { recursive: true });
     for (const sub of subagents) {
       const transcriptFile = path.join(subagentsDir, `agent-${sub.id}.jsonl`);
       fs.writeFileSync(
