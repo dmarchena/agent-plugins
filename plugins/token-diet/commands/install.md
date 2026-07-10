@@ -11,8 +11,7 @@ no ejecutes este flujo.
 Argumentos recibidos: $ARGUMENTS
 
 El flujo completo tiene cuatro fases. Esta versión del command implementa
-las fases 1 y 3 (R1, R3); las fases 2 y 4 (R2, R4) son secciones reservadas,
-señaladas más abajo, que una tarea posterior completará.
+las cuatro (R1, R2, R3, R4).
 
 ## Fase 1 — Analizar el fichero objetivo (R1)
 
@@ -135,19 +134,73 @@ Al terminar la fase 3 debes tener: la ruta final del documento copiado y si
 el puntero a insertar será relativo (R3.S1) o absoluto (R3.S2, con el aviso
 de no-versionado ya mostrado al usuario).
 
-## Fase 4 — Aplicar con confirmación e idempotencia por marca (R4) — RESERVADO, no implementado aquí
+## Fase 4 — Aplicar con confirmación e idempotencia por marca (R4)
 
-Placeholder: esta sección la completa una tarea posterior (`cmd-apply`) para
-implementar R4 (solo tras confirmación explícita del usuario, escribir en el
-fichero objetivo el resumen base inline + el puntero al doc + la marca de
-atribución versionada; sin confirmación no modifica nada; al actualizar un
-bloque propio ya existente lo reemplaza en lugar de duplicarlo — R4.S1 y
-R4.S2). No implementes esta lógica en esta versión del command.
+Esta fase consume la recomendación de la fase 2 (R2) y el destino/puntero
+resueltos en la fase 3 (R3). **SOLO se ejecuta tras confirmación explícita
+del usuario** sobre la acción concreta a aplicar (la recomendada u otra que
+el usuario elija de entre `{add, replace, extend, update}`; `none` nunca
+aplica nada). Muestra siempre el diff propuesto antes de pedir esa
+confirmación explícita.
+
+### R4.S2 — Rechazo del usuario (comprobar primero)
+Si el usuario **rechaza** la acción propuesta, o si nunca llega a dar
+confirmación explícita: el command **no modifica nada**. Ni el fichero
+objetivo ni el destino de copia cambian — no se escribe una sola línea en el
+fichero objetivo y no se copia `assets/rules.md` a ningún sitio. Informa de
+que no se aplicó ningún cambio y termina el flujo aquí.
+
+### Aplicar (solo con confirmación explícita)
+
+1. **Construir el bloque a insertar**, compuesto por tres partes, en este
+   orden:
+   - El **resumen base inline** ("caveman", ~6-8 líneas): exactamente las
+     líneas del apartado "Resumen base (caveman)" de
+     `${CLAUDE_PLUGIN_ROOT}/assets/rules.md`, copiadas tal cual (no las
+     parafrasees).
+   - El **puntero** al documento completo copiado en la fase 3: ruta
+     relativa (R3.S1) o absoluta (R3.S2), según lo resuelto entonces.
+   - La **marca de atribución versionada**, con el literal exacto
+     `Produced with token-diet (v1.0.0)` (la versión fija del plugin, ver
+     `plugins/token-diet/.claude-plugin/plugin.json`).
+
+2. **R4.S1 — Idempotencia por marca: reemplazar, no duplicar.** Antes de
+   escribir, comprueba si el fichero objetivo ya contiene un bloque propio de
+   token-diet (delimitado por la marca `Produced with token-diet (v`).
+   - Si **no** existe ningún bloque propio todavía: añade el bloque completo
+     (resumen base + puntero + marca) al fichero objetivo.
+   - Si **ya** existe un bloque propio (de esta versión o de una anterior):
+     **reemplázalo en lugar de duplicarlo** — sustituye el bloque entero
+     (desde su inicio hasta la línea de la marca) por el bloque nuevo. Nunca
+     insertes un segundo bloque junto al existente.
+
+3. **Copiar el documento** de reglas al destino confirmado en la fase 3
+   (si aún no se había copiado).
+
+4. **Confirmar al usuario** qué fichero se modificó, dónde quedó la copia y
+   qué marca de versión quedó instalada.
+
+### R4.S1 — Confirmar un `add` y no duplicar en la segunda pasada
+- GIVEN un fichero sin política y el usuario confirma la recomendación `add`
+- WHEN el command aplica el cambio
+- THEN el fichero objetivo contiene el resumen base, el puntero al doc y la
+  marca `Produced with token-diet (v1.0.0)`
+- AND una **segunda invocación** con la misma versión del plugin (1.0.0)
+  reanaliza el fichero (fase 1), encuentra la marca con versión igual a la
+  actual, y por R2.S1 recomienda `none` — esa segunda pasada **no añade un
+  segundo bloque**: el fichero conserva un único bloque propio de
+  token-diet.
+
+### R4.S2 — Rechazo del usuario (detalle)
+- GIVEN cualquier recomendación mostrada con su diff
+- WHEN el usuario la rechaza (o no confirma explícitamente)
+- THEN ni el fichero objetivo ni el destino de copia cambian: sin
+  confirmación explícita, el command no modifica el fichero ni copia nada.
 
 ## Resumen del contrato de salida de esta versión
 
-Al terminar de ejecutar este command (fases 1 y 3, sin fase 2 ni fase 4),
-debes haber comunicado al usuario, en este orden:
+Al terminar de ejecutar este command (fases 1 a 4 completas), debes haber
+comunicado al usuario, en este orden:
 
 1. Qué fichero objetivo se resolvió y cómo (proyecto/usuario, preguntado o
    único candidato existente).
@@ -156,6 +209,11 @@ debes haber comunicado al usuario, en este orden:
 3. Los dos hechos de R1.S1 (política sí/no, marca sí/no + versión), usando
    los literales exactos `sin política de ahorro de tokens detectada` y
    `sin marca token-diet` cuando corresponda.
-4. Dónde quedó copiado `assets/rules.md` y si el futuro puntero será
+4. La recomendación única (fase 2) de entre `{add, replace, extend, update,
+   none}` con su razón de una línea.
+5. Dónde quedó (o quedaría) copiado `assets/rules.md` y si el puntero es
    relativo (R3.S1, destino dentro del repo) o absoluto con aviso de no
    versionado (R3.S2, destino fuera del repo).
+6. El resultado de la fase 4: si el usuario confirmó, qué fichero se
+   modificó y con qué marca de versión quedó; si rechazó o no confirmó
+   explícitamente, que no se modificó ni copió nada (R4.S2).
