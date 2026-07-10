@@ -62,13 +62,39 @@ Al terminar la fase 1 debes tener, en memoria de la conversación: el
 objetivo resuelto (ruta absoluta), el hecho (a) política sí/no, y el hecho
 (b) marca sí/no + versión si la hay. Esto alimenta la fase 2.
 
-## Fase 2 — Recomendar una acción (R2) — RESERVADO, no implementado aquí
+## Fase 2 — Recomendar una acción (R2)
 
-Placeholder: esta sección la completa una tarea posterior (`cmd-recommend`)
-para implementar R2 (recomendación entre `{add, replace, extend, update,
-none}` con su razón de una línea, cubriendo R2.S1 y R2.S2). No implementes
-esta lógica en esta versión del command; limítate a dejar constancia de los
-hechos de la fase 1 para que la fase 2 los consuma cuando se añada.
+A partir de los dos hechos de la fase 1 (política sí/no + de quién, marca
+sí/no + versión), emite **exactamente una recomendación** — nunca más de
+una — de entre `{add, replace, extend, update, none}`, junto con una razón
+de una línea derivada del análisis. Aplica esta lógica, en este orden:
+
+1. **Sin política de ahorro de tokens detectada** (hecho (a) = no) →
+   recomienda `add`. Razón: no hay nada que instalar sobre lo existente.
+2. **Política ajena o en conflicto** (hecho (a) = sí, pero no es de
+   token-diet, o choca con lo que instalaría token-diet) → recomienda
+   `replace`. Razón: la política detectada no es la de token-diet y debe
+   sustituirse.
+3. **Política propia pero incompleta** (hecho (a) = sí y es de token-diet,
+   pero le faltan partes del ruleset) → recomienda `extend`. Razón: ya hay
+   base propia, falta completarla.
+4. **Marca presente con versión anterior a la actual (1.0.0)** → recomienda
+   `update`, señalando explícitamente el salto de versión detectado (por
+   ejemplo, v0.9.0 → v1.0.0).
+5. **Marca presente con versión igual a la actual (1.0.0)** → recomienda
+   `none` con la razón "ya cubierto por token-diet v1.0.0" y **no propone
+   ningún cambio**.
+
+### R2.S1 — Marca presente y versión actual (no reanalizar en bucle)
+Si el fichero objetivo contiene la marca `Produced with token-diet
+(v1.0.0)` y el plugin instalado también está en v1.0.0: recomienda `none`
+con la razón exacta "ya cubierto por token-diet v1.0.0" y no propone ningún
+cambio — no hace falta seguir con las fases 3-4.
+
+### R2.S2 — Marca presente con versión anterior
+Si el fichero objetivo contiene la marca `Produced with token-diet
+(v0.9.0)` y el plugin instalado está en v1.0.0: recomienda `update`
+señalando el salto de versión v0.9.0 → v1.0.0.
 
 ## Fase 3 — Copiar el documento completo de reglas (R3)
 
