@@ -1,0 +1,130 @@
+{
+  "plan_id": "plan-unify-cli-io",
+  "source_spec": "docs/specs/unify-cli-io/spec.md",
+  "branch": "refactor/unify-cli-io",
+  "started_at": "2026-07-10T20:23:38.722Z",
+  "tasks": {
+    "T1-lib-cli": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 55576,
+      "deviation": 15576,
+      "test_cmd": "node --test plugins/sdd-kit/test/lib-cli.test.mjs",
+      "commit": null,
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": null
+    },
+    "T2-exec-tools": {
+      "status": "pending",
+      "estimated_tokens": 60000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T3-verify-tools": {
+      "status": "pending",
+      "estimated_tokens": 45000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T4-plan-tools": {
+      "status": "pending",
+      "estimated_tokens": 35000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T5-versioning-report": {
+      "status": "pending",
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T6-budget-guard": {
+      "status": "pending",
+      "estimated_tokens": 20000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T7-forensics": {
+      "status": "pending",
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T8-token-cost": {
+      "status": "pending",
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T9-consumers": {
+      "status": "pending",
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T10-tests": {
+      "status": "pending",
+      "estimated_tokens": 70000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T11-e2e-gate": {
+      "status": "pending",
+      "estimated_tokens": 15000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    }
+  },
+  "pause": null
+}
