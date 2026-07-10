@@ -12,8 +12,8 @@
       "test_cmd": "node --test plugins/token-diet/test/rules-doc.test.mjs",
       "commit": "6187d36",
       "incidencia": "agentId no obtenido para esta tarea",
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a4abdfc2452099221",
+      "sessionId": "714f71c3-b3c0-462c-8e30-4ad77168d9b2"
     },
     "cmd-base": {
       "status": "done",
@@ -23,8 +23,8 @@
       "test_cmd": "node --test plugins/token-diet/test/cmd-base.test.mjs",
       "commit": "e0a1bf1",
       "incidencia": "agentId no obtenido para esta tarea",
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a12a9de3904f3e317",
+      "sessionId": "714f71c3-b3c0-462c-8e30-4ad77168d9b2"
     },
     "cmd-recommend": {
       "status": "done",
@@ -34,8 +34,8 @@
       "test_cmd": "node --test plugins/token-diet/test/cmd-recommend.test.mjs",
       "commit": "6108807",
       "incidencia": "agentId no obtenido para esta tarea",
-      "agentId": null,
-      "sessionId": null
+      "agentId": "acdb22120c5596f82",
+      "sessionId": "714f71c3-b3c0-462c-8e30-4ad77168d9b2"
     },
     "cmd-apply": {
       "status": "done",
@@ -45,8 +45,8 @@
       "test_cmd": "node --test plugins/token-diet/test/cmd-apply.test.mjs",
       "commit": "d8de5ef",
       "incidencia": "agentId no obtenido para esta tarea",
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a8ea7f3ec8c1a87c8",
+      "sessionId": "714f71c3-b3c0-462c-8e30-4ad77168d9b2"
     },
     "e2e-verify": {
       "status": "done",
@@ -54,10 +54,10 @@
       "actual_tokens": 27934,
       "deviation": -2066,
       "test_cmd": "node --test plugins/token-diet/test/*.test.mjs",
-      "commit": null,
+      "commit": "7dc509c",
       "incidencia": "agentId no obtenido para esta tarea",
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a189bad2b609a500d",
+      "sessionId": "714f71c3-b3c0-462c-8e30-4ad77168d9b2"
     },
     "semantic-review": {
       "status": "done",
@@ -67,8 +67,8 @@
       "test_cmd": "node --test plugins/token-diet/test/semantic-review.test.mjs",
       "commit": "948e7ae",
       "incidencia": "agentId no obtenido para esta tarea",
-      "agentId": null,
-      "sessionId": null
+      "agentId": "aee4b21044b7bf103",
+      "sessionId": "714f71c3-b3c0-462c-8e30-4ad77168d9b2"
     }
   },
   "pause": null
