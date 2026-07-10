@@ -46,17 +46,17 @@
       "actual_tokens": 52322,
       "deviation": 2322,
       "test_cmd": "test -f plugins/sdd-kit/skills/spec-forensics/SKILL.md && grep -q \"forensics.mjs\" plugins/sdd-kit/skills/spec-forensics/SKILL.md && test -f plugins/sdd-kit/commands/forensics.md && grep -q \"spec-forensics\" plugins/sdd-kit/commands/forensics.md && grep -q '\"version\": \"0.6.0\"' plugins/sdd-kit/.claude-plugin/plugin.json && grep -q \"0.6.0\" plugins/sdd-kit/CHANGELOG.md",
-      "commit": null,
+      "commit": "1c8c8cc",
       "incidencia": null
     },
     "forensics-e2e-integration": {
       "status": "pending",
       "estimated_tokens": 90000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 56641,
+      "deviation": -33359,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-forensics.test.mjs",
       "commit": null,
-      "incidencia": null
+      "incidencia": "no red evidence"
     }
   },
   "pause": null
