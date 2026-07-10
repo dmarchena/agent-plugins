@@ -50,13 +50,13 @@
       "incidencia": null
     },
     "forensics-e2e-integration": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 90000,
       "actual_tokens": 56641,
       "deviation": -33359,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-forensics.test.mjs",
       "commit": null,
-      "incidencia": "no red evidence"
+      "incidencia": null
     }
   },
   "pause": null
