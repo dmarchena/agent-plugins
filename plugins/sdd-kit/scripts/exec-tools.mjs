@@ -26,6 +26,7 @@ import { blockAndSkip, realCostOverBudget } from './exec/budget.mjs';
 import { resumeGround } from './exec/resume.mjs';
 import { extractIds } from './exec/extract.mjs';
 import { computeRealCost } from './exec/real-cost.mjs';
+import { emitSuccess, emitError, parseFlags } from './lib/cli.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,30 +41,16 @@ function paths(specDir) {
   };
 }
 
-function die(msg, code = 1) {
-  process.stderr.write(msg + '\n');
-  process.exit(code);
-}
-
-function out(obj) {
-  // Stable JSON output so the skill can read it unambiguously.
-  process.stdout.write(JSON.stringify(obj, null, 2) + '\n');
-}
-
-// Minimal --flags parser (value in the next token).
-function parseFlags(argv) {
-  const flags = {};
-  const pos = [];
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a.startsWith('--')) {
-      const key = a.slice(2);
-      const next = argv[i + 1];
-      if (next === undefined || next.startsWith('--')) { flags[key] = true; }
-      else { flags[key] = next; i++; }
-    } else { pos.push(a); }
-  }
-  return { flags, pos };
+// The shared lib/cli.mjs#parseFlags only extracts --flag tokens; it does not
+// track positional (non-flag) arguments, which every subcommand here needs
+// (specDir, taskId, extract's ID list...). Every subcommand's argv puts its
+// positional args first and its --flags after (see the usage strings below),
+// so splitting on the first '--' token is enough to recover both without
+// re-implementing flag parsing locally.
+function splitPositional(argv) {
+  const idx = argv.findIndex((a) => a.startsWith('--'));
+  if (idx === -1) return { pos: argv, flags: parseFlags([]) };
+  return { pos: argv.slice(0, idx), flags: parseFlags(argv.slice(idx)) };
 }
 
 function doneAndExcluded(state) {
@@ -90,7 +77,7 @@ function cmdInit(specDir) {
   const p = paths(specDir);
   const { valid, error, plan } = loadPlan(p.spec, p.plan);
   if (!valid) {
-    die('INVALID_PLAN: ' + error + '\nFix the plan with plan-writer before executing.', 2);
+    emitError('INVALID_PLAN: ' + error + '\nFix the plan with plan-writer before executing.', 2);
   }
   const state = initState(plan);
   // R2: the branch prefix follows the spec's recorded Change type through
@@ -108,7 +95,7 @@ function cmdInit(specDir) {
     result.note = 'spec.md has no "Change type:" line; defaulting the branch prefix to "feat". '
       + 'Consider adding an explicit Change type (feat/fix/chore/refactor/docs) near the top of the spec.';
   }
-  out(result);
+  emitSuccess(result);
 }
 
 // next <specDir>: next runnable batch (<=3), or done, or stalled.
@@ -124,11 +111,11 @@ function cmdNext(specDir) {
   const batch = readyBatch(plan, done, { max: 3, excluded });
   const c = counts(state);
   if (batch.length === 0) {
-    if (c.pending === 0 && c.running === 0) out({ status: 'complete', counts: c });
-    else out({ status: 'stalled', counts: c, note: 'no runnable tasks (dependencies blocked/skipped)' });
+    if (c.pending === 0 && c.running === 0) emitSuccess({ status: 'complete', counts: c });
+    else emitSuccess({ status: 'stalled', counts: c, note: 'no runnable tasks (dependencies blocked/skipped)' });
     return;
   }
-  out({ status: 'run', batch, counts: c });
+  emitSuccess({ status: 'run', batch, counts: c });
 }
 
 // Shared core of `complete`: verifies one task's evidence, commits it if
@@ -197,7 +184,7 @@ function cmdComplete(specDir, taskId, flags) {
   const { plan } = loadPlan(p.spec, p.plan);
   const state = read(p.state);
   const task = plan.tasks.find((t) => t.task_id === taskId);
-  if (!task) die('UNKNOWN_TASK: ' + taskId, 1);
+  if (!task) emitError('UNKNOWN_TASK: ' + taskId, 1);
 
   const testCmd = flags['test-cmd'] === true || flags['test-cmd'] === undefined ? null : String(flags['test-cmd']);
   const tokens = flags.tokens !== undefined && flags.tokens !== true ? parseInt(flags.tokens, 10) : null;
@@ -222,13 +209,13 @@ function cmdComplete(specDir, taskId, flags) {
   const files = filesRaw.split(',').map((f) => f.trim()).filter((f) => f.length > 0);
   const isVerifierTask = task.agent_type === 'verifier';
   if (files.length === 0 && !isVerifierTask) {
-    die("complete: refusing to commit without an explicit file list — pass the task's touched files", 1);
+    emitError("complete: refusing to commit without an explicit file list — pass the task's touched files", 1);
   }
 
   const result = completeOne(plan, state, p.state, {
     taskId, tokens, testCmd, rojo: flags.rojo, verde: flags.verde, message, files, agentId, sessionId,
   });
-  out(result);
+  emitSuccess(result);
 }
 
 // complete <specDir> --batch <path/to/batch.json>
@@ -251,15 +238,15 @@ function cmdCompleteBatch(specDir, batchPath) {
   try {
     entries = JSON.parse(fs.readFileSync(batchPath, 'utf8'));
   } catch (e) {
-    return die('BATCH_INVALIDO: could not read/parse ' + batchPath + ': ' + e.message, 1);
+    return emitError('BATCH_INVALIDO: could not read/parse ' + batchPath + ': ' + e.message, 1);
   }
-  if (!Array.isArray(entries) || entries.length === 0) die('BATCH_INVALIDO: expected a non-empty JSON array of task entries', 1);
-  if (entries.length > 3) die('BATCH_INVALIDO: a batch closes at most 3 tasks (' + entries.length + ' given)', 1);
+  if (!Array.isArray(entries) || entries.length === 0) emitError('BATCH_INVALIDO: expected a non-empty JSON array of task entries', 1);
+  if (entries.length > 3) emitError('BATCH_INVALIDO: a batch closes at most 3 tasks (' + entries.length + ' given)', 1);
 
   // Validate all task_ids up front so a typo doesn't leave a partially-closed batch.
   for (const e of entries) {
     if (!e || typeof e.task_id !== 'string' || !plan.tasks.find((t) => t.task_id === e.task_id)) {
-      die('UNKNOWN_TASK: ' + (e && e.task_id) + ' (in batch ' + batchPath + ')', 1);
+      emitError('UNKNOWN_TASK: ' + (e && e.task_id) + ' (in batch ' + batchPath + ')', 1);
     }
   }
 
@@ -274,7 +261,7 @@ function cmdCompleteBatch(specDir, batchPath) {
     const isVerifierTask = task.agent_type === 'verifier';
     const hasFiles = Array.isArray(e.files) && e.files.length > 0;
     if (!hasFiles && !isVerifierTask) {
-      die("complete --batch: refusing to commit '" + e.task_id + "' without an explicit file list — pass its touched files", 1);
+      emitError("complete --batch: refusing to commit '" + e.task_id + "' without an explicit file list — pass its touched files", 1);
     }
   }
 
@@ -300,7 +287,7 @@ function cmdCompleteBatch(specDir, batchPath) {
     });
     results.push(result);
   }
-  out({ status: 'batch', results });
+  emitSuccess({ status: 'batch', results });
 }
 
 // block <specDir> <taskId>: after exhausting the retry, blocks and skips dependents (R6.S1).
@@ -310,23 +297,28 @@ function cmdBlock(specDir, taskId) {
   const state = read(p.state);
   const r = blockAndSkip(plan, state, taskId);
   persist(p.state, state);
-  out({ status: 'blocked', ...r });
+  emitSuccess({ status: 'blocked', ...r });
 }
 
 // resume <specDir>: verifies the ground (re-run of done tests) before continuing (R7).
 function cmdResume(specDir) {
   const p = paths(specDir);
   const { valid, error, plan } = loadPlan(p.spec, p.plan);
-  if (!valid) die('INVALID_PLAN: ' + error, 2);
+  if (!valid) emitError('INVALID_PLAN: ' + error, 2);
   const state = read(p.state);
   const ground = resumeGround(plan, state, { rerun });
   if (!ground.ok) {
-    out({ status: 'ground-broken', brokenTask: ground.brokenTask, brokenTest: ground.brokenTest });
+    // Not an invalid-input error (the plan/state are fine) — this is a
+    // domain status the orchestrator must react to, so it stays on the
+    // success envelope; the distinct exit(4) (rather than emitError's
+    // process.exit) is what signals "ground broken" to the shell caller
+    // without forcing it to parse JSON just to detect the halt.
+    emitSuccess({ status: 'ground-broken', brokenTask: ground.brokenTask, brokenTest: ground.brokenTest });
     process.exit(4);
   }
   const { done, excluded } = doneAndExcluded(state);
   const batch = readyBatch(plan, done, { max: 3, excluded });
-  out({ status: 'resumed', next_batch: batch, counts: counts(state) });
+  emitSuccess({ status: 'resumed', next_batch: batch, counts: counts(state) });
 }
 
 // report <specDir>: final report (done/blocked/skipped, actual vs estimated tokens, ACs).
@@ -350,7 +342,7 @@ function cmdReport(specDir) {
   // function that cannot pause or halt the run; see exec/budget.mjs.
   const realCost = computeRealCost({ boundary: state.branch });
   const realCostOverBudgetIndicator = realCostOverBudget(realCost, plan.estimated_tokens_total);
-  out({
+  emitSuccess({
     status: 'report', branch: state.branch, counts: counts(state),
     tokens: { real: realTotal, estimated: estTotal }, per_task: per,
     acs_satisfechos: [...acs].sort(), pause: state.pause,
@@ -358,37 +350,39 @@ function cmdReport(specDir) {
   });
 }
 
-// extract <specDir> <ID> [ID...]: prints the verbatim spec.md block for each
-// ID. Scenario IDs (R<n>.S<m> or R-E2E.S<m>) print their full #### block up
+// extract <specDir> <ID> [ID...]: returns the verbatim spec.md block for each
+// ID. Scenario IDs (R<n>.S<m> or R-E2E.S<m>) return their full #### block up
 // to (not including) the next header of level <=4; AC IDs (AC<n> or AC-E2E)
-// print just their single checklist line. Human/subagent-readable plain
-// text, not the JSON out() convention the other commands use. If ANY
-// requested ID isn't found, nothing is printed for it (no partial/invented
-// block) and the process exits non-zero naming the missing ID(s) on stderr.
+// return just their single checklist line, keyed by ID in data.blocks — like
+// every other subcommand, this goes through the shared {ok,data}/{ok,error}
+// envelope (R1.S1/R1.S3), not ad hoc prose on stdout. If ANY requested ID
+// isn't found, nothing is returned for it (no partial/invented block) and
+// the process exits non-zero naming the missing ID(s) in error.reason.
 function cmdExtract(specDir, ids) {
   if (!ids || ids.length === 0) {
-    die('Usage: exec-tools.mjs extract <specDir> <ID> [ID...]', 1);
+    emitError('Usage: exec-tools.mjs extract <specDir> <ID> [ID...]', 1);
   }
   const p = paths(specDir);
   let specText;
   try {
     specText = fs.readFileSync(p.spec, 'utf8');
   } catch (err) {
-    die(`could not read spec.md: ${p.spec} (${err.message})`, 1);
+    emitError(`could not read spec.md: ${p.spec} (${err.message})`, 1);
   }
   const { blocks, missing } = extractIds(specText, ids);
   if (missing.length > 0) {
-    die(`ID(s) not found in spec.md: ${missing.join(', ')}`, 1);
+    emitError(`ID(s) not found in spec.md: ${missing.join(', ')}`, 1);
   }
-  const parts = ids.map((id) => `--- ${id} ---\n${blocks.get(id)}`);
-  process.stdout.write(parts.join('\n\n') + '\n');
+  const blockMap = {};
+  for (const id of ids) blockMap[id] = blocks.get(id);
+  emitSuccess({ ids, blocks: blockMap });
 }
 
 // --- dispatch ----------------------------------------------------------------
 
 function main() {
   const [cmd, ...rest] = process.argv.slice(2);
-  const { flags, pos } = parseFlags(rest);
+  const { pos, flags } = splitPositional(rest);
   switch (cmd) {
     case 'init': return cmdInit(pos[0]);
     case 'next': return cmdNext(pos[0]);
@@ -399,7 +393,7 @@ function main() {
     case 'report': return cmdReport(pos[0]);
     case 'extract': return cmdExtract(pos[0], pos.slice(1));
     default:
-      die('Usage: exec-tools.mjs <init|next|complete|block|resume|report|extract> <specDir> [...]', 1);
+      emitError('Usage: exec-tools.mjs <init|next|complete|block|resume|report|extract> <specDir> [...]', 1);
   }
 }
 
