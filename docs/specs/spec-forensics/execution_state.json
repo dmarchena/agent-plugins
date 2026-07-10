@@ -37,15 +37,15 @@
       "actual_tokens": 53231,
       "deviation": -16769,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics.test.mjs",
-      "commit": null,
+      "commit": "14b1a5a",
       "incidencia": null
     },
     "forensics-skill": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 50000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 52322,
+      "deviation": 2322,
+      "test_cmd": "test -f plugins/sdd-kit/skills/spec-forensics/SKILL.md && grep -q \"forensics.mjs\" plugins/sdd-kit/skills/spec-forensics/SKILL.md && test -f plugins/sdd-kit/commands/forensics.md && grep -q \"spec-forensics\" plugins/sdd-kit/commands/forensics.md && grep -q '\"version\": \"0.6.0\"' plugins/sdd-kit/.claude-plugin/plugin.json && grep -q \"0.6.0\" plugins/sdd-kit/CHANGELOG.md",
       "commit": null,
       "incidencia": null
     },

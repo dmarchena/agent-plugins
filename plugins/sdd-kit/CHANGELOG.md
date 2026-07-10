@@ -4,6 +4,21 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.6.0
+
+- Added the `spec-forensics` skill: a read-only integration layer (thin
+  `SKILL.md` + the `/sdd-kit:forensics` shortcut) wiring the pre-existing
+  `scripts/forensics.mjs` CLI into the skill surface. Given a
+  `docs/specs/<slug>/` whose `execution_state.json` already exists, it
+  resolves each task's REAL token/cost figures via the persisted
+  `agentId`/`sessionId` join against the matching session transcript,
+  splits real spend into `orchestrator`/`subagents_total`, surfaces a
+  `pause_timeline`, and degrades gracefully to `resolved: false` per task
+  (or a whole-run `incomplete`/`incomplete_reason` flag) instead of
+  throwing when join data is missing — writing the full report to
+  `forensics.json`. No plan/spec/execution-state logic is duplicated in
+  the skill; it only invokes the CLI and relays its JSON.
+
 ## 0.5.4
 
 - Fixed a token-size regression across the 4 `SKILL.md` files (spec-writer,
