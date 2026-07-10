@@ -72,7 +72,12 @@ function findSessionFile(projectsRoot, sessionId) {
 // Resolves one task's real figures. Never throws: any failure to resolve
 // (missing agentId/sessionId, missing transcript, missing subagent entry,
 // or an analyze() error) falls through to the `resolved: false` shape.
-export function resolveTaskForensics(task, opts) {
+//
+// `analyzeCache` (optional Map keyed by resolved sessionFile path) lets
+// callers reuse a single analyze() call's whole-session orchAll/subTotal
+// figures (R3.S1) across every task that shares a sessionId, instead of
+// paying for analyze() again per task.
+export function resolveTaskForensics(task, opts, analyzeCache) {
   const estimated_tokens = task ? task.estimated_tokens : null;
   const unresolved = {
     resolved: false,
@@ -93,10 +98,17 @@ export function resolveTaskForensics(task, opts) {
   }
 
   let result;
-  try {
-    result = analyze({ sessionPath: sessionFile });
-  } catch {
-    return unresolved;
+  if (analyzeCache && analyzeCache.has(sessionFile)) {
+    result = analyzeCache.get(sessionFile);
+  } else {
+    try {
+      result = analyze({ sessionPath: sessionFile });
+    } catch {
+      return unresolved;
+    }
+    if (analyzeCache) {
+      analyzeCache.set(sessionFile, result);
+    }
   }
 
   const sub = (result.subs || []).find((s) => s.id === task.agentId);
@@ -133,6 +145,17 @@ function formatSummaryLine(taskId, r) {
   );
 }
 
+// Builds the `pause_timeline` array (R3.S2) from execution_state.json's
+// top-level `pause` field: null (never paused) yields [], never an error.
+// A non-null pause carries its own recorded accumulated real_tokens figure
+// (pause.real_tokens) — that figure is used as-is, never recomputed.
+function buildPauseTimeline(pause) {
+  if (!pause) {
+    return [];
+  }
+  return [{ at_task: pause.at_task, real_tokens: pause.real_tokens }];
+}
+
 // Runs the full forensics pass for a SPECDIR: reads execution_state.json,
 // resolves every task, writes forensics.json, and returns { results, lines }
 // so the CLI entry point can print `lines` verbatim. Exported for direct
@@ -142,18 +165,39 @@ export function runForensics(specDir, opts) {
   const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
   const tasks = state.tasks || {};
 
+  // Shared across every task's resolution: analyze() returns whole-session
+  // orchAll/subTotal figures (not per-task), so tasks sharing a sessionId
+  // must reuse the same analyze() call instead of recomputing it (R3.S1).
+  const analyzeCache = new Map();
+
   const results = {};
   const lines = [];
   for (const [taskId, task] of Object.entries(tasks)) {
-    const r = resolveTaskForensics(task, opts);
+    const r = resolveTaskForensics(task, opts, analyzeCache);
     results[taskId] = r;
     lines.push(formatSummaryLine(taskId, r));
   }
 
-  const outPath = path.join(specDir, 'forensics.json');
-  fs.writeFileSync(outPath, JSON.stringify({ tasks: results }, null, 2) + '\n');
+  // Any one cached analyze() result carries the same whole-session
+  // orchAll/subTotal figures; the first is as good as any other.
+  const firstAnalyzed = analyzeCache.size > 0 ? analyzeCache.values().next().value : null;
+  const orchestrator = {
+    real_tokens: firstAnalyzed ? firstAnalyzed.orchAll.tokens : 0,
+    real_cost_usd: firstAnalyzed ? firstAnalyzed.orchAll.cost : 0,
+  };
+  const subagents_total = {
+    real_tokens: firstAnalyzed ? firstAnalyzed.subTotal.tokens : 0,
+    real_cost_usd: firstAnalyzed ? firstAnalyzed.subTotal.cost : 0,
+  };
+  const pause_timeline = buildPauseTimeline(state.pause);
 
-  return { results, lines, outPath };
+  const outPath = path.join(specDir, 'forensics.json');
+  fs.writeFileSync(
+    outPath,
+    JSON.stringify({ tasks: results, orchestrator, subagents_total, pause_timeline }, null, 2) + '\n',
+  );
+
+  return { results, lines, outPath, orchestrator, subagents_total, pause_timeline };
 }
 
 // --- CLI -------------------------------------------------------------------

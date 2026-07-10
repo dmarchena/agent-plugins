@@ -80,7 +80,7 @@ function taskEntry(overrides) {
   };
 }
 
-function makeSpecDir(tasks) {
+function makeSpecDir(tasks, pause) {
   const specDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-specdir-'));
   fs.writeFileSync(
     path.join(specDir, 'execution_state.json'),
@@ -90,7 +90,7 @@ function makeSpecDir(tasks) {
       branch: null,
       started_at: new Date().toISOString(),
       tasks,
-      pause: null,
+      pause: pause === undefined ? null : pause,
     }, null, 2),
   );
   return specDir;
@@ -199,6 +199,82 @@ test('R2.S2: a task with null agentId or an absent transcript is reported resolv
     assert.equal(missingTranscriptTask.real_cost_usd, null);
     assert.equal(missingTranscriptTask.estimated_tokens, 250);
     assert.equal(missingTranscriptTask.deviation_real, null);
+  } finally {
+    fs.rmSync(specDir, { recursive: true, force: true });
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test('R3.S1: forensics.json includes an orchestrator object and a subagents_total object, each with numeric real_tokens and real_cost_usd, and a pause_timeline entry carrying the recorded pause\'s at_task and accumulated real_tokens', () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-r3s1-'));
+
+  // Two subagents sharing ONE session, so orchestrator/subagents_total are
+  // whole-session figures (not just one task's), and analyze() need only
+  // be computed once for both tasks to see the same totals.
+  const orchestratorUsage = { input_tokens: 10, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+  const subUsageAlpha = { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 300, cache_creation_input_tokens: 0 };
+  const subUsageBeta = { input_tokens: 500, output_tokens: 100, cache_read_input_tokens: 50, cache_creation_input_tokens: 0 };
+
+  writeProjectFixture(projectsRoot, 'project-x', 'session-x', 'agentAlpha', subUsageAlpha);
+  writeProjectFixture(projectsRoot, 'project-x', 'session-x', 'agentBeta', subUsageBeta);
+
+  const pause = { reason: 'budget-threshold', real_tokens: 4242, estimated_tokens: 1000, at_task: 'task-beta' };
+
+  const specDir = makeSpecDir({
+    'task-alpha': taskEntry({ estimated_tokens: 1000, agentId: 'agentAlpha', sessionId: 'session-x' }),
+    'task-beta': taskEntry({ estimated_tokens: 400, agentId: 'agentBeta', sessionId: 'session-x' }),
+  }, pause);
+
+  try {
+    const result = runCli(specDir, { TOKEN_COST_PROJECTS_ROOT: projectsRoot });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+
+    const forensics = JSON.parse(fs.readFileSync(path.join(specDir, 'forensics.json'), 'utf8'));
+
+    const expectedOrchTokens = sumUsageTokens(orchestratorUsage);
+    const expectedOrchCost = costForUsage('sonnet', orchestratorUsage);
+    const expectedSubTotalTokens = sumUsageTokens(subUsageAlpha) + sumUsageTokens(subUsageBeta);
+    const expectedSubTotalCost = costForUsage('haiku', subUsageAlpha) + costForUsage('haiku', subUsageBeta);
+
+    assert.ok(forensics.orchestrator, 'forensics.json must include an orchestrator object');
+    assert.equal(typeof forensics.orchestrator.real_tokens, 'number');
+    assert.equal(typeof forensics.orchestrator.real_cost_usd, 'number');
+    assert.equal(forensics.orchestrator.real_tokens, expectedOrchTokens);
+    assert.ok(Math.abs(forensics.orchestrator.real_cost_usd - expectedOrchCost) < 0.0001);
+
+    assert.ok(forensics.subagents_total, 'forensics.json must include a subagents_total object');
+    assert.equal(typeof forensics.subagents_total.real_tokens, 'number');
+    assert.equal(typeof forensics.subagents_total.real_cost_usd, 'number');
+    assert.equal(forensics.subagents_total.real_tokens, expectedSubTotalTokens);
+    assert.ok(Math.abs(forensics.subagents_total.real_cost_usd - expectedSubTotalCost) < 0.0001);
+
+    assert.ok(Array.isArray(forensics.pause_timeline), 'pause_timeline must be an array');
+    assert.equal(forensics.pause_timeline.length, 1);
+    assert.equal(forensics.pause_timeline[0].at_task, 'task-beta');
+    assert.equal(forensics.pause_timeline[0].real_tokens, 4242);
+  } finally {
+    fs.rmSync(specDir, { recursive: true, force: true });
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test('R3.S2: for a run whose state pause is null, forensics.json pause_timeline is an empty array and no error is raised', () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-r3s2-'));
+
+  const subUsage = { input_tokens: 300, output_tokens: 50, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+  writeProjectFixture(projectsRoot, 'project-y', 'session-y', 'agentY', subUsage);
+
+  const specDir = makeSpecDir({
+    'task-y': taskEntry({ estimated_tokens: 200, agentId: 'agentY', sessionId: 'session-y' }),
+  }, null);
+
+  try {
+    const result = runCli(specDir, { TOKEN_COST_PROJECTS_ROOT: projectsRoot });
+    assert.equal(result.status, 0, `process must exit 0 with a null pause; stderr: ${result.stderr}`);
+
+    const forensics = JSON.parse(fs.readFileSync(path.join(specDir, 'forensics.json'), 'utf8'));
+    assert.ok(Array.isArray(forensics.pause_timeline), 'pause_timeline must be an array');
+    assert.deepEqual(forensics.pause_timeline, []);
   } finally {
     fs.rmSync(specDir, { recursive: true, force: true });
     fs.rmSync(projectsRoot, { recursive: true, force: true });

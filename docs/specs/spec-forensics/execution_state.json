@@ -19,15 +19,15 @@
       "actual_tokens": 68302,
       "deviation": -41698,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics.test.mjs",
-      "commit": null,
+      "commit": "e33d91e",
       "incidencia": null
     },
     "forensics-orchestrator-pause": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 80000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 61173,
+      "deviation": -18827,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics.test.mjs",
       "commit": null,
       "incidencia": null
     },
