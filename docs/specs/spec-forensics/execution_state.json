@@ -10,15 +10,15 @@
       "actual_tokens": 84296,
       "deviation": -5704,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/*.test.mjs",
-      "commit": null,
+      "commit": "b7e006b",
       "incidencia": null
     },
     "forensics-per-task": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 110000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 68302,
+      "deviation": -41698,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics.test.mjs",
       "commit": null,
       "incidencia": null
     },

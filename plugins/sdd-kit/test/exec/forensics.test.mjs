@@ -1,0 +1,206 @@
+// test/exec/forensics.test.mjs — forensics-per-task
+//
+// R2.S1: For a SPECDIR whose tasks carry agentId with matching transcripts,
+// forensics.json lists each task with numeric real_tokens (counting
+// cache-read), real_cost_usd, estimated_tokens and deviation_real, and the
+// same per-task figures are printed to stdout.
+// R2.S2: A task with null agentId or an absent transcript is reported
+// resolved:false with null cost/token fields while other tasks show real
+// figures, and the process exits with code 0.
+//
+// Fixture conventions mirror test/exec/real-cost.test.mjs and
+// test/exec/report-real-cost.test.mjs: a "projects root" is a tmpdir
+// containing project dirs, each with a flat <sessionId>.jsonl plus a
+// sibling <sessionId>/subagents/agent-<agentId>.jsonl + .meta.json. The CLI
+// is pointed at the fixture root via TOKEN_COST_PROJECTS_ROOT so it never
+// touches the real ~/.claude/projects.
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+import { costForUsage } from '../../scripts/token-cost.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CLI = path.resolve(__dirname, '..', '..', 'scripts', 'forensics.mjs');
+
+function sumUsageTokens(usage) {
+  return (
+    (usage.input_tokens || 0)
+    + (usage.output_tokens || 0)
+    + (usage.cache_read_input_tokens || 0)
+    + (usage.cache_creation_input_tokens || 0)
+  );
+}
+
+// Writes one project dir under projectsRoot with a flat <sessionId>.jsonl
+// plus a subagents/agent-<agentId>.jsonl + .meta.json — mirrors
+// report-real-cost.test.mjs's writeProjectsRootFixture.
+function writeProjectFixture(projectsRoot, projectName, sessionId, agentId, subUsage) {
+  const projectDir = path.join(projectsRoot, projectName);
+  fs.mkdirSync(projectDir, { recursive: true });
+
+  const sessionFile = path.join(projectDir, `${sessionId}.jsonl`);
+  fs.writeFileSync(
+    sessionFile,
+    JSON.stringify({
+      type: 'assistant',
+      message: { model: 'claude-sonnet-4-5-20250929', usage: { input_tokens: 10, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } },
+    }) + '\n',
+  );
+
+  const subagentsDir = path.join(projectDir, sessionId, 'subagents');
+  fs.mkdirSync(subagentsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(subagentsDir, `agent-${agentId}.jsonl`),
+    JSON.stringify({ type: 'assistant', message: { model: 'claude-haiku-4-5-20251001', usage: subUsage } }) + '\n',
+  );
+  fs.writeFileSync(
+    path.join(subagentsDir, `agent-${agentId}.meta.json`),
+    JSON.stringify({ description: 'fixture subagent' }),
+  );
+}
+
+function taskEntry(overrides) {
+  return {
+    status: 'done',
+    estimated_tokens: 1000,
+    actual_tokens: null,
+    deviation: null,
+    test_cmd: null,
+    commit: null,
+    incidencia: null,
+    agentId: null,
+    sessionId: null,
+    ...overrides,
+  };
+}
+
+function makeSpecDir(tasks) {
+  const specDir = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-specdir-'));
+  fs.writeFileSync(
+    path.join(specDir, 'execution_state.json'),
+    JSON.stringify({
+      plan_id: 'plan-forensics-fixture',
+      source_spec: 'spec.md',
+      branch: null,
+      started_at: new Date().toISOString(),
+      tasks,
+      pause: null,
+    }, null, 2),
+  );
+  return specDir;
+}
+
+function runCli(specDir, env) {
+  const result = spawnSync('node', [CLI, specDir], {
+    encoding: 'utf8',
+    env: { ...process.env, ...(env || {}) },
+  });
+  return result;
+}
+
+test('R2.S1: for a SPECDIR whose tasks carry agentId with matching transcripts, forensics.json lists each task with numeric real_tokens (counting cache-read), real_cost_usd, estimated_tokens and deviation_real, and the same per-task figures are printed to stdout', () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-r2s1-'));
+
+  const subUsageA = { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 300, cache_creation_input_tokens: 0 };
+  const subUsageB = { input_tokens: 500, output_tokens: 100, cache_read_input_tokens: 50, cache_creation_input_tokens: 0 };
+
+  writeProjectFixture(projectsRoot, 'project-a', 'session-a', 'agentA', subUsageA);
+  writeProjectFixture(projectsRoot, 'project-b', 'session-b', 'agentB', subUsageB);
+
+  const specDir = makeSpecDir({
+    'task-a': taskEntry({ estimated_tokens: 1000, agentId: 'agentA', sessionId: 'session-a' }),
+    'task-b': taskEntry({ estimated_tokens: 400, agentId: 'agentB', sessionId: 'session-b' }),
+  });
+
+  try {
+    const result = runCli(specDir, { TOKEN_COST_PROJECTS_ROOT: projectsRoot });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+
+    const forensicsPath = path.join(specDir, 'forensics.json');
+    assert.ok(fs.existsSync(forensicsPath), 'forensics.json must be written');
+    const forensics = JSON.parse(fs.readFileSync(forensicsPath, 'utf8'));
+
+    const expectedTokensA = sumUsageTokens(subUsageA);
+    const expectedCostA = costForUsage('haiku', subUsageA);
+    const expectedTokensB = sumUsageTokens(subUsageB);
+    const expectedCostB = costForUsage('haiku', subUsageB);
+
+    // cache_read must be folded into real_tokens: both fixtures used
+    // non-zero cache_read_input_tokens.
+    assert.ok(subUsageA.cache_read_input_tokens > 0, 'sanity: fixture exercises cache_read');
+
+    const taskA = forensics.tasks['task-a'];
+    assert.equal(taskA.resolved, true);
+    assert.equal(taskA.real_tokens, expectedTokensA);
+    assert.ok(Math.abs(taskA.real_cost_usd - expectedCostA) < 0.0001);
+    assert.equal(taskA.estimated_tokens, 1000);
+    assert.equal(taskA.deviation_real, expectedTokensA - 1000);
+
+    const taskB = forensics.tasks['task-b'];
+    assert.equal(taskB.resolved, true);
+    assert.equal(taskB.real_tokens, expectedTokensB);
+    assert.ok(Math.abs(taskB.real_cost_usd - expectedCostB) < 0.0001);
+    assert.equal(taskB.estimated_tokens, 400);
+    assert.equal(taskB.deviation_real, expectedTokensB - 400);
+
+    // Same figures must be printed to stdout.
+    assert.ok(result.stdout.includes('task-a'), 'stdout must mention task-a');
+    assert.ok(result.stdout.includes(String(expectedTokensA)), 'stdout must include task-a real_tokens');
+    assert.ok(result.stdout.includes('task-b'), 'stdout must mention task-b');
+    assert.ok(result.stdout.includes(String(expectedTokensB)), 'stdout must include task-b real_tokens');
+  } finally {
+    fs.rmSync(specDir, { recursive: true, force: true });
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test('R2.S2: a task with null agentId or an absent transcript is reported resolved:false with null cost/token fields while other tasks show real figures, and the process exits with code 0', () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-r2s2-'));
+
+  const subUsageResolved = { input_tokens: 800, output_tokens: 150, cache_read_input_tokens: 100, cache_creation_input_tokens: 0 };
+  writeProjectFixture(projectsRoot, 'project-resolved', 'session-resolved', 'agentResolved', subUsageResolved);
+
+  const specDir = makeSpecDir({
+    'task-resolved': taskEntry({ estimated_tokens: 700, agentId: 'agentResolved', sessionId: 'session-resolved' }),
+    'task-null-agent': taskEntry({ estimated_tokens: 300, agentId: null, sessionId: null }),
+    'task-missing-transcript': taskEntry({ estimated_tokens: 250, agentId: 'ghostAgent', sessionId: 'session-does-not-exist' }),
+  });
+
+  try {
+    const result = runCli(specDir, { TOKEN_COST_PROJECTS_ROOT: projectsRoot });
+    assert.equal(result.status, 0, `process must exit 0 even with unresolved tasks; stderr: ${result.stderr}`);
+
+    const forensics = JSON.parse(fs.readFileSync(path.join(specDir, 'forensics.json'), 'utf8'));
+
+    const expectedTokensResolved = sumUsageTokens(subUsageResolved);
+    const resolvedTask = forensics.tasks['task-resolved'];
+    assert.equal(resolvedTask.resolved, true);
+    assert.equal(resolvedTask.real_tokens, expectedTokensResolved);
+    assert.equal(typeof resolvedTask.real_cost_usd, 'number');
+    assert.equal(resolvedTask.estimated_tokens, 700);
+    assert.equal(resolvedTask.deviation_real, expectedTokensResolved - 700);
+
+    const nullAgentTask = forensics.tasks['task-null-agent'];
+    assert.equal(nullAgentTask.resolved, false);
+    assert.equal(nullAgentTask.real_tokens, null);
+    assert.equal(nullAgentTask.real_cost_usd, null);
+    assert.equal(nullAgentTask.estimated_tokens, 300);
+    assert.equal(nullAgentTask.deviation_real, null);
+
+    const missingTranscriptTask = forensics.tasks['task-missing-transcript'];
+    assert.equal(missingTranscriptTask.resolved, false);
+    assert.equal(missingTranscriptTask.real_tokens, null);
+    assert.equal(missingTranscriptTask.real_cost_usd, null);
+    assert.equal(missingTranscriptTask.estimated_tokens, 250);
+    assert.equal(missingTranscriptTask.deviation_real, null);
+  } finally {
+    fs.rmSync(specDir, { recursive: true, force: true });
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
