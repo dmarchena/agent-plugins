@@ -49,13 +49,13 @@
       "sessionId": null
     },
     "e2e-verify": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 30000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 27934,
+      "deviation": -2066,
+      "test_cmd": "node --test plugins/token-diet/test/*.test.mjs",
       "commit": null,
-      "incidencia": null,
+      "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
       "sessionId": null
     },
@@ -65,7 +65,7 @@
       "actual_tokens": 46766,
       "deviation": 6766,
       "test_cmd": "node --test plugins/token-diet/test/semantic-review.test.mjs",
-      "commit": null,
+      "commit": "948e7ae",
       "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
       "sessionId": null
