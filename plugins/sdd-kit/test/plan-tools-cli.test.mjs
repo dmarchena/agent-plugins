@@ -40,6 +40,53 @@ test('AC3: plan-tools con un plan.json malformado emite {ok:false,error:{reason}
   assert.ok(parsed.error.reason.length > 0, 'error.reason no debe estar vacio');
 });
 
+test('R1.S1: plan-tools inspect-spec en exito emite {ok:true,data:...} compacto en una linea y termina con codigo 0', () => {
+  const result = spawnSync(
+    process.execPath,
+    [PLAN_TOOLS_PATH, 'inspect-spec', SPEC_PATH],
+    { encoding: 'utf8' }
+  );
+
+  assert.equal(result.status, 0, 'inspect-spec en exito debe terminar con codigo 0');
+
+  const lines = result.stdout.split('\n').filter(Boolean);
+  assert.equal(lines.length, 1, `stdout debe ser una sola linea; stdout=${JSON.stringify(result.stdout)}`);
+
+  let parsed;
+  try {
+    parsed = JSON.parse(lines[0]);
+  } catch (err) {
+    assert.fail(`stdout debe ser JSON parseable con el envelope {ok:true,data:...}; stdout=${JSON.stringify(result.stdout)} (${err.message})`);
+  }
+
+  assert.equal(parsed.ok, true, 'ok debe ser true');
+  assert.equal(typeof parsed.data, 'object', 'data debe ser un objeto');
+});
+
+test('R1.S1: plan-tools check-plan en exito emite {ok:true,data:...} compacto en una linea y termina con codigo 0', () => {
+  const VALID_PLAN_PATH = path.join(__dirname, 'fixtures', 'valid', 'plan.json');
+  const result = spawnSync(
+    process.execPath,
+    [PLAN_TOOLS_PATH, 'check-plan', SPEC_PATH, VALID_PLAN_PATH],
+    { encoding: 'utf8' }
+  );
+
+  assert.equal(result.status, 0, `check-plan en exito debe terminar con codigo 0; stderr=${result.stderr}`);
+
+  const lines = result.stdout.split('\n').filter(Boolean);
+  assert.equal(lines.length, 1, `stdout debe ser una sola linea; stdout=${JSON.stringify(result.stdout)}`);
+
+  let parsed;
+  try {
+    parsed = JSON.parse(lines[0]);
+  } catch (err) {
+    assert.fail(`stdout debe ser JSON parseable con el envelope {ok:true,data:...}; stdout=${JSON.stringify(result.stdout)} (${err.message})`);
+  }
+
+  assert.equal(parsed.ok, true, 'ok debe ser true');
+  assert.equal(typeof parsed.data, 'object', 'data debe ser un objeto');
+});
+
 test('AC4: plan-tools no define localmente su helper de error/parseo y usa el modulo compartido', () => {
   const source = fs.readFileSync(PLAN_TOOLS_PATH, 'utf8');
 

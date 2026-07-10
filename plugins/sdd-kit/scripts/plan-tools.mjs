@@ -12,7 +12,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { emitError } from './lib/cli.mjs';
+import { emitSuccess, emitError } from './lib/cli.mjs';
 
 // ---------------------------------------------------------------------------
 // Generic utilities
@@ -132,9 +132,7 @@ function cmdInspectSpec(specPath) {
     emitError('missing the Acceptance Criteria section');
   }
 
-  process.stdout.write(
-    `${spec.requirements.size} requirements, ${spec.acs.size} ACs detected\n`
-  );
+  emitSuccess({ requirements: spec.requirements.size, acs: spec.acs.size });
   process.exit(0);
 }
 
@@ -448,9 +446,7 @@ function cmdCheckPlan(specPath, planPath) {
     if (error) emitError(error);
   }
 
-  process.stdout.write(
-    `valid plan: ${tasks.length} tasks, all requirements and ACs covered\n`
-  );
+  emitSuccess({ tasks: tasks.length, message: 'all requirements and ACs covered' });
   process.exit(0);
 }
 
