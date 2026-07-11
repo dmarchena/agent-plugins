@@ -66,8 +66,8 @@ Read `assets/agent-roles.md` — the fixed catalog of `agent_type` →
 most-austere-that-qualifies rule: mechanical, low-judgment work
 → `haiku`; bounded implementation with clear acceptance criteria →
 `sonnet`; design, critical review, or trade-off decisions → `opus`. For the
-`R-E2E`/`AC-E2E` task's `agent_type`, see `assets/e2e-task-assignment.md`
-(verifier vs. code_writer) and `assets/agent-roles.md`'s matching rows.
+`R-E2E`/`AC-E2E` task, assign `agent_type: "verifier"` (not `terminal_operator`)
+— see `assets/e2e-task-assignment.md`.
 
 ## Write granular instructions
 

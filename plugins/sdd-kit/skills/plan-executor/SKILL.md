@@ -24,8 +24,8 @@ git, budget, resume) lives in `scripts/exec-tools.mjs` and `scripts/exec/`
 `assets/execution_state.schema.json`). **The scripts are the source of
 truth for behavior; you drive them, you do not re-implement them.**
 `SPECDIR` (throughout) is the `docs/specs/<slug>/` directory. Every
-subcommand prints one `{ ok: true, data: { status, ... } }` envelope to
-stdout — read `data` and branch on `data.status`.
+subcommand prints one `{ ok, data }` envelope to stdout — read `data` and
+branch on `data.status`.
 
 ## 0. Hard gate: validate before touching anything
 
@@ -43,9 +43,8 @@ the branch.
   field/ID the validator named and tell the user to fix the plan with
   plan-writer. Do **not** create a branch, state, or launch any subagent
   (R1.S2 / AC1).
-- **`{ ok: true, data: { branch, branch_created, first_batch, total_tasks,
-  ... } }`** → announce the batch plan to the user: which tasks run in
-  parallel now, which wait on dependencies (R1.S1).
+- **`{ ok: true, data: {...} }`** → announce the batch plan to the user:
+  which tasks run in parallel now, which wait on dependencies (R1.S1).
 
 If `execution_state.json` already exists in SPECDIR, this is a resume —
 skip `init`, go to `assets/failures-and-resume.md` §6 Resume instead.
@@ -106,12 +105,12 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs complete SPECDIR <task_id> \
 Genuine evidence is `--rojo fail` **and** `--verde pass`; `--rojo pass`
 means the test passed with nothing implemented — the "sin evidencia de
 rojo" incidence, not success. `complete` re-runs `--test-cmd` itself and
-only trusts a green it can reproduce (R3). A `{ ok: true, data: { status:
-"done", commit, deviation } }` means verified green, already committed on
-the plan branch (R3.S1 / AC5). A `{ ok: true, data: { status: "not-done",
-reason, incidencia } }` breaks into three cases — see `assets/task-brief-detail.md` for the full `reason:
-"no-red"` / `"rerun-failed"` / `"not-green"` breakdown and what to do for
-each.
+only trusts a green it can reproduce (R3). `data.status: "done"` (with
+commit, deviation) means verified green, already committed on the plan
+branch (R3.S1 / AC5). `data.status: "not-done"` (with reason, incidencia)
+breaks into three cases — see `assets/task-brief-detail.md` for the full
+`reason: "no-red"` / `"rerun-failed"` / `"not-green"` breakdown and what
+to do for each.
 
 When the batch has more than one task, close all of them in a SINGLE
 `complete --batch` invocation instead of one `complete` per task, cutting
