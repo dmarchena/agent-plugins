@@ -21,21 +21,21 @@
       "actual_tokens": 76780,
       "deviation": -43220,
       "test_cmd": "node --test scripts/test/generate-cross-platform.test.mjs",
-      "commit": null,
+      "commit": "be8232c",
       "incidencia": null,
       "agentId": "a17bb346ee853c2b6",
       "sessionId": "fd2cb04c-16c6-479c-a9ea-6f7a4d0d59fd"
     },
     "t3-llmstxt": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 25000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 41598,
+      "deviation": 16598,
+      "test_cmd": "node --test scripts/test/llms-txt.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a7bd677ab3b83c7c0",
+      "sessionId": "fd2cb04c-16c6-479c-a9ea-6f7a4d0d59fd"
     },
     "t4-contributor-docs": {
       "status": "pending",
