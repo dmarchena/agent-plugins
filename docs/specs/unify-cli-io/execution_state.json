@@ -109,19 +109,19 @@
       "actual_tokens": 232997,
       "deviation": 162997,
       "test_cmd": "cd plugins/sdd-kit && node --test $(find test -name '*.test.mjs') test/run.mjs",
-      "commit": null,
+      "commit": "9d6a525",
       "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
       "sessionId": null
     },
     "T11-e2e-gate": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 15000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 29719,
+      "deviation": 14719,
+      "test_cmd": "cd plugins/sdd-kit && node --test $(find test -name '*.test.mjs') test/run.mjs",
       "commit": null,
-      "incidencia": null,
+      "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
       "sessionId": null
     }
