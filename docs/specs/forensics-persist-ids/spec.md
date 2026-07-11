@@ -1,8 +1,5 @@
 # Spec: forensics persiste agentId/sessionId por tarea (gap de contrato)
 
-> **BORRADOR** — pendiente de repaso en otra sesión. Ver "Assumptions & Open
-> Questions" antes de pasar a plan-writer.
-
 ## Purpose
 
 `spec-forensics` resuelve **vacío** sobre una spec ejecutada con normalidad
@@ -23,9 +20,10 @@ Change type: fix
 **In scope:**
 - Auto-sellar `sessionId` en `complete` / `complete --batch` desde
   `CLAUDE_CODE_SESSION_ID` cuando no se pasa session id explícito (remedy #1).
-- Cablear `agentId` por el contrato documentado de plan-executor: el retorno
-  compacto del executor lo declara, y la invocación `complete` lo pasa como
-  `--agent-id` (y `agent_id` por entrada de batch) — remedy #2.
+- Cablear `agentId` por el contrato documentado de plan-executor: el
+  orquestador lo captura del **resultado del tool `Task`** de cada subagente
+  (`toolUseResult.agentId`) y lo pasa a `complete` como `--agent-id` (y
+  `agent_id` por entrada de batch) — remedy #2.
 - Verificación E2E de que la cadena `complete`→state→forensics resuelve
   figuras reales cuando los ids llegan como prescribe el contrato actualizado.
 
@@ -78,17 +76,21 @@ prevalece sobre el del entorno.
 Depende de: —
 
 The system (la documentación de la skill plan-executor) MUST instruir al
-orquestador a capturar el `agentId` del executor y suministrarlo a `complete`,
-de modo que el id quede persistido por tarea. El `sessionId` no se documenta
-como flag a pasar: queda cubierto por el auto-default de R1.
+orquestador a (a) capturar el `agentId` de cada subagente desde el **resultado
+del tool `Task`** que lo lanza (campo `toolUseResult.agentId` — el mismo hash
+que nombra `subagents/agent-<agentId>.jsonl`, contra el que une forensics) y
+(b) suministrarlo a `complete` como `--agent-id`. El subagente executor **no**
+necesita conocer ni declarar su propio `agentId`. El `sessionId` no se
+documenta como flag a pasar: queda cubierto por el auto-default de R1.
 
-#### R2.S1 — El contrato de retorno del executor declara `agentId`
-- GIVEN la documentación de plan-executor (`assets/task-brief-detail.md`,
-  sección "happy-path return contract")
-- WHEN se inspecciona la lista de campos que el retorno compacto del executor
-  DEBE contener
-- THEN esa lista incluye `agentId` (junto a `task_id`, files, test-cmd, rojo,
-  verde, tokens) como campo requerido del retorno
+#### R2.S1 — El contrato §2 instruye capturar `agentId` del resultado del `Task`
+- GIVEN `SKILL.md` §2 de plan-executor (delegación de cada tarea a un subagente
+  vía `Task`)
+- WHEN se inspecciona cómo la documentación indica obtener el `agentId` de la
+  tarea para el `complete`
+- THEN instruye leer el `agentId` del **resultado del tool `Task`** (no del
+  texto de retorno del subagente) y retenerlo para pasarlo al `complete` de esa
+  tarea
 
 #### R2.S2 — El `complete` documentado pasa `--agent-id` / `agent_id`
 - GIVEN `SKILL.md` §3 de plan-executor (forma del comando `complete`)
@@ -132,9 +134,10 @@ reales, en lugar de reportar `incomplete_reason: "no agentId recorded for any ta
   quién/cómo los rellena, no el esquema.
 - **Restricciones adicionales:** cambio acotado a `cmdComplete` y
   `cmdCompleteBatch` en `scripts/exec-tools.mjs` (punto donde se deriva el
-  session id) y a las skill-docs `skills/plan-executor/SKILL.md` (§3) +
-  `assets/task-brief-detail.md` (return contract). No tocar `completeOne`,
-  `recordResult`, ni el join de `forensics.mjs`.
+  session id) y a las skill-docs `skills/plan-executor/SKILL.md` — §2 (captura
+  del `agentId` desde el resultado del `Task`) y §3 (flag `--agent-id` en
+  `complete`). El retorno del executor (`assets/task-brief-detail.md`) **no**
+  cambia. No tocar `completeOne`, `recordResult`, ni el join de `forensics.mjs`.
 
 ## Acceptance Criteria
 
@@ -144,8 +147,9 @@ reales, en lugar de reportar `incomplete_reason: "no agentId recorded for any ta
       sin flag ni env ⇒ `sessionId === null` y exit 0.
 - [ ] AC3 → R1.S3 [auto] — entrada batch sin `session_id` ⇒ `sessionId` = env;
       entrada con `session_id` ⇒ ese valor, no el del env.
-- [ ] AC4 → R2.S1 [auto] — grep de la sección "return contract" en
-      `task-brief-detail.md` encuentra `agentId` como campo del retorno.
+- [ ] AC4 → R2.S1 [auto] — grep de `SKILL.md` §2 encuentra la instrucción de
+      capturar `agentId` del **resultado del tool `Task`** (no del retorno del
+      subagente) para pasarlo a `complete`.
 - [ ] AC5 → R2.S2 [auto] — grep de `SKILL.md` §3 encuentra `--agent-id` (single)
       y `agent_id` (batch), y no encuentra `--session-id` reintroducido.
 - [ ] AC-E2E → R-E2E.S1 [auto] — test de integración: tras `complete`
@@ -155,20 +159,23 @@ reales, en lugar de reportar `incomplete_reason: "no agentId recorded for any ta
 
 ## Assumptions & Open Questions
 
-- **Rama de aterrizaje.** La fontanería de forensics (forensics.mjs,
-  persistencia agentId/sessionId, skill spec-forensics) existe en `main` y en
-  la caché 0.6.1, **no** en `feat/token-diet`. Este spec.md vive en `main`, y la
-  implementación debe aterrizar sobre `main` (o rama derivada), donde el código
-  de referencia de esta spec existe.
-- **Fuente del `agentId` en el orquestador.** El issue afirma que el resultado
-  del tool `Agent`/`Task` ya expone el `agentId` del subagente al orquestador.
-  R2 documenta que el executor lo declare en su retorno y que el orquestador lo
-  pase; el mecanismo exacto (campo del resultado del tool vs auto-reporte en el
-  texto del subagente) queda para plan-writer/executor. **Verificar en el
-  repaso** que un subagente puede conocer/exponer su propio `agentId`.
-- **Coordinación con #20 (unify-cli-io).** Standalone por decisión. El issue
-  sugería plegar remedy #1 en #20 para no editar dos veces `exec-tools`; si #20
-  aterriza antes, revisar solapamiento sobre `cmdComplete`/`cmdCompleteBatch`.
+- **Fuente del `agentId` — RESUELTO (repaso 2026-07-11).** El resultado del tool
+  `Task` que recibe el orquestador incluye `toolUseResult.agentId` (verificado
+  en transcript real: hash `a2dd4465…` = nombre de `subagents/agent-<hash>.jsonl`
+  contra el que une forensics). Como el **orquestador** es quien llama a
+  `complete` (`SKILL.md:99,123`), puede pasar `--agent-id` directo; el subagente
+  no necesita conocer su propio id. Residual para plan/exec: confirmar en un run
+  real que el modelo orquestador **lee** ese campo como texto usable (no solo un
+  nombre amigable); si fallara, el fallback es remedy #3 (ver Out of scope), ya
+  factible porque el `.meta.json` de cada subagente enlaza `toolUseId`→agentId y
+  el `sessionId` es gratis por R1.
+- **Coordinación con #20 (unify-cli-io) — RESUELTO.** #20 ya está mergeada/
+  archivada en `main`. `grep CLAUDE_CODE_SESSION_ID scripts/exec-tools.mjs` no
+  encuentra nada → el auto-sessionId (R1) sigue sin implementar y no hay
+  solapamiento; esta spec es standalone sin conflicto.
+- **Rama de aterrizaje.** La implementación aterriza sobre `main` (o rama
+  derivada), donde vive el código de referencia (`exec-tools.mjs`,
+  `forensics.mjs`, skill plan-executor) y este spec.md.
 - **`sessionId` por tarea (no run-level).** Se asume correcto sellar el session
   actual en cada `complete`: en un resume tras `/clear`, tareas cerradas en
   sesiones distintas obtienen ids distintos, que es lo que forensics necesita.
