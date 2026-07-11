@@ -21,20 +21,20 @@
       "actual_tokens": 41630,
       "deviation": 16630,
       "test_cmd": "cd /Users/dmarchena/ai/agent-plugins && grep -q \"agentId\" plugins/sdd-kit/skills/plan-executor/SKILL.md && grep -q -- \"--agent-id\" plugins/sdd-kit/skills/plan-executor/SKILL.md && ! grep -q -- \"--session-id\" plugins/sdd-kit/skills/plan-executor/SKILL.md",
-      "commit": null,
+      "commit": "346c79d",
       "incidencia": null,
       "agentId": "a78e5034a7b2888a6",
       "sessionId": null
     },
     "t3-e2e-forensics-resolves": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 50000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 61893,
+      "deviation": 11893,
+      "test_cmd": "cd /Users/dmarchena/ai/agent-plugins/plugins/sdd-kit && node --test test/exec/e2e-complete-agentid-sessionid.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
+      "agentId": "a3d8c89f125d2a724",
       "sessionId": null
     }
   },
