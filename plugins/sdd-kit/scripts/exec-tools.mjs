@@ -190,7 +190,9 @@ function cmdComplete(specDir, taskId, flags) {
   const tokens = flags.tokens !== undefined && flags.tokens !== true ? parseInt(flags.tokens, 10) : null;
   const message = (flags.message && flags.message !== true) ? String(flags.message) : null;
   const agentId = (flags['agent-id'] && flags['agent-id'] !== true) ? String(flags['agent-id']) : null;
-  const sessionId = (flags['session-id'] && flags['session-id'] !== true) ? String(flags['session-id']) : null;
+  const sessionId = (flags['session-id'] && flags['session-id'] !== true)
+    ? String(flags['session-id'])
+    : (process.env.CLAUDE_CODE_SESSION_ID ?? null);
 
   // R1.S2: the single-task path must never fall back to git.mjs's `add -A`
   // whole-tree stage — it requires an explicit, non-empty, comma-separated
@@ -278,7 +280,7 @@ function cmdCompleteBatch(specDir, batchPath) {
       verde: e.verde,
       message: e.message || null,
       agentId: e.agent_id != null ? String(e.agent_id) : null,
-      sessionId: e.session_id != null ? String(e.session_id) : null,
+      sessionId: e.session_id != null ? String(e.session_id) : (process.env.CLAUDE_CODE_SESSION_ID ?? null),
       // `[]` (not `null`) when omitted: pathspecList treats `[]` as "stage
       // only the state file" (safe default for a verifier entry), while
       // `null` means "no restriction" (`git add -A`) — never the right

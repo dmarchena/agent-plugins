@@ -1,0 +1,42 @@
+{
+  "plan_id": "forensics-persist-ids-v1",
+  "source_spec": "docs/specs/forensics-persist-ids/spec.md",
+  "branch": "fix/forensics-persist-ids",
+  "started_at": "2026-07-11T22:13:09.165Z",
+  "tasks": {
+    "t1-auto-default-sessionid": {
+      "status": "done",
+      "estimated_tokens": 45000,
+      "actual_tokens": 59447,
+      "deviation": 14447,
+      "test_cmd": "cd /Users/dmarchena/ai/agent-plugins/plugins/sdd-kit && node --test test/exec/session-id-env-default.test.mjs test/exec/agentid-persist.test.mjs",
+      "commit": null,
+      "incidencia": null,
+      "agentId": "a2dc339b6cc1dbd48",
+      "sessionId": null
+    },
+    "t2-wire-agentid-contract": {
+      "status": "pending",
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "t3-e2e-forensics-resolves": {
+      "status": "pending",
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    }
+  },
+  "pause": null
+}
