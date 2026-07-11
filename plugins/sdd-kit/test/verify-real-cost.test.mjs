@@ -232,7 +232,9 @@ test('R5.S1 (wiring): `report` CLI output carries a top-level real_cost key, alo
     const out = execFileSync('node', [CLI, 'report', specDir], {
       cwd: repo, encoding: 'utf8', input: '', timeout: 10000,
     });
-    const report = JSON.parse(out);
+    const parsed = JSON.parse(out);
+    assert.equal(parsed.ok, true);
+    const report = parsed.data;
 
     assert.equal(report.status, 'report');
     assert.ok('deviatedTasks' in report, 'pre-existing deviatedTasks field must still be present');

@@ -167,7 +167,7 @@ test('R1.S1: completing with --agent-id/--session-id persists both in the task s
       '--agent-id', agentId, '--session-id', sessionId,
     ]);
 
-    assert.strictEqual(result.status, 'done');
+    assert.strictEqual(result.data.status, 'done');
 
     const state = stateOf(absSpecDir);
     const entry = state.tasks['task-a'];
@@ -209,7 +209,7 @@ test('R1.S2: completing without --agent-id still reaches done, with agentId null
 
     // The run is not aborted: it exits 0 (execFileSync would throw otherwise)
     // and still reports done.
-    assert.strictEqual(result.status, 'done');
+    assert.strictEqual(result.data.status, 'done');
 
     const state = stateOf(absSpecDir);
     const entry = state.tasks['task-a'];

@@ -136,7 +136,7 @@ test('AC-E2E: scoped commit with explicit --files, unrelated file not swept', ()
     // 1. init: creates branch + state.
     const init = cli(repo, ['init', specDir]);
     assert.strictEqual(init.ok, true, 'init must validate the plan');
-    assert.strictEqual(init.branch, `feat/${SLUG}`);
+    assert.strictEqual(init.data.branch, `feat/${SLUG}`);
 
     // 2. Simulate executor: create task's touched files (impl & test).
     const testCmd = simulateExecutor(repo, 'task-x', 'R1.S1');
@@ -154,8 +154,8 @@ test('AC-E2E: scoped commit with explicit --files, unrelated file not swept', ()
       '--verde', 'pass',
       '--files', 'impl/task-x.mjs,t/task-x.test.mjs',
     ]);
-    assert.strictEqual(done.status, 'done', 'task must be completed');
-    assert.ok(done.commit, 'task must have a commit');
+    assert.strictEqual(done.data.status, 'done', 'task must be completed');
+    assert.ok(done.data.commit, 'task must have a commit');
 
     // 5. Verify the commit contains ONLY the task's touched files + state file.
     const committedFiles = git(repo, ['show', '--name-only', '--pretty=format:', 'HEAD']).split('\n').filter(Boolean);

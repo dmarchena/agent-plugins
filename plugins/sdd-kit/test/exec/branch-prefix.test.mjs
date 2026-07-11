@@ -143,8 +143,8 @@ test('R2.S1: a fix-typed spec with no project config produces a branch prefixed 
   try {
     const init = cli(repo, ['init', specDir]);
     assert.strictEqual(init.ok, true);
-    assert.strictEqual(init.branch, `fix/${slug}`);
-    assert.strictEqual(init.branch_created, true);
+    assert.strictEqual(init.data.branch, `fix/${slug}`);
+    assert.strictEqual(init.data.branch_created, true);
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }
@@ -156,8 +156,8 @@ test('R2.S2: a project config mapping a type to an empty prefix produces a branc
   try {
     const init = cli(repo, ['init', specDir]);
     assert.strictEqual(init.ok, true);
-    assert.strictEqual(init.branch, slug);
-    assert.ok(!init.branch.startsWith('/'), 'branch must not have a leading slash');
+    assert.strictEqual(init.data.branch, slug);
+    assert.ok(!init.data.branch.startsWith('/'), 'branch must not have a leading slash');
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }
@@ -169,9 +169,9 @@ test('R2.S3: a spec with no recorded change type still creates a feat-prefixed b
   try {
     const init = cli(repo, ['init', specDir]);
     assert.strictEqual(init.ok, true);
-    assert.strictEqual(init.branch, `feat/${slug}`);
-    assert.strictEqual(typeof init.note, 'string', 'init must include a note when no Change type is recorded');
-    assert.ok(init.note.length > 0);
+    assert.strictEqual(init.data.branch, `feat/${slug}`);
+    assert.strictEqual(typeof init.data.note, 'string', 'init must include a note when no Change type is recorded');
+    assert.ok(init.data.note.length > 0);
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }

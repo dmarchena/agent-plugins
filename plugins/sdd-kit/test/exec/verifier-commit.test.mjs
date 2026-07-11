@@ -186,8 +186,8 @@ test('R3.S1: verifier task complete with unrelated dirty tree produces one commi
       '--tokens', '500', '--test-cmd', testCmd, '--rojo', 'pass', '--verde', 'pass',
     ]);
 
-    assert.strictEqual(result.status, 'done', 'R3.S1: a passing verifier re-run must close done');
-    assert.ok(result.commit, 'R3.S1: a commit hash must be recorded');
+    assert.strictEqual(result.data.status, 'done', 'R3.S1: a passing verifier re-run must close done');
+    assert.ok(result.data.commit, 'R3.S1: a commit hash must be recorded');
 
     const newCommitCount = git(repo, ['rev-list', '--count', `${headBefore}..HEAD`]);
     assert.strictEqual(newCommitCount, '1', 'R3.S1: exactly one commit must be created');
@@ -230,7 +230,7 @@ test('R3.S2: complete on a verifier task with no --files list does not hit the i
       assert.fail(`R3.S2: complete must not abort without --files for a verifier task; stderr: ${e.stderr}`);
     }
 
-    assert.strictEqual(result.status, 'done', 'R3.S2: the verifier task must still close done');
+    assert.strictEqual(result.data.status, 'done', 'R3.S2: the verifier task must still close done');
 
     const committedFiles = git(repo, ['show', '--name-only', '--pretty=format:', 'HEAD']).split('\n').filter(Boolean).sort();
     assert.deepStrictEqual(committedFiles, [statePath], 'R3.S2: no code file must be staged/committed when none was given');
@@ -256,9 +256,11 @@ test('control: complete on a non-verifier (code_writer) task with no --files sti
     ]);
 
     assert.notStrictEqual(res.status, 0, 'control: must exit non-zero');
+    const parsed = JSON.parse(res.stdout);
+    assert.strictEqual(parsed.ok, false, 'control: envelope must report ok:false');
     assert.ok(
-      res.stderr.includes('complete: refusing to commit without an explicit file list — pass the task\'s touched files'),
-      `control: stderr must contain the exact refusal message, got: ${res.stderr}`,
+      parsed.error.reason.includes('complete: refusing to commit without an explicit file list — pass the task\'s touched files'),
+      `control: error.reason must contain the exact refusal message, got: ${parsed.error.reason}`,
     );
     assert.strictEqual(git(repo, ['rev-parse', 'HEAD']), headBefore, 'control: HEAD must be unchanged — no commit created');
   } finally {

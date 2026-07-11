@@ -199,8 +199,8 @@ test('R1.S1: single-task complete with --files commits only those files + state,
       '--tokens', '1200', '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
       '--files', 'a.mjs,a.test.mjs',
     ]);
-    assert.strictEqual(result.status, 'done');
-    assert.ok(result.commit);
+    assert.strictEqual(result.data.status, 'done');
+    assert.ok(result.data.commit);
 
     const committedFiles = git(repo, ['show', '--name-only', '--pretty=format:', 'HEAD']).split('\n').filter(Boolean).sort();
     const expected = ['a.mjs', 'a.test.mjs', statePath.split(path.sep).join('/')].sort();
@@ -226,9 +226,11 @@ test('R1.S2: single-task complete with no file list refuses to commit/stage and 
       '--tokens', '1200', '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
     ]);
     assert.notStrictEqual(res.status, 0, 'must exit non-zero');
+    const parsed = JSON.parse(res.stdout);
+    assert.strictEqual(parsed.ok, false, 'envelope must report ok:false');
     assert.ok(
-      res.stderr.includes('complete: refusing to commit without an explicit file list — pass the task\'s touched files'),
-      `stderr must contain the exact refusal message, got: ${res.stderr}`,
+      parsed.error.reason.includes('complete: refusing to commit without an explicit file list — pass the task\'s touched files'),
+      `error.reason must contain the exact refusal message, got: ${parsed.error.reason}`,
     );
 
     const headAfter = git(repo, ['rev-parse', 'HEAD']);
@@ -252,7 +254,9 @@ test('R1.S2b: an empty/whitespace-only --files value is treated the same as an a
       '--files', '  , ,',
     ]);
     assert.notStrictEqual(res.status, 0, 'must exit non-zero');
-    assert.ok(res.stderr.includes('complete: refusing to commit without an explicit file list — pass the task\'s touched files'));
+    const parsed = JSON.parse(res.stdout);
+    assert.strictEqual(parsed.ok, false, 'envelope must report ok:false');
+    assert.ok(parsed.error.reason.includes('complete: refusing to commit without an explicit file list — pass the task\'s touched files'));
     assert.strictEqual(git(repo, ['rev-parse', 'HEAD']), headBefore, 'HEAD must be unchanged');
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
@@ -273,8 +277,8 @@ test('R1.S3: two disjoint single-task completions against the same tree each com
       '--tokens', '1200', '--test-cmd', testCmdA, '--rojo', 'fail', '--verde', 'pass',
       '--files', 'a.mjs,a.test.mjs',
     ]);
-    assert.strictEqual(resultA.status, 'done');
-    const filesA = git(repo, ['show', '--name-only', '--pretty=format:', resultA.commit]).split('\n').filter(Boolean).sort();
+    assert.strictEqual(resultA.data.status, 'done');
+    const filesA = git(repo, ['show', '--name-only', '--pretty=format:', resultA.data.commit]).split('\n').filter(Boolean).sort();
     assert.deepStrictEqual(filesA, ['a.mjs', 'a.test.mjs', stateFile].sort());
 
     const resultB = cli(repo, [
@@ -282,11 +286,11 @@ test('R1.S3: two disjoint single-task completions against the same tree each com
       '--tokens', '1100', '--test-cmd', testCmdB, '--rojo', 'fail', '--verde', 'pass',
       '--files', 'b.mjs,b.test.mjs',
     ]);
-    assert.strictEqual(resultB.status, 'done');
-    const filesB = git(repo, ['show', '--name-only', '--pretty=format:', resultB.commit]).split('\n').filter(Boolean).sort();
+    assert.strictEqual(resultB.data.status, 'done');
+    const filesB = git(repo, ['show', '--name-only', '--pretty=format:', resultB.data.commit]).split('\n').filter(Boolean).sort();
     assert.deepStrictEqual(filesB, ['b.mjs', 'b.test.mjs', stateFile].sort());
 
-    assert.notStrictEqual(resultA.commit, resultB.commit);
+    assert.notStrictEqual(resultA.data.commit, resultB.data.commit);
     assert.ok(!filesB.includes('a.mjs') && !filesB.includes('a.test.mjs'), "task-b's commit must not include task-a's files");
     assert.ok(!filesA.includes('b.mjs') && !filesA.includes('b.test.mjs'), "task-a's commit must not include task-b's files");
   } finally {

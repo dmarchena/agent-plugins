@@ -123,7 +123,9 @@ function cli(repo, args, env) {
     encoding: 'utf8',
     env: { ...process.env, ...(env || {}) },
   });
-  return JSON.parse(stdout);
+  const parsed = JSON.parse(stdout);
+  assert.equal(parsed.ok, true, `CLI call must succeed (envelope ok:true): node ${[CLI, ...args].join(' ')}`);
+  return parsed.data;
 }
 
 function simulateExecutor(repo, taskId, ref) {

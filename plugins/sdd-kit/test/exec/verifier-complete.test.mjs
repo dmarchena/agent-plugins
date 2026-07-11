@@ -165,9 +165,9 @@ test('R2.S1: complete on a verifier task whose suite passes returns done, state 
       '--files', path.join(specDir, 'verify-report.txt'),
     ]);
 
-    assert.strictEqual(result.status, 'done', 'R2.S1: a verifier task whose suite passes must close done');
-    assert.strictEqual(result.reason, undefined, 'R2.S1: a done result carries no reason field');
-    assert.notStrictEqual(result.incidencia, 'no red evidence', 'R2.S1: no no-red incidencia in the result');
+    assert.strictEqual(result.data.status, 'done', 'R2.S1: a verifier task whose suite passes must close done');
+    assert.strictEqual(result.data.reason, undefined, 'R2.S1: a done result carries no reason field');
+    assert.notStrictEqual(result.data.incidencia, 'no red evidence', 'R2.S1: no no-red incidencia in the result');
 
     const state = stateOf(absSpecDir);
     assert.strictEqual(state.tasks['task-verify'].status, 'done', 'R2.S1: state entry flips to done');
@@ -195,8 +195,8 @@ test('R2.S2: complete on a verifier task whose suite fails on the orchestrator r
       '--files', 'placeholder.txt',
     ]);
 
-    assert.strictEqual(result.status, 'not-done', 'R2.S2: a failing orchestrator re-run must not close the task');
-    assert.strictEqual(result.reason, 'rerun-failed', 'R2.S2: the failure reason is rerun-failed, not no-red');
+    assert.strictEqual(result.data.status, 'not-done', 'R2.S2: a failing orchestrator re-run must not close the task');
+    assert.strictEqual(result.data.reason, 'rerun-failed', 'R2.S2: the failure reason is rerun-failed, not no-red');
 
     const state = stateOf(absSpecDir);
     assert.strictEqual(state.tasks['task-verify'].status, 'pending', 'R2.S2: state entry stays pending');
@@ -225,8 +225,8 @@ test('R2.S3: complete on a terminal_operator task with a passed red phase still 
       '--files', 'placeholder.txt',
     ]);
 
-    assert.strictEqual(result.status, 'not-done', 'R2.S3: non-verifier tasks are unaffected by the waiver');
-    assert.strictEqual(result.reason, 'no-red', 'R2.S3: rojo=pass still classifies as no-red for non-verifier tasks');
+    assert.strictEqual(result.data.status, 'not-done', 'R2.S3: non-verifier tasks are unaffected by the waiver');
+    assert.strictEqual(result.data.reason, 'no-red', 'R2.S3: rojo=pass still classifies as no-red for non-verifier tasks');
 
     const state = stateOf(absSpecDir);
     assert.strictEqual(state.tasks['task-op'].status, 'pending');

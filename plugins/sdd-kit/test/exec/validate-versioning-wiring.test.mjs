@@ -74,7 +74,9 @@ test('R4.S1: versioningPolicy absent — validate.sh\'s versioning step prints n
     const result = runCli(repo);
     assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
     assert.doesNotMatch(result.stdout, /version|changelog|bump|demo-plugin/i);
-    assert.equal(result.stdout.trim(), '');
+    const parsed = JSON.parse(result.stdout);
+    assert.equal(parsed.ok, true, 'envelope must report ok:true');
+    assert.deepEqual(parsed.data.warnings, [], 'no version/changelog warning must be reported');
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }
@@ -86,7 +88,9 @@ test('R4.S1: versioningPolicy explicitly "disabled" — validate.sh\'s versionin
     const result = runCli(repo);
     assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
     assert.doesNotMatch(result.stdout, /version|changelog|bump|demo-plugin/i);
-    assert.equal(result.stdout.trim(), '');
+    const parsed = JSON.parse(result.stdout);
+    assert.equal(parsed.ok, true, 'envelope must report ok:true');
+    assert.deepEqual(parsed.data.warnings, [], 'no version/changelog warning must be reported');
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }

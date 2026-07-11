@@ -205,24 +205,24 @@ test('R-E2E.S1/AC-E2E: exec reaches complete (never paused) despite a healthy ta
     // 1. init: validates the plan, creates branch + state, first batch = both tasks.
     const init = execCli(repo, ['init', specDir]);
     assert.equal(init.ok, true, 'init must validate the plan');
-    assert.equal(init.branch, `feat/${SLUG}`);
-    assert.deepEqual([...init.first_batch].sort(), ['task-a', 'task-b']);
+    assert.equal(init.data.branch, `feat/${SLUG}`);
+    assert.deepEqual([...init.data.first_batch].sort(), ['task-a', 'task-b']);
 
     // 2. next: confirms the runnable batch (both independent tasks).
     const batch1 = execCli(repo, ['next', specDir]);
-    observedStatuses.push(batch1.status);
-    assert.equal(batch1.status, 'run');
-    assert.deepEqual([...batch1.batch].sort(), ['task-a', 'task-b']);
+    observedStatuses.push(batch1.data.status);
+    assert.equal(batch1.data.status, 'run');
+    assert.deepEqual([...batch1.data.batch].sort(), ['task-a', 'task-b']);
 
     // 3. Complete task-a with tokens FAR beyond 2x its 1000-token estimate
     //    (2500 > 2*1000) — a healthy task that just happens to blow the
     //    budget — and task-b within its estimate.
     const doneA = runTask(repo, specDir, 'task-a', 2500);
     const doneB = runTask(repo, specDir, 'task-b', 900);
-    assert.equal(doneA.status, 'done');
-    assert.ok(doneA.commit, 'task-a must have a commit');
-    assert.equal(doneB.status, 'done');
-    assert.ok(doneB.commit, 'task-b must have a commit');
+    assert.equal(doneA.data.status, 'done');
+    assert.ok(doneA.data.commit, 'task-a must have a commit');
+    assert.equal(doneB.data.status, 'done');
+    assert.ok(doneB.data.commit, 'task-b must have a commit');
 
     // 4. next: no tasks left -> complete. NEVER 'paused', even though
     //    cumulative real tokens (3400) already exceed 2x the plan's total
@@ -230,9 +230,9 @@ test('R-E2E.S1/AC-E2E: exec reaches complete (never paused) despite a healthy ta
     //    individually blew past 2x its OWN estimate, which is what used to
     //    trigger the (now removed) budget-pause check).
     const end = execCli(repo, ['next', specDir]);
-    observedStatuses.push(end.status);
-    assert.equal(end.status, 'complete');
-    assert.equal(end.counts.done, 2);
+    observedStatuses.push(end.data.status);
+    assert.equal(end.data.status, 'complete');
+    assert.equal(end.data.counts.done, 2);
 
     assert.ok(
       observedStatuses.every((s) => s !== 'paused'),
@@ -250,30 +250,30 @@ test('R-E2E.S1/AC-E2E: exec reaches complete (never paused) despite a healthy ta
     // 6. ground-check: both [auto] ACs re-run green against the real
     //    execution_state.json produced above (test_cmd "true" for both).
     const ground = verifyCli(repo, ['ground-check', specDir]);
-    assert.equal(ground.status, 'ground-check');
-    assert.deepEqual([...ground.green].sort(), ['AC1', 'AC2']);
-    assert.deepEqual(ground.drift, []);
+    assert.equal(ground.data.status, 'ground-check');
+    assert.deepEqual([...ground.data.green].sort(), ['AC1', 'AC2']);
+    assert.deepEqual(ground.data.drift, []);
 
     // 7. report: the whole checklist is green, and the over-budget task-a
     //    rides along informationally as a deviated task (never blocking).
     const report = verifyCli(repo, ['report', specDir]);
-    assert.equal(report.status, 'report');
-    assert.equal(report.allGreen, true, 'the whole AC checklist must be green');
-    for (const ac of report.acs) {
+    assert.equal(report.data.status, 'report');
+    assert.equal(report.data.allGreen, true, 'the whole AC checklist must be green');
+    for (const ac of report.data.acs) {
       assert.equal(ac.green, true, `${ac.ac_id} must be green`);
     }
-    assert.equal(report.deviatedTasks.length, 1, 'exactly task-a is flagged as a token deviation');
-    assert.equal(report.deviatedTasks[0].task_id, 'task-a');
-    assert.equal(report.deviatedTasks[0].actual_tokens, 2500);
-    assert.equal(report.deviatedTasks[0].estimated_tokens, 1000);
+    assert.equal(report.data.deviatedTasks.length, 1, 'exactly task-a is flagged as a token deviation');
+    assert.equal(report.data.deviatedTasks[0].task_id, 'task-a');
+    assert.equal(report.data.deviatedTasks[0].actual_tokens, 2500);
+    assert.equal(report.data.deviatedTasks[0].estimated_tokens, 1000);
 
     // 8. archive: all-green => relocate the SPECDIR to docs/specs/archived/<slug>/.
     const archive = verifyCli(repo, ['archive', specDir]);
-    assert.equal(archive.status, 'archived');
-    assert.equal(archive.archived, true);
+    assert.equal(archive.data.status, 'archived');
+    assert.equal(archive.data.archived, true);
 
     const destination = path.join(repo, 'docs', 'specs', 'archived', SLUG);
-    assert.equal(archive.destination, destination);
+    assert.equal(archive.data.destination, destination);
     assert.equal(fs.existsSync(destination), true, 'archived SPECDIR must exist at the sibling path');
     assert.equal(fs.existsSync(absSpecDir), false, 'original SPECDIR must no longer exist');
   } finally {

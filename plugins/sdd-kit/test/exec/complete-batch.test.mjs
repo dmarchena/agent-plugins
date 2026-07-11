@@ -210,8 +210,8 @@ test('AC4: closing a batch in 1 invocation yields the same per-task commit+state
       '--tokens', '1100', '--test-cmd', testCmdB, '--rojo', 'fail', '--verde', 'pass',
       '--files', 'impl/task-b.mjs,t/task-b.check.mjs',
     ]);
-    assert.strictEqual(doneA.status, 'done');
-    assert.strictEqual(doneB.status, 'done');
+    assert.strictEqual(doneA.data.status, 'done');
+    assert.strictEqual(doneB.data.status, 'done');
     assert.strictEqual(refInvocations, 2, 'baseline: N tasks need N invocations');
 
     const refState = stateOf(ref.absSpecDir);
@@ -240,9 +240,9 @@ test('AC4: closing a batch in 1 invocation yields the same per-task commit+state
       assert.strictEqual(batchInvocations, 1, 'the whole batch closes in exactly 1 invocation');
       assert.ok(batchInvocations < refInvocations, 'strictly fewer invocations than tarea-a-tarea');
 
-      assert.strictEqual(result.status, 'batch');
-      assert.strictEqual(result.results.length, 2);
-      const byId = Object.fromEntries(result.results.map((r) => [r.task_id, r]));
+      assert.strictEqual(result.data.status, 'batch');
+      assert.strictEqual(result.data.results.length, 2);
+      const byId = Object.fromEntries(result.data.results.map((r) => [r.task_id, r]));
       assert.strictEqual(byId['task-a'].status, 'done');
       assert.strictEqual(byId['task-b'].status, 'done');
       assert.ok(byId['task-a'].commit, 'task-a has its own commit');
@@ -309,8 +309,8 @@ test('AC5: a task that fails its re-run in the batch is reported not-done withou
     ], null, 2));
 
     const result = cli(repo, ['complete', specDir, '--batch', batchFile]);
-    assert.strictEqual(result.status, 'batch');
-    const byId = Object.fromEntries(result.results.map((r) => [r.task_id, r]));
+    assert.strictEqual(result.data.status, 'batch');
+    const byId = Object.fromEntries(result.data.results.map((r) => [r.task_id, r]));
 
     // task-a: unaffected, still commits and reports done.
     assert.strictEqual(byId['task-a'].status, 'done');

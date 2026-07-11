@@ -40,13 +40,19 @@ function git(repo, args) {
 }
 
 // Wraps CLI invocations for one repo, counting every real subprocess call so
-// the test can compare baseline vs batch invocation totals honestly.
+// the test can compare baseline vs batch invocation totals honestly. Every
+// subcommand here prints the canonical envelope {ok:true,data:<payload>} —
+// invoke() asserts success and unwraps to the payload once, in one place,
+// so every call site below reads the same fields it always has (`init.ok`
+// still works because cmdInit's own payload also carries a redundant `ok`).
 function makeCli(repo) {
   let count = 0;
   function invoke(args) {
     count++;
     const out = execFileSync('node', [CLI, ...args], { cwd: repo, encoding: 'utf8' });
-    return JSON.parse(out);
+    const parsed = JSON.parse(out);
+    assert.strictEqual(parsed.ok, true, `CLI call must succeed (envelope ok:true): node ${[CLI, ...args].join(' ')}`);
+    return parsed.data;
   }
   return { invoke, get count() { return count; } };
 }
