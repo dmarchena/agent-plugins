@@ -2,7 +2,11 @@
   "name": "agent-plugins",
   "description": "Plugin marketplace for AI coding agents (Claude Code, AGENTS.md-compatible): an installable monorepo of Markdown plugins.",
   "owner": {
-    "name": "dmarchena"
+    "name": "dmarchena",
+    "email": "dvmarchena@gmail.com"
+  },
+  "metadata": {
+    "version": "1.0.0"
   },
   "plugins": [
     {

@@ -1,0 +1,75 @@
+{
+  "plan_id": "multi-platform-marketplace-v1",
+  "source_spec": "docs/specs/multi-platform-marketplace/spec.md",
+  "branch": "feat/multi-platform-marketplace",
+  "started_at": "2026-07-11T23:42:45.568Z",
+  "tasks": {
+    "t1-enrich-marketplace": {
+      "status": "done",
+      "estimated_tokens": 30000,
+      "actual_tokens": 38710,
+      "deviation": 8710,
+      "test_cmd": "node --test scripts/test/marketplace-metadata.test.mjs",
+      "commit": null,
+      "incidencia": null,
+      "agentId": "a4f943293f265dd74",
+      "sessionId": "fd2cb04c-16c6-479c-a9ea-6f7a4d0d59fd"
+    },
+    "t2-generator-derive": {
+      "status": "pending",
+      "estimated_tokens": 120000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "t3-llmstxt": {
+      "status": "pending",
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "t4-contributor-docs": {
+      "status": "pending",
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "t5-scaffold-create": {
+      "status": "pending",
+      "estimated_tokens": 90000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "t6-e2e-verify": {
+      "status": "pending",
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    }
+  },
+  "pause": null
+}
