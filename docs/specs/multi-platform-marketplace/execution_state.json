@@ -43,21 +43,21 @@
       "actual_tokens": 43390,
       "deviation": 3390,
       "test_cmd": "node --test scripts/test/contributor-docs.test.mjs",
-      "commit": null,
+      "commit": "dcc049f",
       "incidencia": null,
       "agentId": "a404c72f074cadf34",
       "sessionId": "fd2cb04c-16c6-479c-a9ea-6f7a4d0d59fd"
     },
     "t5-scaffold-create": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 90000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 73400,
+      "deviation": -16600,
+      "test_cmd": "node --test scripts/test/scaffold-create.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "aef79ff954d9c3047",
+      "sessionId": "fd2cb04c-16c6-479c-a9ea-6f7a4d0d59fd"
     },
     "t6-e2e-verify": {
       "status": "pending",
