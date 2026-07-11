@@ -4,6 +4,20 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.6.2
+
+- Fixed `spec-forensics` resolving empty on normally-executed specs: plan-executor
+  never persisted `agentId`/`sessionId` per task, so `execution_state.json` kept
+  both `null` and the forensics join against transcripts found nothing.
+  `cmdComplete`/`cmdCompleteBatch` (`exec-tools.mjs`) now auto-default `sessionId`
+  from `CLAUDE_CODE_SESSION_ID` when no explicit session id is passed, and the
+  plan-executor `SKILL.md` contract (§2/§3) now instructs the orchestrator to
+  capture each subagent's `agentId` from the `Task` tool result
+  (`toolUseResult.agentId`) and pass it to `complete` via `--agent-id`/`agent_id`.
+  Added an end-to-end test verifying the full `complete` → state → forensics
+  chain resolves real figures once both ids arrive as the updated contract
+  prescribes.
+
 ## 0.6.1
 
 - Unified stdout across all sdd-kit CLI scripts (`exec-tools.mjs`,

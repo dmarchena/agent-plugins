@@ -32,7 +32,7 @@
       "actual_tokens": 61893,
       "deviation": 11893,
       "test_cmd": "cd /Users/dmarchena/ai/agent-plugins/plugins/sdd-kit && node --test test/exec/e2e-complete-agentid-sessionid.test.mjs",
-      "commit": null,
+      "commit": "f4bdfae",
       "incidencia": null,
       "agentId": "a3d8c89f125d2a724",
       "sessionId": null
