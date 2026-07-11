@@ -10,12 +10,12 @@
 // untouched.
 //
 // Contract with scripts/validate.sh (R4): this script ALWAYS exits 0 and
-// prints warnings as plain text to stdout — never JSON, never a non-zero
-// exit — so it can never affect validate.sh's own exit code. When
-// `versioningPolicy` is `disabled` or absent (the default), it prints
-// nothing at all (R4.S1). Any internal error (e.g. git not available, no
-// commits yet) is swallowed the same way: no warning is safer than a false
-// positive breaking every consumer of validate.sh by default.
+// emits the shared cli.mjs envelope on stdout ({ok:true,data:{warnings:[...]}})
+// — never a non-zero exit — so it can never affect validate.sh's own exit
+// code. When `versioningPolicy` is `disabled` or absent (the default), or on
+// any internal error (e.g. git not available, no commits yet), `warnings` is
+// simply `[]`: no warning is safer than a false positive breaking every
+// consumer of validate.sh by default.
 //
 // Usage: node versioning-report.mjs <repoRoot> [baseRef]
 //   <repoRoot>  - project root to check (validate.sh passes its own $ROOT).
@@ -30,6 +30,7 @@ import { spawnSync } from 'node:child_process';
 import { readConfig } from './exec/config.mjs';
 import { currentBranch } from './exec/git.mjs';
 import { checkVersioning } from './exec/versioning-check.mjs';
+import { emitSuccess } from './lib/cli.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -128,12 +129,16 @@ function main(argv) {
   try {
     config = readConfig(cwd);
   } catch {
-    return; // never let a config-read error surface as a warning or exit != 0
+    emitSuccess({ warnings: [] }); // never let a config-read error surface as a warning or exit != 0
+    return;
   }
 
   // R4.S1: disabled (or absent, which readConfig already defaults to
   // 'disabled') skips the check entirely — no warning, ever.
-  if (!config.versioningPolicy || config.versioningPolicy === 'disabled') return;
+  if (!config.versioningPolicy || config.versioningPolicy === 'disabled') {
+    emitSuccess({ warnings: [] });
+    return;
+  }
 
   try {
     const baseRef = resolveBaseRef(cwd, explicitBaseRef);
@@ -145,13 +150,12 @@ function main(argv) {
     const warnings = checkVersioning({
       cwd, touchedFiles, config, branchPrefix, before,
     });
-    for (const warning of warnings) {
-      process.stdout.write(`⚠ versioning: ${warning.message}\n`);
-    }
+    emitSuccess({ warnings });
   } catch {
     // Any git/parsing failure degrades to "no warning" rather than risking
     // a false positive or a crash that could ever change validate.sh's exit
     // code — see this file's header.
+    emitSuccess({ warnings: [] });
   }
 }
 

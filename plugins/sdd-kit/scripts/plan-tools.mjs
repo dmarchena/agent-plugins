@@ -6,26 +6,23 @@
 //   node plan-tools.mjs inspect-spec <spec.md>
 //   node plan-tools.mjs check-plan <spec.md> <plan.json>
 //
-// Convention: success -> exit 0, messages on stdout.
-//             failure -> exit 1, error message on stderr (naming the offending ID/field).
+// Convention: success -> exit 0, stdout carries {ok:true,data:...}.
+//             failure -> exit != 0, stdout carries {ok:false,error:{reason}}
+//             (naming the offending ID/field in reason).
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { emitSuccess, emitError } from './lib/cli.mjs';
 
 // ---------------------------------------------------------------------------
 // Generic utilities
 // ---------------------------------------------------------------------------
 
-function fail(message) {
-  process.stderr.write(`${message}\n`);
-  process.exit(1);
-}
-
 function readFileOrFail(filePath, label) {
   try {
     return fs.readFileSync(filePath, 'utf8');
   } catch (err) {
-    fail(`could not read ${label}: ${filePath} (${err.message})`);
+    emitError(`could not read ${label}: ${filePath} (${err.message})`);
   }
 }
 
@@ -126,18 +123,16 @@ function cmdInspectSpec(specPath) {
   const spec = parseSpec(specText);
 
   if (spec.requirements.size === 0) {
-    fail('no R<n> IDs found');
+    emitError('no R<n> IDs found');
   }
   if (spec.scenarios.size === 0) {
-    fail('no scenarios found');
+    emitError('no scenarios found');
   }
   if (!spec.hasACSectionHeader) {
-    fail('missing the Acceptance Criteria section');
+    emitError('missing the Acceptance Criteria section');
   }
 
-  process.stdout.write(
-    `${spec.requirements.size} requirements, ${spec.acs.size} ACs detected\n`
-  );
+  emitSuccess({ requirements: spec.requirements.size, acs: spec.acs.size });
   process.exit(0);
 }
 
@@ -420,12 +415,12 @@ function cmdCheckPlan(specPath, planPath) {
   try {
     plan = JSON.parse(planText);
   } catch {
-    fail('plan.json is not valid JSON');
+    emitError('plan.json is not valid JSON');
   }
 
   const schemaError = validateSchema(plan);
   if (schemaError) {
-    fail(`schema: ${schemaError}`);
+    emitError(`schema: ${schemaError}`);
   }
 
   const tasks = plan.tasks;
@@ -448,12 +443,10 @@ function cmdCheckPlan(specPath, planPath) {
 
   for (const check of checks) {
     const error = check();
-    if (error) fail(error);
+    if (error) emitError(error);
   }
 
-  process.stdout.write(
-    `valid plan: ${tasks.length} tasks, all requirements and ACs covered\n`
-  );
+  emitSuccess({ tasks: tasks.length, message: 'all requirements and ACs covered' });
   process.exit(0);
 }
 
@@ -466,16 +459,16 @@ function main() {
 
   if (subcommand === 'inspect-spec') {
     const [specPath] = args;
-    if (!specPath) fail('usage: plan-tools.mjs inspect-spec <spec.md>');
+    if (!specPath) emitError('usage: plan-tools.mjs inspect-spec <spec.md>');
     cmdInspectSpec(specPath);
   } else if (subcommand === 'check-plan') {
     const [specPath, planPath] = args;
     if (!specPath || !planPath) {
-      fail('usage: plan-tools.mjs check-plan <spec.md> <plan.json>');
+      emitError('usage: plan-tools.mjs check-plan <spec.md> <plan.json>');
     }
     cmdCheckPlan(specPath, planPath);
   } else {
-    fail('unknown subcommand: usage: plan-tools.mjs <inspect-spec|check-plan> <args>');
+    emitError('unknown subcommand: usage: plan-tools.mjs <inspect-spec|check-plan> <args>');
   }
 }
 

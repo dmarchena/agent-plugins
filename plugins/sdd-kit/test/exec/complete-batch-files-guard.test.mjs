@@ -199,9 +199,11 @@ test('R1.S1: a batch entry for a non-verifier task with no files refuses the who
     const res = cliExpectFail(repo, ['complete', specDir, '--batch', batchFile]);
 
     assert.notStrictEqual(res.status, 0, 'R1.S1: must exit non-zero');
+    const parsed = JSON.parse(res.stdout);
+    assert.strictEqual(parsed.ok, false, 'R1.S1: envelope must report ok:false');
     assert.ok(
-      res.stderr.includes('task-a'),
-      `R1.S1: refusal must name the offending task_id, got: ${res.stderr}`,
+      parsed.error.reason.includes('task-a'),
+      `R1.S1: refusal must name the offending task_id, got: ${parsed.error.reason}`,
     );
     assert.strictEqual(
       git(repo, ['rev-parse', 'HEAD']), headBefore,
@@ -237,8 +239,8 @@ test('R1.S2: a batch entry for a verifier task with no files closes done, stagin
     fs.writeFileSync(path.join(repo, 'impl', 'task-a.mjs'), 'export const done = true;\n');
 
     const result = cli(repo, ['complete', specDir, '--batch', batchFile]);
-    assert.strictEqual(result.status, 'batch');
-    const byId = Object.fromEntries(result.results.map((r) => [r.task_id, r]));
+    assert.strictEqual(result.data.status, 'batch');
+    const byId = Object.fromEntries(result.data.results.map((r) => [r.task_id, r]));
     assert.strictEqual(byId['task-verify'].status, 'done', 'R1.S2: verifier task must still close done');
     assert.ok(byId['task-verify'].commit, 'R1.S2: a commit hash must be recorded');
 

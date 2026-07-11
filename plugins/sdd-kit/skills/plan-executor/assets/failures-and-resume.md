@@ -41,9 +41,10 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs resume SPECDIR
 It re-runs the test command of every `done` task to check the ground is
 still valid before launching anything new (R7):
 
-- **`{ status: "resumed", next_batch }`** → ground holds; announce the next
-  batch and re-enter the loop at §1 of the main document (R7.S1 / AC12).
-- **`{ status: "ground-broken", brokenTask, brokenTest }`** (exit 4) → a
-  previously-green test now fails; the working tree changed under us. STOP,
-  name the broken task/test, and hand the decision to the user. Launch
-  **no** new tasks (R7.S2 / AC13).
+- **`{ ok: true, data: { status: "resumed", next_batch } }`** → ground
+  holds; announce the next batch and re-enter the loop at §1 of the main
+  document (R7.S1 / AC12).
+- **`{ ok: true, data: { status: "ground-broken", brokenTask, brokenTest } }`**
+  (exit 4) → a previously-green test now fails; the working tree changed
+  under us. STOP, name the broken task/test, and hand the decision to the
+  user. Launch **no** new tasks (R7.S2 / AC13).

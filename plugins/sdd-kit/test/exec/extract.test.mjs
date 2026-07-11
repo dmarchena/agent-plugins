@@ -91,6 +91,8 @@ test('CLI extract: unknown ID exits non-zero and names it, without printing an e
   const dir = writeSpecDir(SPEC);
   const res = spawnSync(process.execPath, [CLI, 'extract', dir, 'R9.S9'], { encoding: 'utf8' });
   assert.notEqual(res.status, 0);
-  assert.match(res.stderr, /R9\.S9/);
+  const parsed = JSON.parse(res.stdout);
+  assert.equal(parsed.ok, false);
+  assert.match(parsed.error.reason, /R9\.S9/);
   assert.doesNotMatch(res.stdout, /---\s*R9\.S9\s*---/);
 });

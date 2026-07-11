@@ -31,10 +31,12 @@ Always run this first, before touching anything else:
 node ${CLAUDE_PLUGIN_ROOT}/scripts/plan-tools.mjs inspect-spec <spec.md>
 ```
 
-- **Exit code ≠ 0** → STOP. Report the exact structural element the
-  validator says is missing (e.g. no `R<n>` IDs found, or no `## Acceptance
-  Criteria` section). Do not write any plan, not even a partial one.
-- **Exit code 0** → show the user the detected counts, in the form "N
+- **Exit code ≠ 0** → stdout is `{ ok: false, error: { reason } }`; STOP and
+  report the exact structural element `error.reason` names (e.g. no `R<n>`
+  IDs found, or no `## Acceptance Criteria` section). Do not write any plan,
+  not even a partial one.
+- **Exit code 0** → stdout is `{ ok: true, data: { requirements, acs } }`;
+  show the user the detected counts from `data`, in the form "N
   requirements, M ACs detected", before moving on.
 
 ## Decompose into atomic tasks
@@ -42,11 +44,8 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/plan-tools.mjs inspect-spec <spec.md>
 Derive one or more tasks per requirement/scenario. Each task must represent
 exactly **one verifiable deliverable**, carry a unique `task_id`, and list
 `source_ids` referencing at least one spec ID (`R<n>` or `R<n>.S<m>`) it
-derives from. When a single requirement has independent scenarios —
-deliverables that don't depend on each other —
-split them into **separate tasks**. Never fold independent deliverables into one task; a task has exactly one
-`expected_output_schema`, so if a requirement would need more than one,
-that's the signal to split it.
+derives from. When a requirement has independent scenarios, split them into **separate tasks**. Never fold independent deliverables into one task; a task
+has exactly one `expected_output_schema`, so more than one signals a split.
 
 ## Derive the dependency DAG
 
@@ -65,8 +64,8 @@ Read `assets/agent-roles.md` — the fixed catalog of `agent_type` →
 most-austere-that-qualifies rule: mechanical, low-judgment work
 → `haiku`; bounded implementation with clear acceptance criteria →
 `sonnet`; design, critical review, or trade-off decisions → `opus`. For the
-`R-E2E`/`AC-E2E` task's `agent_type`, see `assets/e2e-task-assignment.md`
-(verifier vs. code_writer) and `assets/agent-roles.md`'s matching rows.
+`R-E2E`/`AC-E2E` task, assign `agent_type: "verifier"` (not `terminal_operator`)
+— see `assets/e2e-task-assignment.md`.
 
 ## Write granular instructions
 
@@ -114,10 +113,12 @@ To avoid ever leaving an invalid plan on disk:
    ```
    node ${CLAUDE_PLUGIN_ROOT}/scripts/plan-tools.mjs check-plan <spec.md> execution_plan.json.tmp
    ```
-3. **Exit 0** → rename the tmp file to `execution_plan.json`.
-4. **Exit ≠ 0** → delete the tmp file, report the validator's concrete
-   error (schema field/rule, cycle, or coverage gap), and do not leave
-   `execution_plan.json` in an invalid state.
+3. **Exit 0** → stdout is `{ ok: true, data: { tasks, message } }`; rename
+   the tmp file to `execution_plan.json`.
+4. **Exit ≠ 0** → stdout is `{ ok: false, error: { reason } }`; delete the
+   tmp file, report the concrete `error.reason` (schema field/rule, cycle,
+   or coverage gap), and do not leave `execution_plan.json` in an invalid
+   state.
 
 Once written, show the user a short summary (task count, agent/model mix,
 coverage) and confirm.
@@ -127,8 +128,8 @@ coverage) and confirm.
 Operate autonomously: read the spec and write the plan without stepping the
 user through it question by question. Only stop for a structural failure
 (ingestion, a dependency cycle, a coverage gap, or schema validation) or a
-genuine ambiguity that can't be resolved from the spec's own content.
-Do not re-interview the user — the spec already carries everything this skill needs.
+genuine ambiguity unresolved by the spec's own content.
+Do not re-interview the user — the spec already carries everything needed.
 
 The exact shape of a valid plan is defined by `assets/execution_plan.schema.json`;
 the `plan-tools.mjs check-plan` validator, not this document, is the source of truth for "valid plan".

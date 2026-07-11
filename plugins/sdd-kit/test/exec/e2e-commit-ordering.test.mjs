@@ -270,18 +270,18 @@ test('AC-E2E (single-task complete): full 3-task plan closes with every commit r
         '--tokens', String(TOKENS[taskId]), '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
         '--files', `impl/${taskId}.mjs,t/${taskId}.check.mjs`,
       ]);
-      assert.strictEqual(result.status, 'done', `${taskId} must close done`);
-      assert.ok(result.commit, `${taskId} must have a commit hash`);
-      commitsById[taskId] = result.commit;
+      assert.strictEqual(result.data.status, 'done', `${taskId} must close done`);
+      assert.ok(result.data.commit, `${taskId} must have a commit hash`);
+      commitsById[taskId] = result.data.commit;
 
       // The commit this task JUST produced must show ITS OWN state, not the
       // previous task's (the actual bug this spec fixes).
-      assertCommitContent(repo, result.commit, taskId, TOKENS[taskId], testCmd);
+      assertCommitContent(repo, result.data.commit, taskId, TOKENS[taskId], testCmd);
 
       // And it must NOT show the previous task's tokens (direct proof of "not
       // the N-1 task's stale values", the concrete failure mode of the bug).
       if (previousTaskId) {
-        const stateAtCommit = JSON.parse(git(repo, ['show', `${result.commit}:${STATE_REL}`]));
+        const stateAtCommit = JSON.parse(git(repo, ['show', `${result.data.commit}:${STATE_REL}`]));
         assert.strictEqual(
           stateAtCommit.tasks[taskId].actual_tokens,
           TOKENS[taskId],
@@ -334,9 +334,9 @@ test('AC-E2E (batch complete): full 3-task plan closes with every commit reflect
     ));
 
     const result = cli(repo, ['complete', specDir, '--batch', batchFile]);
-    assert.strictEqual(result.status, 'batch');
-    assert.strictEqual(result.results.length, TASK_IDS.length);
-    const byId = Object.fromEntries(result.results.map((r) => [r.task_id, r]));
+    assert.strictEqual(result.data.status, 'batch');
+    assert.strictEqual(result.data.results.length, TASK_IDS.length);
+    const byId = Object.fromEntries(result.data.results.map((r) => [r.task_id, r]));
 
     const commitsById = {};
     for (const taskId of TASK_IDS) {

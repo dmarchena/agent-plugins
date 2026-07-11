@@ -23,11 +23,13 @@ skill only invokes it and relays the result.
 node ${CLAUDE_PLUGIN_ROOT}/scripts/forensics.mjs SPECDIR
 ```
 
-Prints one summary line per task to stdout and always exits 0 — a task
+Prints one `{ ok: true, data: { tasks, orchestrator, subagents_total,
+pause_timeline, ... } }` envelope to stdout and always exits 0 — a task
 whose real figures can't be resolved (missing `agentId`/`sessionId`, or no
-matching transcript) is expected forensic information, not a failure.
-The full detail is written to `SPECDIR/forensics.json`; read that file to
-relay the complete report.
+matching transcript) is expected forensic information reflected as
+`resolved: false` in `data.tasks`, not a failure. The full detail is also
+written to `SPECDIR/forensics.json` (same shape as `data`); read that file
+to relay the complete report.
 
 ## Relaying the result
 

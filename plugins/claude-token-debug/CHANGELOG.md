@@ -4,6 +4,14 @@ All notable changes to the `claude-token-debug` plugin are documented in this fi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.3.2
+
+- `scripts/token-cost.mjs` (vendored from `shared/token-cost.mjs`, sdd-kit's
+  unify-cli-io refactor) now emits a single `{ ok: true, data: {...} }`
+  envelope on stdout instead of a human-readable table, and drops the
+  `--json` flag (the envelope is now the only output format; pipe `data`
+  into `jq` for scripted use). `analyze()`'s importable shape is unchanged.
+
 ## 0.3.1
 
 - Fixed `analyze()`/`analyzeSession()` resolving a session's `subagents/` dir

@@ -21,6 +21,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { analyze } from './token-cost.mjs';
+import { emitSuccess, emitError } from './lib/cli.mjs';
 
 // --- projects-root resolution --------------------------------------------
 //
@@ -126,25 +127,6 @@ export function resolveTaskForensics(task, opts, analyzeCache) {
   };
 }
 
-function formatSummaryLine(taskId, r) {
-  if (r.resolved) {
-    return (
-      `${taskId}: resolved`
-      + ` real_tokens=${r.real_tokens}`
-      + ` real_cost_usd=${r.real_cost_usd}`
-      + ` estimated_tokens=${r.estimated_tokens}`
-      + ` deviation_real=${r.deviation_real}`
-    );
-  }
-  return (
-    `${taskId}: unresolved`
-    + ` real_tokens=null`
-    + ` real_cost_usd=null`
-    + ` estimated_tokens=${r.estimated_tokens}`
-    + ` deviation_real=null`
-  );
-}
-
 // Determines the whole-run `incomplete`/`incomplete_reason` flag (R4.S2).
 // This is distinct from a single task's `resolved: false`: it only fires
 // when NOT ONE task in the whole run could be resolved, i.e. join data is
@@ -180,9 +162,10 @@ function buildPauseTimeline(pause) {
 }
 
 // Runs the full forensics pass for a SPECDIR: reads execution_state.json,
-// resolves every task, writes forensics.json, and returns { results, lines }
-// so the CLI entry point can print `lines` verbatim. Exported for direct
-// (in-process) testing without shelling out.
+// resolves every task, and writes forensics.json. Returns the same object
+// written to forensics.json so the CLI entry point can emit it verbatim via
+// the shared {ok,data} envelope. Exported for direct (in-process) testing
+// without shelling out.
 export function runForensics(specDir, opts) {
   const statePath = path.join(specDir, 'execution_state.json');
   const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
@@ -194,11 +177,9 @@ export function runForensics(specDir, opts) {
   const analyzeCache = new Map();
 
   const results = {};
-  const lines = [];
   for (const [taskId, task] of Object.entries(tasks)) {
     const r = resolveTaskForensics(task, opts, analyzeCache);
     results[taskId] = r;
-    lines.push(formatSummaryLine(taskId, r));
   }
 
   // Any one cached analyze() result carries the same whole-session
@@ -224,7 +205,7 @@ export function runForensics(specDir, opts) {
   const outPath = path.join(specDir, 'forensics.json');
   fs.writeFileSync(outPath, JSON.stringify(output, null, 2) + '\n');
 
-  return { results, lines, outPath, orchestrator, subagents_total, pause_timeline };
+  return output;
 }
 
 // --- CLI -------------------------------------------------------------------
@@ -232,8 +213,7 @@ export function runForensics(specDir, opts) {
 function main() {
   const specDir = process.argv[2];
   if (!specDir) {
-    process.stderr.write('Usage: node forensics.mjs <SPECDIR>\n');
-    process.exitCode = 1;
+    emitError('Usage: node forensics.mjs <SPECDIR>', 1);
     return;
   }
 
@@ -241,13 +221,11 @@ function main() {
   try {
     outcome = runForensics(specDir);
   } catch (err) {
-    process.stderr.write(`${err.message}\n`);
-    process.exitCode = 1;
+    emitError(err.message, 1);
     return;
   }
 
-  process.stdout.write(outcome.lines.join('\n') + '\n');
-  process.exitCode = 0;
+  emitSuccess(outcome);
 }
 
 const isMainModule = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;

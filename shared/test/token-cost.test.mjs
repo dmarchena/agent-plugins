@@ -201,7 +201,7 @@ function sumUsageTokens(usage) {
   );
 }
 
-test('AC1: CLI over a fixture session with one labeled subagent prints a per-subagent line (meta description label + token total), an orchestrator total line, and a grand-total line whose orchestrator% and subagents% sum to 100, with cache_read included in every total', () => {
+test('AC1: CLI over a fixture session with one labeled subagent emits an {ok,data} envelope whose data.subs carries the subagent (label + token total) and whose data.orchAll/data.subTotal percentages sum to 100, with cache_read included in every total', () => {
   const orchMsg1Usage = {
     input_tokens: 4000,
     output_tokens: 1000,
@@ -239,6 +239,8 @@ test('AC1: CLI over a fixture session with one labeled subagent prints a per-sub
   );
 
   const stdout = execFileSync('node', [CLI_PATH, sessionFile], { encoding: 'utf8' });
+  const { ok, data } = JSON.parse(stdout);
+  assert.equal(ok, true);
 
   // Independent expectations, cross-checked against T1's cost primitives
   // (not the analysis function under test).
@@ -250,27 +252,22 @@ test('AC1: CLI over a fixture session with one labeled subagent prints a per-sub
   const expectedSubsPct = (expectedSubCost / expectedGrandCost) * 100;
   const expectedOrchPct = 100 - expectedSubsPct;
 
-  const subLine = new RegExp(`${subLabel}:\\s*tokens=(\\d+)\\s*cost=\\$([\\d.]+)`);
-  const subMatch = stdout.match(subLine);
-  assert.ok(subMatch, `expected a subagent line with the meta description label; got:\n${stdout}`);
-  assert.equal(Number(subMatch[1]), expectedSubTokens);
-  assert.ok(Math.abs(Number(subMatch[2]) - expectedSubCost) < 0.001);
+  assert.equal(data.subs.length, 1);
+  assert.equal(data.subs[0].label, subLabel);
+  assert.equal(data.subs[0].tokens, expectedSubTokens);
+  assert.ok(Math.abs(data.subs[0].cost - expectedSubCost) < 0.001);
 
-  const orchLine = stdout.match(/Orchestrator total:\s*tokens=(\d+)\s*cost=\$([\d.]+)/);
-  assert.ok(orchLine, `expected an orchestrator total line; got:\n${stdout}`);
-  assert.equal(Number(orchLine[1]), expectedOrchTokens);
-  assert.ok(Math.abs(Number(orchLine[2]) - expectedOrchCost) < 0.001);
+  assert.equal(data.orchestrator.tokens, expectedOrchTokens);
+  assert.ok(Math.abs(data.orchestrator.cost - expectedOrchCost) < 0.001);
 
-  const grandLine = stdout.match(/Grand total:.*orchestrator ([\d.]+)% subagents ([\d.]+)%/);
-  assert.ok(grandLine, `expected a grand-total line with orchestrator/subagents percentages; got:\n${stdout}`);
-  const orchPct = Number(grandLine[1]);
-  const subsPct = Number(grandLine[2]);
+  const orchPct = data.orchAll.pct;
+  const subsPct = data.subTotal.pct;
   assert.ok(Math.abs(orchPct - expectedOrchPct) < 1, `orchestrator% ${orchPct} should be close to ${expectedOrchPct}`);
   assert.ok(Math.abs(subsPct - expectedSubsPct) < 1, `subagents% ${subsPct} should be close to ${expectedSubsPct}`);
   assert.equal(orchPct + subsPct, 100, 'orchestrator% and subagents% must sum to exactly 100');
 });
 
-test('AC2: CLI over a fixture session with no subagents/ directory prints the orchestrator total and a grand total reporting subagents at 0 percent, exits 0, and never borrows another session numbers', () => {
+test('AC2: CLI over a fixture session with no subagents/ directory emits data.orchAll/data.subTotal reporting subagents at 0 percent, exits 0, and never borrows another session numbers', () => {
   const usageA = {
     input_tokens: 3000,
     output_tokens: 900,
@@ -303,19 +300,17 @@ test('AC2: CLI over a fixture session with no subagents/ directory prints the or
   );
 
   const stdout = execFileSync('node', [CLI_PATH, sessionFileA], { encoding: 'utf8' });
+  const { ok, data } = JSON.parse(stdout);
+  assert.equal(ok, true);
 
   const expectedTokens = sumUsageTokens(usageA);
   const expectedCostA = costForUsage('opus', usageA);
 
-  const orchLine = stdout.match(/Orchestrator total:\s*tokens=(\d+)\s*cost=\$([\d.]+)/);
-  assert.ok(orchLine, `expected an orchestrator total line; got:\n${stdout}`);
-  assert.equal(Number(orchLine[1]), expectedTokens);
-  assert.ok(Math.abs(Number(orchLine[2]) - expectedCostA) < 0.001);
+  assert.equal(data.orchestrator.tokens, expectedTokens);
+  assert.ok(Math.abs(data.orchestrator.cost - expectedCostA) < 0.001);
 
-  const grandLine = stdout.match(/Grand total:.*orchestrator ([\d.]+)% subagents ([\d.]+)%/);
-  assert.ok(grandLine, `expected a grand-total line; got:\n${stdout}`);
-  assert.equal(Number(grandLine[2]), 0, 'subagents percentage must be exactly 0 when there is no subagents/ dir');
-  assert.equal(Number(grandLine[1]), 100);
+  assert.equal(data.subTotal.pct, 0, 'subagents percentage must be exactly 0 when there is no subagents/ dir');
+  assert.equal(data.orchAll.pct, 100);
 
   // Numbers from the unrelated session B must not appear.
   assert.ok(!stdout.includes('unrelated other-session subagent'));
@@ -353,7 +348,7 @@ test('analyzeSession: importable function returns the same numbers for a fixture
   assert.ok(Math.abs(result.orchestrator.cost - costForUsage('sonnet', usage)) < 0.001);
 });
 
-test('AC5: CLI --json writes a single parseable JSON document whose top-level keys are session, subs, orchestrator, subTotal and orchAll', () => {
+test('AC5: CLI emits a single parseable {ok,data} envelope whose data top-level keys are session, subs, orchestrator, subTotal and orchAll', () => {
   const usage = {
     input_tokens: 1000,
     output_tokens: 200,
@@ -371,18 +366,19 @@ test('AC5: CLI --json writes a single parseable JSON document whose top-level ke
     ],
   );
 
-  const stdout = execFileSync('node', [CLI_PATH, sessionFile, '--json'], { encoding: 'utf8' });
+  const stdout = execFileSync('node', [CLI_PATH, sessionFile], { encoding: 'utf8' });
 
-  let parsed;
+  let envelope;
   assert.doesNotThrow(() => {
-    parsed = JSON.parse(stdout);
-  }, `--json output must be a single valid JSON document; got:\n${stdout}`);
+    envelope = JSON.parse(stdout);
+  }, `CLI output must be a single valid JSON document; got:\n${stdout}`);
 
-  const topLevelKeys = Object.keys(parsed).sort();
+  assert.equal(envelope.ok, true);
+  const topLevelKeys = Object.keys(envelope.data).sort();
   assert.deepEqual(topLevelKeys, ['orchAll', 'orchestrator', 'session', 'subTotal', 'subs'].sort());
 });
 
-test('AC6: importing analyze() and calling it on an explicit fixture target returns the same shape as --json and writes nothing to stdout', () => {
+test('AC6: importing analyze() and calling it on an explicit fixture target returns the same shape as the CLI envelope data and writes nothing to stdout', () => {
   const usage = {
     input_tokens: 800,
     output_tokens: 150,
@@ -400,8 +396,8 @@ test('AC6: importing analyze() and calling it on an explicit fixture target retu
     ],
   );
 
-  const jsonStdout = execFileSync('node', [CLI_PATH, sessionFile, '--json'], { encoding: 'utf8' });
-  const fromCli = JSON.parse(jsonStdout);
+  const stdout = execFileSync('node', [CLI_PATH, sessionFile], { encoding: 'utf8' });
+  const fromCli = JSON.parse(stdout).data;
 
   const originalWrite = process.stdout.write;
   let wroteAnything = false;
@@ -419,7 +415,7 @@ test('AC6: importing analyze() and calling it on an explicit fixture target retu
   assert.equal(wroteAnything, false, 'analyze() must write nothing to stdout');
   assert.deepEqual(Object.keys(direct).sort(), Object.keys(fromCli).sort());
   // Round-trip through JSON to normalize (defends against any non-JSON-safe
-  // value sneaking into the shape) before comparing to the --json output.
+  // value sneaking into the shape) before comparing to the CLI's envelope data.
   assert.deepEqual(JSON.parse(JSON.stringify(direct)), fromCli);
 });
 
@@ -452,24 +448,24 @@ test('AC7: --boundary matching a flat-session line reports pre- and post-boundar
 
   const stdout = execFileSync(
     'node',
-    [CLI_PATH, sessionFile, '--json', '--boundary', 'BOUNDARY_MARK_42'],
+    [CLI_PATH, sessionFile, '--boundary', 'BOUNDARY_MARK_42'],
     { encoding: 'utf8' },
   );
-  const parsed = JSON.parse(stdout);
+  const { data } = JSON.parse(stdout);
 
-  assert.equal(parsed.orchestrator.boundary.split, true, 'expected the boundary to fire');
-  assert.ok(parsed.orchestrator.boundary.pre, 'expected a pre-boundary subtotal');
-  assert.ok(parsed.orchestrator.boundary.post, 'expected a post-boundary subtotal');
+  assert.equal(data.orchestrator.boundary.split, true, 'expected the boundary to fire');
+  assert.ok(data.orchestrator.boundary.pre, 'expected a pre-boundary subtotal');
+  assert.ok(data.orchestrator.boundary.post, 'expected a post-boundary subtotal');
 
   const expectedPreCost = costForUsage('sonnet', preUsage1) + costForUsage('sonnet', preUsage2);
   const expectedPostCost = costForUsage('haiku', postUsage1);
 
-  assert.ok(Math.abs(parsed.orchestrator.boundary.pre.cost - expectedPreCost) < 0.0001);
-  assert.ok(Math.abs(parsed.orchestrator.boundary.post.cost - expectedPostCost) < 0.0001);
+  assert.ok(Math.abs(data.orchestrator.boundary.pre.cost - expectedPreCost) < 0.0001);
+  assert.ok(Math.abs(data.orchestrator.boundary.post.cost - expectedPostCost) < 0.0001);
 
-  const summed = parsed.orchestrator.boundary.pre.cost + parsed.orchestrator.boundary.post.cost;
+  const summed = data.orchestrator.boundary.pre.cost + data.orchestrator.boundary.post.cost;
   assert.ok(
-    Math.abs(summed - parsed.orchestrator.cost) < 0.0001,
+    Math.abs(summed - data.orchestrator.cost) < 0.0001,
     'pre-boundary cost + post-boundary cost must sum to the orchestrator total',
   );
 });
@@ -489,16 +485,16 @@ test('AC8: --boundary matching no flat-session line reports a single unsplit orc
   assert.doesNotThrow(() => {
     stdout = execFileSync(
       'node',
-      [CLI_PATH, sessionFile, '--json', '--boundary', 'NO_SUCH_SUBSTRING_ANYWHERE'],
+      [CLI_PATH, sessionFile, '--boundary', 'NO_SUCH_SUBSTRING_ANYWHERE'],
       { encoding: 'utf8' },
     );
   }, 'CLI must exit 0 when the boundary substring matches no line');
 
-  const parsed = JSON.parse(stdout);
-  assert.equal(parsed.orchestrator.boundary.split, false);
-  assert.equal(parsed.orchestrator.boundary.pre, null);
-  assert.equal(parsed.orchestrator.boundary.post, null);
+  const { data } = JSON.parse(stdout);
+  assert.equal(data.orchestrator.boundary.split, false);
+  assert.equal(data.orchestrator.boundary.pre, null);
+  assert.equal(data.orchestrator.boundary.post, null);
 
   const expectedCost = costForUsage('sonnet', usage);
-  assert.ok(Math.abs(parsed.orchestrator.cost - expectedCost) < 0.0001);
+  assert.ok(Math.abs(data.orchestrator.cost - expectedCost) < 0.0001);
 });

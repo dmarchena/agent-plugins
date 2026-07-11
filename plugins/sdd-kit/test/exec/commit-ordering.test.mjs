@@ -246,13 +246,13 @@ test('AC1/AC2 (single-task complete): each task commits its own state; last task
       '--tokens', '1200', '--test-cmd', testCmdA, '--rojo', 'fail', '--verde', 'pass',
       '--files', 'impl/task-a.mjs,t/task-a.check.mjs',
     ]);
-    assert.strictEqual(doneA.status, 'done');
-    assert.ok(doneA.commit, 'task-a must have a commit hash');
+    assert.strictEqual(doneA.data.status, 'done');
+    assert.ok(doneA.data.commit, 'task-a must have a commit hash');
 
     // AC1 (task N-1): state at current HEAD shows task-a's own values.
     const stateAfterA = stateOf(absSpecDir);
     assertOwnValues(stateAfterA, 'task-a', 1200, testCmdA);
-    assertCommitContent(repo, doneA.commit, 'task-a', 1200, testCmdA);
+    assertCommitContent(repo, doneA.data.commit, 'task-a', 1200, testCmdA);
 
     const testCmdB = writeTaskFiles(repo, 'task-b', 'R2.S1', true);
     const doneB = cli(repo, [
@@ -260,16 +260,16 @@ test('AC1/AC2 (single-task complete): each task commits its own state; last task
       '--tokens', '1100', '--test-cmd', testCmdB, '--rojo', 'fail', '--verde', 'pass',
       '--files', 'impl/task-b.mjs,t/task-b.check.mjs',
     ]);
-    assert.strictEqual(doneB.status, 'done');
-    assert.ok(doneB.commit, 'task-b must have a commit hash');
-    assert.notStrictEqual(doneB.commit, doneA.commit, 'task-b commit must differ from task-a commit');
+    assert.strictEqual(doneB.data.status, 'done');
+    assert.ok(doneB.data.commit, 'task-b must have a commit hash');
+    assert.notStrictEqual(doneB.data.commit, doneA.data.commit, 'task-b commit must differ from task-a commit');
 
     // AC1 (task N, the last): state shows task-b's OWN values, not task-a's
     // stale ones, and task-a's entry is still intact (not clobbered).
     const stateAfterB = stateOf(absSpecDir);
     assertOwnValues(stateAfterB, 'task-b', 1100, testCmdB);
     assertOwnValues(stateAfterB, 'task-a', 1200, testCmdA);
-    assertCommitContent(repo, doneB.commit, 'task-b', 1100, testCmdB);
+    assertCommitContent(repo, doneB.data.commit, 'task-b', 1100, testCmdB);
 
     // AC2: after the LAST task closes, status/actual_tokens/test_cmd for
     // every task are already committed (only `commit` may still be pending).
@@ -300,8 +300,8 @@ test('AC1/AC2 (batch complete): each task commits its own state; last task leave
     ], null, 2));
 
     const result = cli(repo, ['complete', specDir, '--batch', batchFile]);
-    assert.strictEqual(result.status, 'batch');
-    const byId = Object.fromEntries(result.results.map((r) => [r.task_id, r]));
+    assert.strictEqual(result.data.status, 'batch');
+    const byId = Object.fromEntries(result.data.results.map((r) => [r.task_id, r]));
     assert.strictEqual(byId['task-a'].status, 'done');
     assert.strictEqual(byId['task-b'].status, 'done');
     assert.ok(byId['task-a'].commit);

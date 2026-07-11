@@ -172,7 +172,9 @@ function git(repo, args) {
 
 function cli(repo, args) {
   const stdout = execFileSync('node', [CLI, ...args], { cwd: repo, encoding: 'utf8' });
-  return JSON.parse(stdout);
+  const parsed = JSON.parse(stdout);
+  assert.strictEqual(parsed.ok, true, `CLI call must succeed (envelope ok:true): node ${[CLI, ...args].join(' ')}`);
+  return parsed.data;
 }
 
 function simulateExecutor(repo, taskId, ref) {

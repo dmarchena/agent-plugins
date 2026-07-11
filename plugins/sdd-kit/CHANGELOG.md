@@ -4,6 +4,18 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.6.1
+
+- Unified stdout across all sdd-kit CLI scripts (`exec-tools.mjs`,
+  `verify-tools.mjs`, `plan-tools.mjs`, `versioning-report.mjs`,
+  `budget-guard.mjs`, `forensics.mjs`, `token-cost.mjs`) on one canonical
+  `{ ok, data }` / `{ ok: false, error: { reason } }` envelope, replacing
+  ad hoc prose/plain-text output. Every consuming skill in scope
+  (`verify`, `plan-executor`, `plan-writer`, `spec-forensics`,
+  `commands/forensics.md`) now reads `data`/`error.reason` instead of
+  parsing the old shape, and the full `node --test` suite was migrated to
+  assert against the envelope.
+
 ## 0.6.0
 
 - Added the `spec-forensics` skill: a read-only integration layer (thin

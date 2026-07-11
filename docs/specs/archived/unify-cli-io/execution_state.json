@@ -1,0 +1,130 @@
+{
+  "plan_id": "plan-unify-cli-io",
+  "source_spec": "docs/specs/unify-cli-io/spec.md",
+  "branch": "refactor/unify-cli-io",
+  "started_at": "2026-07-10T20:23:38.722Z",
+  "tasks": {
+    "T1-lib-cli": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 55576,
+      "deviation": 15576,
+      "test_cmd": "node --test plugins/sdd-kit/test/lib-cli.test.mjs",
+      "commit": "3a878a7",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": null
+    },
+    "T2-exec-tools": {
+      "status": "done",
+      "estimated_tokens": 60000,
+      "actual_tokens": 18000,
+      "deviation": -42000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/lib-cli-migration.test.mjs",
+      "commit": "30d2636",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": null
+    },
+    "T3-verify-tools": {
+      "status": "done",
+      "estimated_tokens": 45000,
+      "actual_tokens": 38000,
+      "deviation": -7000,
+      "test_cmd": "node --test plugins/sdd-kit/test/verify-tools-cli-io.test.mjs",
+      "commit": "7021e8a",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": null
+    },
+    "T4-plan-tools": {
+      "status": "done",
+      "estimated_tokens": 35000,
+      "actual_tokens": 18000,
+      "deviation": -17000,
+      "test_cmd": "node --test plugins/sdd-kit/test/plan-tools-cli.test.mjs",
+      "commit": "aeb8dd3",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": null
+    },
+    "T5-versioning-report": {
+      "status": "done",
+      "estimated_tokens": 25000,
+      "actual_tokens": 71430,
+      "deviation": 46430,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/versioning-report.test.mjs",
+      "commit": "54ef99b",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": null
+    },
+    "T6-budget-guard": {
+      "status": "done",
+      "estimated_tokens": 20000,
+      "actual_tokens": 68633,
+      "deviation": 48633,
+      "test_cmd": "node --test plugins/sdd-kit/test/budget-guard-envelope.test.mjs",
+      "commit": "1d91836",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": null
+    },
+    "T7-forensics": {
+      "status": "done",
+      "estimated_tokens": 30000,
+      "actual_tokens": 74904,
+      "deviation": 44904,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics-cli-io.test.mjs",
+      "commit": "201595f",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": null
+    },
+    "T8-token-cost": {
+      "status": "done",
+      "estimated_tokens": 30000,
+      "actual_tokens": 84386,
+      "deviation": 54386,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/token-cost-cli-io.test.mjs",
+      "commit": "bdc3455",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": null
+    },
+    "T9-consumers": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 134155,
+      "deviation": 94155,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/consumers-envelope-docs.test.mjs",
+      "commit": "55e7a4d",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": null
+    },
+    "T10-tests": {
+      "status": "done",
+      "estimated_tokens": 70000,
+      "actual_tokens": 232997,
+      "deviation": 162997,
+      "test_cmd": "cd plugins/sdd-kit && node --test $(find test -name '*.test.mjs') test/run.mjs",
+      "commit": "9d6a525",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": null
+    },
+    "T11-e2e-gate": {
+      "status": "done",
+      "estimated_tokens": 15000,
+      "actual_tokens": 29719,
+      "deviation": 14719,
+      "test_cmd": "cd plugins/sdd-kit && node --test $(find test -name '*.test.mjs') test/run.mjs",
+      "commit": "b755335",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": null
+    }
+  },
+  "pause": null
+}

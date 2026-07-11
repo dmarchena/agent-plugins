@@ -86,18 +86,24 @@ test('R1.S1: ground-check, report and archive each print a JSON status object an
     const specDir = buildFixture(repo, 'r1s1-demo');
 
     const groundOut = cli(repo, ['ground-check', specDir]);
-    const ground = JSON.parse(groundOut);
+    const groundParsed = JSON.parse(groundOut);
+    assert.equal(groundParsed.ok, true);
+    const ground = groundParsed.data;
     assert.equal(ground.status, 'ground-check');
     assert.ok(Array.isArray(ground.green));
     assert.ok(ground.green.includes('AC1'));
 
     const reportOut = cli(repo, ['report', specDir]);
-    const report = JSON.parse(reportOut);
+    const reportParsed = JSON.parse(reportOut);
+    assert.equal(reportParsed.ok, true);
+    const report = reportParsed.data;
     assert.equal(report.status, 'report');
     assert.equal(report.allGreen, true);
 
     const archiveOut = cli(repo, ['archive', specDir]);
-    const archived = JSON.parse(archiveOut);
+    const archiveParsed = JSON.parse(archiveOut);
+    assert.equal(archiveParsed.ok, true);
+    const archived = archiveParsed.data;
     assert.equal(archived.status, 'archived');
     assert.equal(archived.archived, true);
 
@@ -165,7 +171,9 @@ test('AC3: report --verdicts confirms a [manual] AC from a file (no interactive 
       reportOut = cli(repo, ['report', specDir, '--verdicts', verdictsPath], { timeout: 5000, input: '' });
     }, 'report --verdicts must complete promptly without blocking on stdin');
 
-    const report = JSON.parse(reportOut);
+    const reportParsed = JSON.parse(reportOut);
+    assert.equal(reportParsed.ok, true);
+    const report = reportParsed.data;
     assert.equal(report.status, 'report');
     const ac2 = report.acs.find((a) => a.ac_id === 'AC2');
     assert.ok(ac2, 'AC2 must be present in the report');
@@ -208,7 +216,9 @@ test('R5 regression: archive subcommand reads .sdd-kit.json and enforces the ver
     const specDir = buildFixture(repo, 'versioning-demo');
 
     const archiveOut = cli(repo, ['archive', specDir]);
-    const archived = JSON.parse(archiveOut);
+    const archiveParsed = JSON.parse(archiveOut);
+    assert.equal(archiveParsed.ok, true);
+    const archived = archiveParsed.data;
     assert.equal(archived.status, 'not-archived');
     assert.equal(archived.archived, false);
     assert.equal(archived.reason, 'versioning policy not satisfied');

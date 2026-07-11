@@ -76,8 +76,8 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs complete SPECDIR --batch /tmp/
 Same fields as the single-task flags, one entry per task; `files` is still
 REQUIRED for every non-`verifier` entry — omitting it refuses the WHOLE
 batch rather than falling back to staging the whole tree. Returns
-`{ status: "batch", results: [...] }`, one per-task result in the
-single-task shape; a task that doesn't reach green is `not-done` in its own
+`{ ok: true, data: { status: "batch", results: [...] } }`, one per-task
+result in the single-task shape; a task that doesn't reach green is `not-done` in its own
 entry and does NOT block or revert its siblings (R2.S2/AC5). A lone task
 still uses the single-task form above.
 

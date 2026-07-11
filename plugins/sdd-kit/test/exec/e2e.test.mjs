@@ -168,10 +168,15 @@ function git(repo, args) {
   return execFileSync('git', args, { cwd: repo, encoding: 'utf8' }).trim();
 }
 
-// Invokes the CLI and returns the parsed JSON from stdout.
+// Invokes the CLI, asserts the canonical envelope reports success, and
+// returns its `data` payload (every subcommand here prints
+// {ok:true,data:<payload>}; `init.ok` below still resolves because cmdInit's
+// own payload also carries a redundant `ok` field).
 function cli(repo, args) {
   const out = execFileSync('node', [CLI, ...args], { cwd: repo, encoding: 'utf8' });
-  return JSON.parse(out);
+  const parsed = JSON.parse(out);
+  assert.strictEqual(parsed.ok, true, `CLI call must succeed (envelope ok:true): node ${[CLI, ...args].join(' ')}`);
+  return parsed.data;
 }
 
 // Executor stub: writes a passing impl + test and returns the re-run command.

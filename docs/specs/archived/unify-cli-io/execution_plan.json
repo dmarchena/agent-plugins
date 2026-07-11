@@ -1,0 +1,241 @@
+{
+  "plan_id": "plan-unify-cli-io",
+  "project_name": "unify-cli-io",
+  "global_objective": "Unificar el borde script->Claude de todos los CLIs de sdd-kit tras un envelope canonico {ok,data,error} servido por scripts/lib/cli.mjs, migrando los 7 CLIs, sus consumidores y la suite de tests sin regresion de dominio.",
+  "source_spec": "docs/specs/unify-cli-io/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 410000,
+  "tasks": [
+    {
+      "task_id": "T1-lib-cli",
+      "source_ids": ["R1.S1", "R1.S3"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementacion acotada con criterios claros: crear el modulo de helpers de I/O que produce el envelope; base reutilizable del resto.",
+      "instructions": "Crea scripts/lib/cli.mjs, el modulo compartido de I/O que implementa el envelope de R1 (ver R1.S1 para exito y R1.S3 para error) y su documentacion (R2.S2/AC5). Exporta un helper de emision de exito, uno de error y un parseFlags. La serializacion debe ser compacta (una linea, sin indent) segun la restriccion tecnica del spec. Tarea sin dependencias: no consume salida de ninguna otra tarea.",
+      "expected_output_schema": "Fichero scripts/lib/cli.mjs con exports para emitir el envelope de exito ({ok:true,data}), el de error ({ok:false,error:{reason}}) y parseFlags, serializacion compacta, y un comentario de cabecera que documenta el envelope, el uso de stdout solo para datos, la serializacion compacta y el mapeo ok<->exit code.",
+      "satisfies_acs": ["AC5"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R1.S1", "assertion": "el helper de exito serializa el envelope como {ok:true,data:<payload>} en una sola linea compacta sin indent y con salto final" },
+        { "ref": "R1.S3", "assertion": "el helper de error produce {ok:false,error:{reason}} compacto y provoca terminacion con codigo distinto de cero" },
+        { "ref": "AC5", "assertion": "la cabecera del modulo documenta el envelope, el uso de stdout solo para datos, la serializacion compacta y el mapeo ok<->exit code" }
+      ]
+    },
+    {
+      "task_id": "T2-exec-tools",
+      "source_ids": ["R1.S1", "R1.S3", "R2.S1"],
+      "dependencies": ["T1-lib-cli"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Migracion acotada de un CLI a los helpers compartidos con criterios de aceptacion claros.",
+      "instructions": "Migra scripts/exec-tools.mjs para que toda su salida de resultado use el modulo scripts/lib/cli.mjs producido por la tarea T1-lib-cli, eliminando sus definiciones locales de die/out/parseFlags. Cubre R1.S1, R1.S3 y la parte de R2.S1 correspondiente a exec-tools. Consume el modulo de T1-lib-cli.",
+      "expected_output_schema": "scripts/exec-tools.mjs sin helpers de I/O locales, importando lib/cli.mjs; sus comandos de exito emiten {ok:true,data:...} compacto (exit 0) y sus errores {ok:false,error:{reason}} (exit != 0).",
+      "satisfies_acs": ["AC1", "AC4"],
+      "estimated_tokens": 60000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC1", "assertion": "un comando de exito de exec-tools emite un envelope {ok:true,data:...} compacto de una linea y termina con codigo 0" },
+        { "ref": "R1.S3", "assertion": "un comando de exec-tools con entrada invalida emite {ok:false,error:{reason}} en stdout y termina con codigo distinto de cero" },
+        { "ref": "AC4", "assertion": "exec-tools no contiene definiciones locales de los helpers de I/O y los importa del modulo compartido" }
+      ]
+    },
+    {
+      "task_id": "T3-verify-tools",
+      "source_ids": ["R1.S1", "R1.S2", "R2.S1"],
+      "dependencies": ["T1-lib-cli"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Migracion acotada de verify-tools a los helpers compartidos, con el caso de estado de dominio not-archived.",
+      "instructions": "Migra scripts/verify-tools.mjs para que use el modulo scripts/lib/cli.mjs de la tarea T1-lib-cli, eliminando sus definiciones locales de die/out/parseFlags. Cubre R1.S1, R1.S2 y la parte de R2.S1 de verify-tools. Consume el modulo de T1-lib-cli.",
+      "expected_output_schema": "scripts/verify-tools.mjs sin helpers de I/O locales, importando lib/cli.mjs; el estado de dominio not-archived se emite como {ok:true,data:{status:'not-archived',...}} exit 0.",
+      "satisfies_acs": ["AC1", "AC2", "AC4"],
+      "estimated_tokens": 45000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC2", "assertion": "el comando de verify que reporta estado not-archived emite {ok:true,data:{status:'not-archived',...}} con codigo 0" },
+        { "ref": "AC1", "assertion": "un comando de exito de verify emite un envelope {ok:true,data:...} compacto de una linea y termina con codigo 0" },
+        { "ref": "AC4", "assertion": "verify-tools no define localmente los helpers de I/O y los importa del modulo compartido" }
+      ]
+    },
+    {
+      "task_id": "T4-plan-tools",
+      "source_ids": ["R1.S3", "R2.S1"],
+      "dependencies": ["T1-lib-cli"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Migracion acotada de plan-tools; reemplaza su fail() local por el helper compartido.",
+      "instructions": "Migra scripts/plan-tools.mjs para que use el modulo scripts/lib/cli.mjs de la tarea T1-lib-cli, reemplazando su helper local fail() y su parseo por los del modulo. Cubre R1.S3 y la parte de R2.S1 de plan-tools. Consume el modulo de T1-lib-cli.",
+      "expected_output_schema": "scripts/plan-tools.mjs sin helper de error/parseo local, importando lib/cli.mjs; un plan.json malformado produce {ok:false,error:{reason}} en stdout con exit != 0 y los exitos emiten {ok:true,data:...}.",
+      "satisfies_acs": ["AC3", "AC4"],
+      "estimated_tokens": 35000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC3", "assertion": "plan-tools con un plan.json malformado emite {ok:false,error:{reason}} en stdout y termina con codigo distinto de cero" },
+        { "ref": "AC4", "assertion": "plan-tools no define localmente su helper de error/parseo y usa el modulo compartido" }
+      ]
+    },
+    {
+      "task_id": "T5-versioning-report",
+      "source_ids": ["R3.S1", "R2.S1"],
+      "dependencies": ["T1-lib-cli"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Migracion acotada: pasar la salida de texto plano de versioning-report al envelope.",
+      "instructions": "Migra scripts/versioning-report.mjs para que su stdout use el envelope del modulo scripts/lib/cli.mjs de la tarea T1-lib-cli, moviendo los warnings a data.warnings en lugar de las lineas de prosa. Cubre R3.S1 y la parte de R2.S1 de versioning-report. Consume el modulo de T1-lib-cli.",
+      "expected_output_schema": "scripts/versioning-report.mjs que emite {ok:true,data:{warnings:[...]}} con warnings y {ok:true,data:{warnings:[]}} (exit 0) sin ellos, sin lineas de prosa; importa lib/cli.mjs.",
+      "satisfies_acs": ["AC6", "AC4"],
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC6", "assertion": "versioning-report emite {ok:true,data:{warnings:[...]}} con warnings y {ok:true,data:{warnings:[]}} sin ellos, sin lineas de prosa de aviso" },
+        { "ref": "AC4", "assertion": "versioning-report no define localmente helpers de I/O y usa el modulo compartido" }
+      ]
+    },
+    {
+      "task_id": "T6-budget-guard",
+      "source_ids": ["R3.S2", "R2.S1"],
+      "dependencies": ["T1-lib-cli"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Migracion acotada de budget-guard; preserva su exit-code como gate mientras adopta el envelope.",
+      "instructions": "Migra scripts/budget-guard.mjs para que su stdout use el envelope del modulo scripts/lib/cli.mjs de la tarea T1-lib-cli, reconstruyendo en data lo que antes eran las lineas de texto y preservando su exit code distinto de cero como gate cuando un skill excede su techo. Cubre R3.S2 y la parte de R2.S1 de budget-guard. Consume el modulo de T1-lib-cli.",
+      "expected_output_schema": "scripts/budget-guard.mjs que emite {ok:true,data:{results:[{skill,count,ceiling,over}],withinBudget:bool}} y mantiene exit != 0 como gate al excederse un techo; importa lib/cli.mjs.",
+      "satisfies_acs": ["AC7", "AC4"],
+      "estimated_tokens": 20000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC7", "assertion": "budget-guard con un skill que excede su techo emite {ok:true,data:{results:[...],withinBudget:false}} y termina con codigo distinto de cero como gate" },
+        { "ref": "AC4", "assertion": "budget-guard no define localmente helpers de I/O y usa el modulo compartido" }
+      ]
+    },
+    {
+      "task_id": "T7-forensics",
+      "source_ids": ["R3.S3", "R2.S1"],
+      "dependencies": ["T1-lib-cli"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Migracion acotada de forensics: stdout al envelope conservando el artefacto forensics.json.",
+      "instructions": "Migra scripts/forensics.mjs para que su stdout use el envelope del modulo scripts/lib/cli.mjs de la tarea T1-lib-cli, eliminando el resumen en prosa (outcome.lines) y conservando la escritura de forensics.json con los datos completos. Cubre R3.S3 y la parte de R2.S1 de forensics. Consume el modulo de T1-lib-cli.",
+      "expected_output_schema": "scripts/forensics.mjs que sigue escribiendo forensics.json y cuyo stdout es {ok:true,data:...} (mismos datos o puntero al fichero), sin la prosa outcome.lines; importa lib/cli.mjs.",
+      "satisfies_acs": ["AC8", "AC4"],
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC8", "assertion": "forensics escribe forensics.json y emite {ok:true,data:...} en stdout, sin el resumen en prosa" },
+        { "ref": "AC4", "assertion": "forensics no define localmente helpers de I/O y usa el modulo compartido" }
+      ]
+    },
+    {
+      "task_id": "T8-token-cost",
+      "source_ids": ["R3.S4", "R2.S1"],
+      "dependencies": ["T1-lib-cli"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Migracion acotada de token-cost: unificar su salida en el envelope, retirando la prosa como contrato.",
+      "instructions": "Migra scripts/token-cost.mjs para que su stdout use el envelope del modulo scripts/lib/cli.mjs de la tarea T1-lib-cli, entregando el reporte estructurado bajo data y retirando la variante en prosa como contrato. Cubre R3.S4 y la parte de R2.S1 de token-cost. Consume el modulo de T1-lib-cli.",
+      "expected_output_schema": "scripts/token-cost.mjs cuyo stdout es {ok:true,data:<reporte estructurado>} sin prosa contractual; importa lib/cli.mjs.",
+      "satisfies_acs": ["AC9", "AC4"],
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC9", "assertion": "token-cost emite {ok:true,data:...} estructurado, sin la variante en prosa como contrato" },
+        { "ref": "AC4", "assertion": "token-cost no define localmente helpers de I/O y usa el modulo compartido" }
+      ]
+    },
+    {
+      "task_id": "T9-consumers",
+      "source_ids": ["R4.S1"],
+      "dependencies": ["T2-exec-tools", "T3-verify-tools", "T4-plan-tools", "T5-versioning-report", "T6-budget-guard", "T7-forensics", "T8-token-cost"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Actualizacion de prosa de instrucciones (SKILL.md/assets/command) siguiendo un esquema: leer el envelope en vez del formato antiguo.",
+      "instructions": "Actualiza los consumidores que parsean la salida de los CLIs (SKILL.md/assets de verify, plan-executor, plan-writer, spec-forensics y commands/forensics.md) para que lean el envelope (.data/.ok/.error.reason) y deriven cualquier resumen de data, segun R4.S1/AC10. Consume la salida ya migrada de las tareas T2-exec-tools, T3-verify-tools, T4-plan-tools, T5-versioning-report, T6-budget-guard, T7-forensics y T8-token-cost.",
+      "expected_output_schema": "SKILL.md/assets de verify, plan-executor, plan-writer, spec-forensics y commands/forensics.md actualizados: ninguno instruye leer el formato antiguo ni parsear prosa; todos referencian el envelope.",
+      "satisfies_acs": ["AC10"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "T10-tests",
+      "source_ids": ["R5.S1", "R5.S2"],
+      "dependencies": ["T2-exec-tools", "T3-verify-tools", "T4-plan-tools", "T5-versioning-report", "T6-budget-guard", "T7-forensics", "T8-token-cost", "T9-consumers"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Reescritura acotada de aserciones de test al envelope, con criterio claro (suite verde y sin aserciones sobre prosa antigua).",
+      "instructions": "Actualiza los ficheros de test bajo plugins/sdd-kit/test/ que parsean la salida de los CLIs para que asertan sobre el envelope, segun R5.S1/AC11 y R5.S2/AC12. Depende del codigo migrado en las tareas T2-exec-tools..T8-token-cost y de los consumidores en T9-consumers.",
+      "expected_output_schema": "Ficheros de test bajo plugins/sdd-kit/test/ que asertan sobre {ok,data,error} en lugar del formato/prosa antiguos; la suite node --test pasa entera.",
+      "satisfies_acs": ["AC11", "AC12"],
+      "estimated_tokens": 70000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC11", "assertion": "la suite completa node --test sobre plugins/sdd-kit/test/ pasa entera tras la migracion" },
+        { "ref": "AC12", "assertion": "los tests asertan sobre la forma del envelope (ok, data, error.reason) y no quedan aserciones sobre la prosa antigua fuera de casos que asertan el envelope" }
+      ]
+    },
+    {
+      "task_id": "T11-e2e-gate",
+      "source_ids": ["R-E2E.S1"],
+      "dependencies": ["T2-exec-tools", "T3-verify-tools", "T4-plan-tools", "T5-versioning-report", "T6-budget-guard", "T7-forensics", "T8-token-cost", "T9-consumers", "T10-tests"],
+      "agent_type": "verifier",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "El recorrido E2E queda cubierto por composicion de los tests por-tarea ya migrados; solo hay que correr la suite y confirmar verde, sin escribir codigo.",
+      "instructions": "Ejecuta la suite completa (node --test sobre plugins/sdd-kit/test/) y confirma que queda verde, respaldando el recorrido R-E2E.S1/AC-E2E por composicion de los tests por-tarea migrados en la tarea T10-tests. No escribe codigo.",
+      "expected_output_schema": "Confirmacion de que node --test sobre plugins/sdd-kit/test/ termina en verde, con cada CLI emitiendo un envelope valido y los valores de dominio/ficheros iguales al baseline.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 15000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1-lib-cli", "T2-exec-tools", "T3-verify-tools", "T4-plan-tools"],
+      "R2": ["T1-lib-cli", "T2-exec-tools", "T3-verify-tools", "T4-plan-tools", "T5-versioning-report", "T6-budget-guard", "T7-forensics", "T8-token-cost"],
+      "R3": ["T5-versioning-report", "T6-budget-guard", "T7-forensics", "T8-token-cost"],
+      "R4": ["T9-consumers"],
+      "R5": ["T10-tests"],
+      "R-E2E": ["T11-e2e-gate"]
+    },
+    "acs": {
+      "AC1": ["T2-exec-tools", "T3-verify-tools"],
+      "AC2": ["T3-verify-tools"],
+      "AC3": ["T4-plan-tools"],
+      "AC4": ["T2-exec-tools", "T3-verify-tools", "T4-plan-tools", "T5-versioning-report", "T6-budget-guard", "T7-forensics", "T8-token-cost"],
+      "AC5": ["T1-lib-cli"],
+      "AC6": ["T5-versioning-report"],
+      "AC7": ["T6-budget-guard"],
+      "AC8": ["T7-forensics"],
+      "AC9": ["T8-token-cost"],
+      "AC10": ["T9-consumers"],
+      "AC11": ["T10-tests"],
+      "AC12": ["T10-tests"],
+      "AC-E2E": ["T11-e2e-gate"]
+    }
+  }
+}

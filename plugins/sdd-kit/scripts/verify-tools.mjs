@@ -10,6 +10,7 @@ import { currentBranch } from './exec/git.mjs';
 import { readConfig } from './exec/config.mjs';
 import { rerun } from './exec/verify.mjs';
 import { computeRealCost } from './exec/real-cost.mjs';
+import { emitSuccess, emitError, parseFlags } from './lib/cli.mjs';
 
 /**
  * Thrown when a required SPECDIR input (execution_plan.json or spec.md) is
@@ -953,38 +954,13 @@ export function archiveIfGreen(specDir, report, { cwd, versioning } = {}) {
 
 // ---------------------------------------------------------------------------
 // CLI — T1-verify-cli: wires the deterministic functions above into
-// one-line `node verify-tools.mjs <sub> SPECDIR [args]` subcommands, mirroring
-// exec-tools.mjs's shape (parseFlags/out/die + a main() dispatcher). This
-// section is guarded behind the `import.meta.url` check at the bottom so
-// importing this module (as ~10 existing test files do) never triggers argv
-// parsing or process.exit — only running it directly as a script does.
+// one-line `node verify-tools.mjs <sub> SPECDIR [args]` subcommands, using the
+// shared I/O envelope helpers from ./lib/cli.mjs (emitSuccess/emitError/
+// parseFlags) instead of local ad-hoc equivalents. This section is guarded
+// behind the `import.meta.url` check at the bottom so importing this module
+// (as ~10 existing test files do) never triggers argv parsing or
+// process.exit — only running it directly as a script does.
 // ---------------------------------------------------------------------------
-
-function die(msg, code = 1) {
-  process.stderr.write(msg + '\n');
-  process.exit(code);
-}
-
-function out(obj) {
-  process.stdout.write(JSON.stringify(obj, null, 2) + '\n');
-}
-
-// Minimal --flags parser (value in the next token), same convention as
-// exec-tools.mjs's parseFlags.
-function parseFlags(argv) {
-  const flags = {};
-  const pos = [];
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a.startsWith('--')) {
-      const key = a.slice(2);
-      const next = argv[i + 1];
-      if (next === undefined || next.startsWith('--')) { flags[key] = true; }
-      else { flags[key] = next; i++; }
-    } else { pos.push(a); }
-  }
-  return { flags, pos };
-}
 
 // Reads --verdicts <path> (a JSON array of { ac_id, verdict: 'confirmed'|'rejected' },
 // the same file-based convention as exec-tools.mjs's `complete --batch`) and
@@ -1072,11 +1048,11 @@ function cmdGroundCheck(specDir) {
   try {
     ({ checklist, coverageAcs, taskState } = loadSpecdir(specDir));
   } catch (e) {
-    if (e instanceof VerifyInputError) return die(`VerifyInputError: ${e.message}`, 1);
+    if (e instanceof VerifyInputError) return emitError(`VerifyInputError: ${e.message}`, 1);
     throw e;
   }
   const result = groundCheck(checklist, coverageAcs, taskState, { rerun });
-  out({ status: 'ground-check', ...result });
+  emitSuccess({ status: 'ground-check', ...result });
 }
 
 // report <specDir> [--verdicts <path>]: full deterministic verify pipeline,
@@ -1087,10 +1063,10 @@ function cmdReport(specDir, flags) {
     const verdictsPath = flags.verdicts && flags.verdicts !== true ? String(flags.verdicts) : null;
     report = buildReport(specDir, verdictsPath);
   } catch (e) {
-    if (e instanceof VerifyInputError) return die(`VerifyInputError: ${e.message}`, 1);
+    if (e instanceof VerifyInputError) return emitError(`VerifyInputError: ${e.message}`, 1);
     throw e;
   }
-  out({ status: 'report', ...report });
+  emitSuccess({ status: 'report', ...report });
 }
 
 // archive <specDir> [--verdicts <path>]: re-runs the same pipeline as
@@ -1103,24 +1079,25 @@ function cmdArchive(specDir, flags) {
     const verdictsPath = flags.verdicts && flags.verdicts !== true ? String(flags.verdicts) : null;
     report = buildReport(specDir, verdictsPath);
   } catch (e) {
-    if (e instanceof VerifyInputError) return die(`VerifyInputError: ${e.message}`, 1);
+    if (e instanceof VerifyInputError) return emitError(`VerifyInputError: ${e.message}`, 1);
     throw e;
   }
   const cwd = process.cwd();
   const config = readConfig(cwd);
   const result = archiveIfGreen(specDir, report, { cwd, versioning: { config } });
-  out({ status: result.archived ? 'archived' : 'not-archived', ...result });
+  emitSuccess({ status: result.archived ? 'archived' : 'not-archived', ...result });
 }
 
 function main() {
   const [cmd, ...rest] = process.argv.slice(2);
-  const { flags, pos } = parseFlags(rest);
+  const specDir = rest[0];
+  const flags = parseFlags(rest);
   switch (cmd) {
-    case 'ground-check': return cmdGroundCheck(pos[0]);
-    case 'report': return cmdReport(pos[0], flags);
-    case 'archive': return cmdArchive(pos[0], flags);
+    case 'ground-check': return cmdGroundCheck(specDir);
+    case 'report': return cmdReport(specDir, flags);
+    case 'archive': return cmdArchive(specDir, flags);
     default:
-      die('Usage: verify-tools.mjs <ground-check|report|archive> <specDir> [--verdicts <path>]', 1);
+      return emitError('Usage: verify-tools.mjs <ground-check|report|archive> <specDir> [--verdicts <path>]', 1);
   }
 }
 
