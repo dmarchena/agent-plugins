@@ -73,6 +73,13 @@ them). Independent tasks in the same batch are launched **in a single
 message** (parallel `Task` calls, never one per turn), never more
 than 3 at once (R4.S1 / AC7).
 
+Once a `Task` call returns, capture its `agentId` from the **tool
+result of the `Task` call itself** (`toolUseResult.agentId` — the same
+hash that names `subagents/agent-<agentId>.jsonl`), never from the
+subagent's own returned text/prose. Retain that value per `task_id` so
+it can be passed to `complete` in **§3**; the executor itself does not
+need to know or declare its own agentId.
+
 The brief is self-contained (no memory of this conversation) and
 MUST require the strict TDD cycle **test → red → implementation →
 green**, with **Evidence of red BEFORE** implementing and green after
@@ -97,10 +104,12 @@ re-run command it reported; **quote it** so it arrives as one argv token:
 
 ```
 node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs complete SPECDIR <task_id> \
-  --tokens <N> --test-cmd "<re-run command>" --files "<a.mjs,b.mjs,...>" \
+  --tokens <N> --agent-id <id> --test-cmd "<re-run command>" --files "<a.mjs,b.mjs,...>" \
   --rojo pass|fail --verde pass|fail [--message "<commit subject>"]
 ```
 
+`--agent-id` is the value captured from that task's `Task` tool result in
+**§2** (`toolUseResult.agentId`), not anything reported by the executor.
 `--files` is REQUIRED (comma-separated touched paths) — `complete` commits only those plus its own state file, refusing to commit at all without it (R1). `--rojo`/`--verde` report the exit status of the test in each TDD phase.
 Genuine evidence is `--rojo fail` **and** `--verde pass`; `--rojo pass`
 means the test passed with nothing implemented — the "sin evidencia de
@@ -115,9 +124,11 @@ to do for each.
 When the batch has more than one task, close all of them in a SINGLE
 `complete --batch` invocation instead of one `complete` per task, cutting
 orchestrator round-trips (R2.S1) — same fields as the single-task flags,
-one entry per task; a task that doesn't reach green is `not-done` in its
-own entry and does NOT block or revert its siblings (R2.S2/AC5). Full
-command shape: `assets/task-brief-detail.md`.
+one entry per task, including `agent_id` (the value the orchestrator
+captured per `task_id` from each `Task` tool result in **§2**); a task
+that doesn't reach green is `not-done` in its own entry and does NOT
+block or revert its siblings (R2.S2/AC5). Full command shape:
+`assets/task-brief-detail.md`.
 
 Never mark a task done yourself or with git directly; only a `done` from
 `complete` is authoritative, and it owns the commit.
