@@ -107,8 +107,15 @@ function git(repo, args) {
   return execFileSync('git', args, { cwd: repo, encoding: 'utf8' }).trim();
 }
 
-function cli(repo, args) {
-  const out = execFileSync('node', [CLI, ...args], { cwd: repo, encoding: 'utf8' });
+function cli(repo, args, envOverrides) {
+  let env = process.env;
+  if (envOverrides) {
+    env = { ...process.env, ...envOverrides };
+    for (const key of Object.keys(envOverrides)) {
+      if (envOverrides[key] === undefined) delete env[key];
+    }
+  }
+  const out = execFileSync('node', [CLI, ...args], { cwd: repo, encoding: 'utf8', env });
   return JSON.parse(out);
 }
 
@@ -205,7 +212,7 @@ test('R1.S2: completing without --agent-id still reaches done, with agentId null
       '--tokens', '1200', '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
       '--files', 'impl/task-a.mjs,t/task-a.check.mjs',
       // no --agent-id / --session-id: the join is unavailable.
-    ]);
+    ], { CLAUDE_CODE_SESSION_ID: undefined }); // isolate from the ambient shell's session id (unrelated to this test's agentId assertions)
 
     // The run is not aborted: it exits 0 (execFileSync would throw otherwise)
     // and still reports done.

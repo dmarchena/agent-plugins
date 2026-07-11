@@ -1,0 +1,91 @@
+{
+  "plan_id": "forensics-persist-ids-v1",
+  "project_name": "forensics-persist-ids",
+  "global_objective": "Cerrar el gap de contrato para que spec-forensics resuelva no-vacio en runs normales: auto-sellar sessionId desde el entorno en complete/complete --batch y documentar en plan-executor que el orquestador capture el agentId del resultado del tool Task y lo pase a complete.",
+  "source_spec": "docs/specs/forensics-persist-ids/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 120000,
+  "tasks": [
+    {
+      "task_id": "t1-auto-default-sessionid",
+      "source_ids": ["R1", "R1.S1", "R1.S2", "R1.S3"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Cambio de codigo acotado a cmdComplete/cmdCompleteBatch con criterios de aceptacion claros (R1.S1-S3): implementacion de complejidad media, no requiere juicio de Opus.",
+      "instructions": "Implementa R1 en scripts/exec-tools.mjs: en el path single (cmdComplete) y en el path batch (cmdCompleteBatch), cuando no llega session id explicito, sella el sessionId de la tarea desde process.env.CLAUDE_CODE_SESSION_ID; un session id explicito (flag --session-id en single, campo session_id por entrada en batch) prevalece sobre el del entorno, y en ausencia de ambos el sessionId queda nulo sin abortar. Cubre R1.S1 (single, hereda del entorno sin tocar agentId), R1.S2 (precedencia del flag y ausencia de entorno => null, exit 0) y R1.S3 (batch por-entrada). No toques completeOne, recordResult ni forensics.mjs, y no alteres el parseo ya existente de --agent-id.",
+      "expected_output_schema": "scripts/exec-tools.mjs modificado: ambos paths de complete derivan sessionId de process.env.CLAUDE_CODE_SESSION_ID como fallback, con la precedencia flag/campo > entorno > null; verificado por tests que ejercen R1.S1, R1.S2 y R1.S3.",
+      "satisfies_acs": ["AC1", "AC2", "AC3"],
+      "estimated_tokens": 45000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R1.S1",
+          "assertion": "Cerrar una tarea via complete sin session id explicito y con CLAUDE_CODE_SESSION_ID presente sella ese valor como sessionId de la tarea en el estado, sin alterar el agentId de esa tarea."
+        },
+        {
+          "ref": "R1.S2",
+          "assertion": "Un session id explicito pasado por flag prevalece sobre el del entorno; cuando no hay ni flag ni variable de entorno, el cierre termina sin error y deja el sessionId de la tarea nulo."
+        },
+        {
+          "ref": "R1.S3",
+          "assertion": "En el path batch, una entrada sin session id propio hereda el valor del entorno, mientras una entrada que trae su propio session id conserva el suyo y no el del entorno."
+        }
+      ]
+    },
+    {
+      "task_id": "t2-wire-agentid-contract",
+      "source_ids": ["R2", "R2.S1", "R2.S2"],
+      "dependencies": [],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Edicion de documentacion de la skill plan-executor siguiendo un esquema fijo (SKILL.md §2/§3): redaccion acotada sin juicio de diseno, encaja en doc_writer/sonnet.",
+      "instructions": "Implementa R2 editando skills/plan-executor/SKILL.md. Para R2.S1: en §2 (delegacion de cada tarea a un subagente via Task) instruye al orquestador a leer el agentId del resultado del tool Task (no del texto de retorno del subagente) y retenerlo para el complete de esa tarea. Para R2.S2: en §3 (forma del comando complete) la invocacion single debe incluir --agent-id <id> y la de batch describir agent_id como campo por entrada, y no reintroducir --session-id (queda auto por R1). No cambies el retorno del executor (assets/task-brief-detail.md) ni el codigo.",
+      "expected_output_schema": "skills/plan-executor/SKILL.md editado: §2 instruye capturar el agentId del resultado del tool Task para pasarlo a complete, y §3 documenta --agent-id (single) / agent_id (batch) sin reintroducir --session-id; comprobable por grep de esas secciones.",
+      "satisfies_acs": ["AC4", "AC5"],
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "t3-e2e-forensics-resolves",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["t1-auto-default-sessionid", "t2-wire-agentid-contract"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "El AC-E2E es un walkthrough transversal (complete->state->forensics) que ningun test por-tarea cubre: hay que escribir el test de integracion, luego code_writer y no verifier (e2e-task-assignment.md).",
+      "instructions": "Implementa R-E2E.S1 escribiendo un test de integracion (estilo test/exec/e2e-forensics.test.mjs) con fixtures de transcript para un agentId/sessionId conocidos y CLAUDE_CODE_SESSION_ID fijado a ese session id. El test cierra las tareas con complete pasando el agentId por flag y sin session id explicito (apoyandose en el auto-default de t1-auto-default-sessionid y en el contrato documentado por t2-wire-agentid-contract), luego corre forensics sobre el estado resultante. Debe comprobar que cada tarea done tiene agentId y sessionId no nulos y que forensics resuelve >=1 tarea sin el flag incomplete de 'no agentId recorded for any task'. No modifiques la logica de join de forensics.mjs.",
+      "expected_output_schema": "Nuevo test de integracion que ejerce la cadena complete (--agent-id, sin --session-id, entorno fijado) -> execution_state.json con ambos ids no nulos -> forensics resuelve >=1 tarea sin el incomplete de 'no agentId recorded'; pasa en verde.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R-E2E.S1",
+          "assertion": "Tras cerrar las tareas pasando el agentId por flag y sin session id, con el entorno fijado, cada tarea done tiene agentId y sessionId no nulos y forensics resuelve al menos una tarea sin marcar el fallo de no haber registrado ningun agentId."
+        }
+      ]
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["t1-auto-default-sessionid"],
+      "R2": ["t2-wire-agentid-contract"],
+      "R-E2E": ["t3-e2e-forensics-resolves"]
+    },
+    "acs": {
+      "AC1": ["t1-auto-default-sessionid"],
+      "AC2": ["t1-auto-default-sessionid"],
+      "AC3": ["t1-auto-default-sessionid"],
+      "AC4": ["t2-wire-agentid-contract"],
+      "AC5": ["t2-wire-agentid-contract"],
+      "AC-E2E": ["t3-e2e-forensics-resolves"]
+    }
+  }
+}
