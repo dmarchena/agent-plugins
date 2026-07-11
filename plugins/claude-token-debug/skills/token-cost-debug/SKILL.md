@@ -25,7 +25,7 @@ into a model-weighted cost, per subagent and for the orchestrator, with a
 cost-based percentage split:
 
 ```
-node ${CLAUDE_PLUGIN_ROOT}/scripts/token-cost.mjs [--project <name>] [--session <name>] [--projects-root <path>] [--boundary <substr>] [--json]
+node ${CLAUDE_PLUGIN_ROOT}/scripts/token-cost.mjs [--project <name>] [--session <name>] [--projects-root <path>] [--boundary <substr>]
 ```
 
 - No target flags: resolves to the newest session of the newest-active
@@ -35,15 +35,15 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/token-cost.mjs [--project <name>] [--session 
   is explicitly about usage across all projects; add `--session <name>` to
   pin a specific session, or pass a plain positional path to a session
   `.jsonl` directly.
-- `--json` prints one JSON document (keys `session`/`subs`/`orchestrator`/
-  `subTotal`/`orchAll`) instead of the human table — pipe it into `jq` or
-  another script when the answer needs further computation.
+- Prints one `{ ok: true, data: {...} }` envelope on stdout (keys
+  `session`/`subs`/`orchestrator`/`subTotal`/`orchAll` under `data`) — pipe
+  it into `jq` or another script when the answer needs further computation.
 - `--boundary <substr>` slices the orchestrator's own turns into pre/post
   subtotals at the first flat-session line containing `<substr>`, to isolate
   cost before/after a specific event without writing a custom scanner; falls
   back to a single unsplit total when no line matches.
 
-It's also importable for scripted use, returning the same shape as `--json`
+It's also importable for scripted use, returning the same shape as `data`
 with no stdout side effects:
 
 ```js

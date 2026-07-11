@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
-// Pricing core + session scanner/CLI for claude-token-debug's token-cost CLI
-// (see docs/specs/token-cost-cli). stdlib only, no npm deps, no network.
+// Pricing core + session scanner/CLI, canonical source vendored (byte-
+// identical, via shared/build.sh) into both claude-token-debug's and
+// sdd-kit's token-cost CLIs — see shared/manifest.json. Edit this file, not
+// the vendored plugins/*/scripts/token-cost.mjs copies, then re-run
+// shared/build.sh. stdlib only, no npm deps, no network.
 //
 // This file has three layers:
 //  - Pricing core (PRICE table, tier detection, per-message costing) — pure,
@@ -14,8 +17,8 @@
 //    (session/subs/orchestrator/subTotal/orchAll).
 //  - A minimal CLI entry point that is a thin print wrapper over
 //    `analyze()`: it never computes anything itself, only parses argv and
-//    emits the shared {ok,data} envelope (see ./lib/cli.mjs) carrying
-//    analyze()'s structured report.
+//    emits the shared {ok,data} envelope (each vendoring plugin's own
+//    ./lib/cli.mjs) carrying analyze()'s structured report.
 
 import fs from 'node:fs';
 import os from 'node:os';
