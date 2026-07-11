@@ -120,7 +120,7 @@
       "actual_tokens": 29719,
       "deviation": 14719,
       "test_cmd": "cd plugins/sdd-kit && node --test $(find test -name '*.test.mjs') test/run.mjs",
-      "commit": null,
+      "commit": "b755335",
       "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
       "sessionId": null
