@@ -1,0 +1,5 @@
+{
+  "name": "claude-token-debug",
+  "version": "0.3.2",
+  "description": "Debugging toolkit for measuring where Claude Code's real token spend goes: subagent cost/turns, built-in agent prompts and tool schemas."
+}
