@@ -1,0 +1,55 @@
+{
+  "tasks": {
+    "rules-doc": {
+      "resolved": true,
+      "real_tokens": 566875,
+      "real_cost_usd": 0.6040073999999999,
+      "estimated_tokens": 50000,
+      "deviation_real": 516875
+    },
+    "cmd-base": {
+      "resolved": true,
+      "real_tokens": 2447005,
+      "real_cost_usd": 1.5605466000000003,
+      "estimated_tokens": 90000,
+      "deviation_real": 2357005
+    },
+    "cmd-recommend": {
+      "resolved": true,
+      "real_tokens": 789086,
+      "real_cost_usd": 0.6363822,
+      "estimated_tokens": 50000,
+      "deviation_real": 739086
+    },
+    "cmd-apply": {
+      "resolved": true,
+      "real_tokens": 1495451,
+      "real_cost_usd": 0.9809200499999999,
+      "estimated_tokens": 60000,
+      "deviation_real": 1435451
+    },
+    "e2e-verify": {
+      "resolved": true,
+      "real_tokens": 162985,
+      "real_cost_usd": 0.08737120000000001,
+      "estimated_tokens": 30000,
+      "deviation_real": 132985
+    },
+    "semantic-review": {
+      "resolved": true,
+      "real_tokens": 977878,
+      "real_cost_usd": 4.6882920000000015,
+      "estimated_tokens": 40000,
+      "deviation_real": 937878
+    }
+  },
+  "orchestrator": {
+    "real_tokens": 16204092,
+    "real_cost_usd": 51.93598949999994
+  },
+  "subagents_total": {
+    "real_tokens": 6439280,
+    "real_cost_usd": 8.557519450000001
+  },
+  "pause_timeline": []
+}
