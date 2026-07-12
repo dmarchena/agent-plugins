@@ -1,0 +1,96 @@
+{
+  "tasks": {
+    "t1-signals-block": {
+      "resolved": true,
+      "real_tokens": 1570469,
+      "real_cost_usd": 1.6767840000000005,
+      "estimated_tokens": 80000,
+      "deviation_real": 1490469
+    },
+    "t2-analysis-validation": {
+      "resolved": true,
+      "real_tokens": 1660133,
+      "real_cost_usd": 1.6157170500000002,
+      "estimated_tokens": 90000,
+      "deviation_real": 1570133
+    },
+    "t3-skill-judgment-layer": {
+      "resolved": true,
+      "real_tokens": 964404,
+      "real_cost_usd": 0.7592858999999998,
+      "estimated_tokens": 40000,
+      "deviation_real": 924404
+    },
+    "t4-token-diet-analysis": {
+      "resolved": true,
+      "real_tokens": 444134,
+      "real_cost_usd": 4.721391000000001,
+      "estimated_tokens": 50000,
+      "deviation_real": 394134
+    },
+    "t5-e2e-integration": {
+      "resolved": true,
+      "real_tokens": 1167815,
+      "real_cost_usd": 1.2545678999999996,
+      "estimated_tokens": 50000,
+      "deviation_real": 1117815
+    }
+  },
+  "orchestrator": {
+    "real_tokens": 9271911,
+    "real_cost_usd": 4.897244249999999
+  },
+  "subagents_total": {
+    "real_tokens": 5806955,
+    "real_cost_usd": 10.027745850000002
+  },
+  "pause_timeline": [],
+  "signals": {
+    "per_model": {
+      "claude-sonnet-5": {
+        "tokens": 5362821,
+        "cost": 5.30635485
+      },
+      "claude-opus-4-8": {
+        "tokens": 444134,
+        "cost": 4.721391000000001
+      }
+    },
+    "orchestrator_share": 0.32812378548914406,
+    "orchestrator_token_ratio": 0.6148944489592254,
+    "deviations": [
+      {
+        "task_id": "t3-skill-judgment-layer",
+        "real_tokens": 964404,
+        "estimated_tokens": 40000,
+        "ratio": 24.1101
+      },
+      {
+        "task_id": "t5-e2e-integration",
+        "real_tokens": 1167815,
+        "estimated_tokens": 50000,
+        "ratio": 23.3563
+      },
+      {
+        "task_id": "t1-signals-block",
+        "real_tokens": 1570469,
+        "estimated_tokens": 80000,
+        "ratio": 19.6308625
+      },
+      {
+        "task_id": "t2-analysis-validation",
+        "real_tokens": 1660133,
+        "estimated_tokens": 90000,
+        "ratio": 18.445922222222222
+      },
+      {
+        "task_id": "t4-token-diet-analysis",
+        "real_tokens": 444134,
+        "estimated_tokens": 50000,
+        "ratio": 8.88268
+      }
+    ],
+    "incidences": [],
+    "session_count": 2
+  }
+}

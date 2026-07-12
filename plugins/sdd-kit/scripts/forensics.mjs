@@ -151,12 +151,12 @@ function determineIncompleteReason(tasks, results) {
 }
 
 // Builds the `per_model` block of R1's `signals`: tokens/cost aggregated by
-// model, computed directly off the whole session's subagent list (not by
-// walking per-task `results`) so its token sum is trivially equal to
-// subagents_total.real_tokens regardless of which subset of that session's
-// subagents the run's tasks happen to reference (R1.S1). No cached
-// analyze() result (nothing resolved at all) -> empty object, matching a
-// zeroed subagents_total (R1.S2).
+// model, computed directly off the subagent lists of every analyzed
+// session (not by walking per-task `results`) so its token sum is trivially
+// equal to subagents_total.real_tokens regardless of which subset of those
+// sessions' subagents the run's tasks happen to reference (R1.S1). No
+// cached analyze() result (nothing resolved at all) -> empty object,
+// matching a zeroed subagents_total (R1.S2).
 function buildPerModel(subs) {
   const perModel = {};
   for (const sub of subs || []) {
@@ -275,17 +275,20 @@ export function runForensics(specDir, opts) {
     results[taskId] = r;
   }
 
-  // Any one cached analyze() result carries the same whole-session
-  // orchAll/subTotal figures; the first is as good as any other.
-  const firstAnalyzed = analyzeCache.size > 0 ? analyzeCache.values().next().value : null;
-  const orchestrator = {
-    real_tokens: firstAnalyzed ? firstAnalyzed.orchAll.tokens : 0,
-    real_cost_usd: firstAnalyzed ? firstAnalyzed.orchAll.cost : 0,
-  };
-  const subagents_total = {
-    real_tokens: firstAnalyzed ? firstAnalyzed.subTotal.tokens : 0,
-    real_cost_usd: firstAnalyzed ? firstAnalyzed.subTotal.cost : 0,
-  };
+  // A run can span several sessions (session_count > 1): orchestrator,
+  // subagents_total and the per_model subagent list must aggregate across
+  // EVERY analyzed session, not just whichever resolved first — otherwise
+  // the whole-run figures are silently partial.
+  const orchestrator = { real_tokens: 0, real_cost_usd: 0 };
+  const subagents_total = { real_tokens: 0, real_cost_usd: 0 };
+  const allSubs = [];
+  for (const analyzed of analyzeCache.values()) {
+    orchestrator.real_tokens += analyzed.orchAll.tokens;
+    orchestrator.real_cost_usd += analyzed.orchAll.cost;
+    subagents_total.real_tokens += analyzed.subTotal.tokens;
+    subagents_total.real_cost_usd += analyzed.subTotal.cost;
+    allSubs.push(...(analyzed.subs || []));
+  }
   const pause_timeline = buildPauseTimeline(state.pause);
   const incompleteReason = determineIncompleteReason(tasks, results);
   const signals = buildSignals(
@@ -293,7 +296,7 @@ export function runForensics(specDir, opts) {
     results,
     orchestrator,
     subagents_total,
-    firstAnalyzed ? firstAnalyzed.subs : [],
+    allSubs,
     analyzeCache.size,
   );
 
