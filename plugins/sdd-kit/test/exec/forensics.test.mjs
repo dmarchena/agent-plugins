@@ -341,6 +341,51 @@ test('R1.S1: on a totally resolved SPECDIR, forensics.json contains a signals ob
   }
 });
 
+test('multi-session run: orchestrator, subagents_total and per_model aggregate across EVERY analyzed session (session_count 2), not just the first one resolved', () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-multisession-'));
+
+  const orchestratorUsage = { input_tokens: 10, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+  const subUsageA = { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 300, cache_creation_input_tokens: 0 };
+  const subUsageB = { input_tokens: 500, output_tokens: 100, cache_read_input_tokens: 50, cache_creation_input_tokens: 0 };
+
+  // Two DISTINCT sessions, one task each — the regression this guards:
+  // aggregates used to be taken from whichever session resolved first.
+  writeProjectFixture(projectsRoot, 'project-multi', 'session-one', 'agentA', subUsageA);
+  writeProjectFixture(projectsRoot, 'project-multi', 'session-two', 'agentB', subUsageB);
+
+  const specDir = makeSpecDir({
+    'task-a': taskEntry({ estimated_tokens: 1000, agentId: 'agentA', sessionId: 'session-one' }),
+    'task-b': taskEntry({ estimated_tokens: 400, agentId: 'agentB', sessionId: 'session-two' }),
+  });
+
+  try {
+    const result = runCli(specDir, { TOKEN_COST_PROJECTS_ROOT: projectsRoot });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+
+    const forensics = JSON.parse(fs.readFileSync(path.join(specDir, 'forensics.json'), 'utf8'));
+    assert.equal(forensics.signals.session_count, 2);
+
+    // Orchestrator: both sessions' flat transcripts summed.
+    const expectedOrchTokens = 2 * sumUsageTokens(orchestratorUsage);
+    const expectedOrchCost = 2 * costForUsage('sonnet', orchestratorUsage);
+    assert.equal(forensics.orchestrator.real_tokens, expectedOrchTokens);
+    assert.ok(Math.abs(forensics.orchestrator.real_cost_usd - expectedOrchCost) < 0.0001);
+
+    // Subagents: both sessions' subagents summed.
+    const expectedSubTokens = sumUsageTokens(subUsageA) + sumUsageTokens(subUsageB);
+    const expectedSubCost = costForUsage('haiku', subUsageA) + costForUsage('haiku', subUsageB);
+    assert.equal(forensics.subagents_total.real_tokens, expectedSubTokens);
+    assert.ok(Math.abs(forensics.subagents_total.real_cost_usd - expectedSubCost) < 0.0001);
+
+    // per_model still reconciles with the cross-session subagents_total.
+    const perModelTokenSum = Object.values(forensics.signals.per_model).reduce((acc, m) => acc + m.tokens, 0);
+    assert.equal(perModelTokenSum, forensics.subagents_total.real_tokens);
+  } finally {
+    fs.rmSync(specDir, { recursive: true, force: true });
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
 test('R1.S2: with at least one unresolved task and total cost 0, the script exits 0 without exception or NaN, each unresolved task is listed in signals.incidences and excluded from per_model, and orchestrator_share is 0 or null', () => {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-r1s2-'));
 
