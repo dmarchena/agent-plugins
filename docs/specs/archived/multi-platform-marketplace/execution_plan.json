@@ -1,0 +1,171 @@
+{
+  "plan_id": "multi-platform-marketplace-v1",
+  "project_name": "Multi-platform plugin marketplace",
+  "global_objective": "Make this Claude Code plugin marketplace installable and legible on Claude, Codex, and Copilot by adding cross-platform packaging (generated Codex/Copilot per-plugin manifests + Codex catalog), an llms.txt index, contributor docs with a tri-platform install matrix, and a single derive/create tooling script kept drift-free by CI.",
+  "source_spec": "docs/specs/multi-platform-marketplace/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 335000,
+  "tasks": [
+    {
+      "task_id": "t1-enrich-marketplace",
+      "source_ids": ["R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded config change with fully automatable acceptance checks (validate.sh + strict validation); implementation with clear criteria fits sonnet code_writer.",
+      "instructions": "Enrich the shared .claude-plugin/marketplace.json to satisfy R1.S1 and R1.S2 while keeping it strict-valid. Add a non-empty owner.email and a semver metadata.version at the marketplace level. Honor the spec's open question on strict tolerance of extra per-entry fields: if any enrichment field is rejected by strict validation, that field must NOT stay in this committed file (it belongs to the Codex-only catalog produced in R2), so the committed catalog stays lean and strict-valid. Verify against the checks in AC1 and AC2 (scripts/validate.sh and claude plugin validate <repo> --strict).",
+      "expected_output_schema": "Updated .claude-plugin/marketplace.json that parses as JSON, carries a non-empty owner.email and a semver metadata.version, passes scripts/validate.sh (exit 0), and passes `claude plugin validate <repo> --strict` (exit 0).",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R1.S1",
+          "assertion": "Running the repo validation script exits successfully and the shared marketplace catalog parses as JSON with a non-empty owner email and a semver marketplace-level version."
+        },
+        {
+          "ref": "R1.S2",
+          "assertion": "Strict validation of the committed shared marketplace catalog passes end to end; any field strict validation would reject is absent from the committed file."
+        }
+      ]
+    },
+    {
+      "task_id": "t2-generator-derive",
+      "source_ids": ["R2.S1", "R2.S2", "R2.S3", "R2.S4"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Deterministic generator with a shared emit-core and clear per-artifact acceptance checks (R2.S1-S4); a bounded, well-specified implementation task for sonnet. Heaviest node, but kept unified because the spec mandates a single script whose emit-core is the sole derivation path — splitting would duplicate that core.",
+      "instructions": "Implement the derive mode of the single tooling script described in the Technical Requirements (shared emit-core, matching the scripts/ style of drift-check.sh). For every plugin under plugins/, derive from its existing .claude-plugin/plugin.json and emit deterministically: a Codex per-plugin manifest (R2.S1), a Copilot root per-plugin manifest (R2.S2), and a Codex-consumable marketplace catalog whose entries meet the documented schema (R2.S4). Wire the sync/drift check into scripts/validate.sh so CI blocks drift and regeneration is a byte-for-byte no-op (R2.S3). The derive mode must never prompt. Pick a sensible documented Codex category per plugin per the spec's open question. Verify against AC3, AC4, AC5, AC6.",
+      "expected_output_schema": "A generator script (derive mode) in scripts/ plus, for each plugins/<name>/: a .codex-plugin/plugin.json and a root plugins/<name>/plugin.json (each JSON, name==<name>, version==the plugin's .claude-plugin version, non-empty description), and a Codex-consumable catalog whose every plugins[] entry has source, semver version, policy.installation, policy.authentication, and category. scripts/validate.sh runs the drift check and re-running the generator leaves `git diff --exit-code` clean.",
+      "satisfies_acs": ["AC3", "AC4", "AC5", "AC6"],
+      "estimated_tokens": 120000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R2.S1",
+          "assertion": "For each plugin directory, a generated Codex per-plugin manifest exists, parses as JSON, and its name matches the directory name, its version matches that plugin's Claude manifest version, and its description is non-empty."
+        },
+        {
+          "ref": "R2.S2",
+          "assertion": "For each plugin directory, a generated Copilot root per-plugin manifest exists, parses as JSON, with name matching the directory, version matching the Claude manifest version, and a non-empty description."
+        },
+        {
+          "ref": "R2.S3",
+          "assertion": "Re-running the generator produces no change to the committed Codex manifests, Copilot manifests, or Codex catalog, and the drift check integrated into the repo validation reports no diff."
+        },
+        {
+          "ref": "R2.S4",
+          "assertion": "Every entry in the Codex-consumable catalog carries a source, a semver version, an installation policy, an authentication policy, and a category."
+        }
+      ]
+    },
+    {
+      "task_id": "t3-llmstxt",
+      "source_ids": ["R3.S1"],
+      "dependencies": [],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Authoring a structured Markdown index following the llmstxt.org shape from a fixed schema; a doc_writer task with no code and no trade-off decisions.",
+      "instructions": "Author a root llms.txt following the llmstxt.org shape required by R3.S1: a single '# ' H1 title, a one-line/blockquote summary describing the marketplace, then linked sections that include one Markdown link per plugin directory under plugins/ (by plugin name). Keep it non-empty and in English per the repo AGENTS.md rule. Verify against AC7.",
+      "expected_output_schema": "A root llms.txt file that is non-empty, starts with exactly one '# ' H1 line, has a summary, and contains one Markdown link for every plugin directory under plugins/.",
+      "satisfies_acs": ["AC7"],
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "t4-contributor-docs",
+      "source_ids": ["R4.S1"],
+      "dependencies": ["t1-enrich-marketplace", "t2-generator-derive"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Authoring three Markdown docs against a fixed content checklist (community-health files + install matrix); a doc_writer task with no code. Depends on the enriched catalog (t1) and the packaging artifacts (t2) so the install matrix reflects the real cross-platform setup.",
+      "instructions": "Author the contributor docs required by R4.S1, consuming the enriched catalog from t1-enrich-marketplace and the packaging artifacts produced by t2-generator-derive so the install matrix reflects the real setup. Create a non-empty CONTRIBUTING.md, a non-empty SECURITY.md stating the vulnerability-reporting channel (per the Security technical requirement), and add an install matrix in README.md that contains an install command for each of the three platforms: `claude plugin marketplace add`, `codex plugin marketplace add`, and `copilot plugin marketplace add`. All in English. Verify against AC8.",
+      "expected_output_schema": "A non-empty CONTRIBUTING.md, a non-empty SECURITY.md with a reporting channel, and a README.md containing the three per-platform install commands (claude / codex / copilot 'plugin marketplace add').",
+      "satisfies_acs": ["AC8"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "t5-scaffold-create",
+      "source_ids": ["R5.S1", "R5.S2"],
+      "dependencies": ["t2-generator-derive"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation of the create mode on top of the emit-core, with fully automatable happy-path and guard checks (R5.S1/R5.S2); fits sonnet code_writer. Depends on t2 because the create mode reuses that task's emit-core rather than writing manifests independently.",
+      "instructions": "Implement the create mode of the same tooling script, reusing the emit-core built in t2-generator-derive (do not write manifests independently — the spec requires .claude-plugin/plugin.json to stay the single source). Per R5.S1, from a single non-interactive command with --name/--description/--author (and optional --version defaulting to 0.1.0), create plugins/<name>/ with: a Claude manifest, an example skill (SKILL.md), registration in .claude-plugin/marketplace.json and the Codex catalog, and the Codex/Copilot per-plugin manifests derived through the same path as R2 (satisfying R2.S1/R2.S2 checks). It SHOULD prompt for omitted fields when run interactively. Per R5.S2, it MUST refuse to clobber an existing plugin and MUST reject a non-kebab-case name: exit non-zero, name the offending <name> in the error, and create/modify no files. Verify against AC9 and AC10.",
+      "expected_output_schema": "Create mode of the tooling script that, run non-interactively with flags, yields plugins/<name>/ containing .claude-plugin/plugin.json (name==<name>, semver version, given description/author), an example skills/<skill>/SKILL.md, .codex-plugin/plugin.json and root plugin.json passing R2.S1/R2.S2 checks, and a <name> entry in both .claude-plugin/marketplace.json and the Codex catalog — after which scripts/validate.sh exits 0 with no regeneration drift; and that, on an existing or non-kebab-case name, exits non-zero, names <name>, and leaves the working tree unchanged.",
+      "satisfies_acs": ["AC9", "AC10"],
+      "estimated_tokens": 90000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R5.S1",
+          "assertion": "Running the create command non-interactively with name/description/author flags produces a plugin directory with a Claude manifest (matching name, a semver version, the given description and author), an example skill file, both Codex and Copilot per-plugin manifests, and an entry in the shared marketplace catalog and the Codex catalog; afterward the repo validation passes and re-running the generator leaves no drift."
+        },
+        {
+          "ref": "R5.S2",
+          "assertion": "Running the create command with an already-existing plugin name or a non-kebab-case name exits non-zero, names the offending name in the error message, and leaves the working tree unchanged."
+        }
+      ]
+    },
+    {
+      "task_id": "t6-e2e-verify",
+      "source_ids": ["R-E2E.S1", "R-E2E.S2"],
+      "dependencies": [
+        "t1-enrich-marketplace",
+        "t2-generator-derive",
+        "t3-llmstxt",
+        "t4-contributor-docs",
+        "t5-scaffold-create"
+      ],
+      "agent_type": "verifier",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "The E2E acceptance path (R-E2E.S1/S2) only re-runs what the per-task tests of t1/t2/t5 already exercise — validate.sh exit 0, no regeneration drift, artifact existence, and scaffold-then-validate — so it is covered by composition: run the suite and confirm green, no new code. Per e2e-task-assignment.md this is a verifier, not terminal_operator.",
+      "instructions": "Do not write code. Confirm the end-to-end acceptance path is green on a fresh checkout of the branch, composing the checks the prior tasks (t1-enrich-marketplace, t2-generator-derive, t3-llmstxt, t4-contributor-docs, t5-scaffold-create) already established. For R-E2E.S1 (AC11): run scripts/validate.sh (exit 0), re-run the generator and confirm `git diff --exit-code` is clean, and confirm llms.txt, CONTRIBUTING.md, SECURITY.md, each plugins/<name>/.codex-plugin/plugin.json, each root plugins/<name>/plugin.json, and the Codex catalog all exist. For R-E2E.S2 (AC12): run the create command non-interactively for a new plugin name, then run scripts/validate.sh (exit 0) and confirm the new plugin is fully wired with all three manifests, listed in .claude-plugin/marketplace.json and the Codex catalog, and shows no drift. Report pass/fail per AC.",
+      "expected_output_schema": "A verification report confirming, on a fresh checkout, that scripts/validate.sh exits 0, generator re-run yields no git diff, all cross-platform artifacts exist (AC11), and that scaffolding a new plugin non-interactively then re-running validate.sh passes with the plugin fully wired and no drift (AC12).",
+      "satisfies_acs": ["AC11", "AC12"],
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["t1-enrich-marketplace"],
+      "R2": ["t2-generator-derive"],
+      "R3": ["t3-llmstxt"],
+      "R4": ["t4-contributor-docs"],
+      "R5": ["t5-scaffold-create"],
+      "R-E2E": ["t6-e2e-verify"]
+    },
+    "acs": {
+      "AC1": ["t1-enrich-marketplace"],
+      "AC2": ["t1-enrich-marketplace"],
+      "AC3": ["t2-generator-derive"],
+      "AC4": ["t2-generator-derive"],
+      "AC5": ["t2-generator-derive"],
+      "AC6": ["t2-generator-derive"],
+      "AC7": ["t3-llmstxt"],
+      "AC8": ["t4-contributor-docs"],
+      "AC9": ["t5-scaffold-create"],
+      "AC10": ["t5-scaffold-create"],
+      "AC11": ["t6-e2e-verify"],
+      "AC12": ["t6-e2e-verify"]
+    }
+  }
+}

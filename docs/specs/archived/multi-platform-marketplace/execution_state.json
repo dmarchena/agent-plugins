@@ -65,7 +65,7 @@
       "actual_tokens": 34640,
       "deviation": 4640,
       "test_cmd": "bash scripts/validate.sh && node scripts/generate-cross-platform.mjs derive --check",
-      "commit": null,
+      "commit": "60c26b7",
       "incidencia": null,
       "agentId": "ad5a9bef47ba3c420",
       "sessionId": "fd2cb04c-16c6-479c-a9ea-6f7a4d0d59fd"

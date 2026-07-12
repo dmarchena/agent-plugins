@@ -5,7 +5,7 @@
     {
       "name": "claude-token-debug",
       "source": "./plugins/claude-token-debug",
-      "version": "0.3.2",
+      "version": "0.4.0",
       "description": "Debugging toolkit for measuring where Claude Code's real token spend goes: subagent cost/turns, built-in agent prompts and tool schemas.",
       "policy": {
         "installation": "manual",
@@ -16,7 +16,7 @@
     {
       "name": "sdd-kit",
       "source": "./plugins/sdd-kit",
-      "version": "0.6.2",
+      "version": "0.7.0",
       "description": "Spec-driven development kit: skills for the spec.md, the execution plan, and executing it (spec → plan → exec).",
       "policy": {
         "installation": "manual",
@@ -27,7 +27,7 @@
     {
       "name": "token-diet",
       "source": "./plugins/token-diet",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "description": "Explicit-invocation command that analyzes a CLAUDE.md/AGENTS.md target, recommends a token-saving-ruleset action, and installs it (base summary + rules doc + versioned mark) on confirmation.",
       "policy": {
         "installation": "manual",
