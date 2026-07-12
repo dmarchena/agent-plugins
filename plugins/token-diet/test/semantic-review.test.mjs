@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = join(__dirname, '..');
 const REPO_ROOT = join(PLUGIN_ROOT, '..', '..');
-const REPORT_PATH = join(REPO_ROOT, 'docs', 'specs', 'token-diet', 'semantic-review.md');
+const REPORT_PATH = join(REPO_ROOT, 'docs', 'specs', 'archived', 'token-diet', 'semantic-review.md');
 const INSTALL_PATH = join(PLUGIN_ROOT, 'commands', 'install.md');
 
 function readReport() {
@@ -20,9 +20,9 @@ function readReport() {
 
 // The three AC9 case types: heading matcher + the recommendation each must record.
 const CASES = [
-  { label: 'foreign/conflicting policy', head: /foreign|conflicting|ajena|conflicto/i, rec: 'replace' },
-  { label: 'own but incomplete policy', head: /incomplete|incompleta|own but|propia/i, rec: 'extend' },
-  { label: 'no token-saving policy', head: /no (token-saving )?policy|sin pol[ií]tica/i, rec: 'add' },
+  { label: 'foreign/conflicting policy', head: /foreign|conflicting/i, rec: 'replace' },
+  { label: 'own but incomplete policy', head: /incomplete|own but/i, rec: 'extend' },
+  { label: 'no token-saving policy', head: /no (token-saving )?policy/i, rec: 'add' },
 ];
 
 function caseBlocks(report) {
@@ -60,10 +60,10 @@ test('AC9 / R2 — install.md documents the add/replace/extend semantic mapping 
   assert.ok(existsSync(INSTALL_PATH), `install.md must exist at ${INSTALL_PATH}`);
   const content = readFileSync(INSTALL_PATH, 'utf8');
   const lower = content.toLowerCase();
-  assert.ok(lower.includes('sin política') && /`add`/.test(content), 'install.md: no policy -> add');
+  assert.ok(lower.includes('no token-saving policy') && /`add`/.test(content), 'install.md: no policy -> add');
   assert.ok(
-    (lower.includes('ajena') || lower.includes('conflicto')) && /`replace`/.test(content),
+    (lower.includes('foreign') || lower.includes('conflicting')) && /`replace`/.test(content),
     'install.md: foreign/conflicting policy -> replace'
   );
-  assert.ok(lower.includes('incompleta') && /`extend`/.test(content), 'install.md: own but incomplete -> extend');
+  assert.ok(lower.includes('incomplete') && /`extend`/.test(content), 'install.md: own but incomplete -> extend');
 });

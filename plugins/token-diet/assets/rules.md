@@ -1,50 +1,34 @@
-# token-diet — reglas de ahorro de tokens
+# token-diet — token-saving rules
 
-Este documento tiene dos partes claramente separadas:
+Agent-friendly token-optimization decalogue. Two parts:
 
-1. **Resumen base ("caveman")** — esquemático, ~6-8 líneas, pensado para ir
-   siempre cargado (inline en `CLAUDE.md`/`AGENTS.md`).
-2. **Profiles más restrictivos** — para "andar más rácanos" cuando se detecta
-   sobrecoste en ciertas tareas; viven solo aquí, no se cargan inline.
+1. **Base decalogue ("caveman")** — 10 schematic rules meant to be always
+   loaded (inline in `CLAUDE.md`/`AGENTS.md`).
+2. **Scrooge profile** — temporary hardening once a task has already
+   overspent; lives only here, never loaded inline.
 
-## Resumen base (caveman)
+Sources: Anthropic guidance (context engineering, Claude Code costs/best
+practices) + measurements from real sessions.
 
-- Agrupa llamadas a herramientas independientes en un solo turno; no las secuencies una a una.
-- Delega trabajo mecánico (búsquedas, renombrados, checks) al modelo más barato que lo resuelva.
-- No rearrastres contexto ya leído; usa `/clear` o `/compact` al cambiar de tarea.
-- Prefiere un script offline determinista antes que un subagente para tareas repetibles.
-- Lee solo el fragmento de fichero que necesitas, no el fichero entero si es grande.
-- Antes de tocar un dato compartido, localiza de una vez todos sus lectores y arréglalos juntos.
-- No cambies de modelo a media conversación; rompe la caché y sale más caro.
-- Prueba entre ediciones solo si el resultado decide el siguiente paso.
+## Base decalogue (caveman)
 
-## Profile: rácano (sobrecoste detectado)
+- Context = cost: every context token is re-billed on EVERY turn. Carry only signal; drop dead weight.
+- Read just enough: grep before read, fragment before whole file; never re-read what has not changed.
+- Batch all independent tool calls into ONE message; every extra turn re-pays the entire context.
+- Deterministic or repeatable? → script/CLI (0 tokens), never an agent.
+- Verbose output (tests, logs, builds, web pages) → filter BEFORE it enters the context (grep/head/hook); keep only what decides something.
+- Delegate to the cheapest model that guarantees the result, with a self-contained brief (exact paths, zero open decisions); have it return a summary, not a dump.
+- Exploring/locating/inventorying → read-only subagent with its own context; read yourself only what you will judge or modify.
+- New task or 2 failed corrections → cut context (/clear or fresh session) and rephrase; persistent state goes to disk/commit, not the conversation.
+- Keep always-loaded instructions minimal (short CLAUDE.md/AGENTS.md); move occasional material to skills/docs loaded on demand.
+- Don't break the cache: no model switch mid-thread, no rewriting stable context; breaking it re-bills everything at full price.
 
-Aplica cuando una tarea concreta ya ha gastado más de lo esperado y hay que
-cortar el sangrado sin abandonar la tarea.
+## Profile: scrooge (overspend detected)
 
-- Sustituye cualquier subagente `general-purpose` por `Explore` si la tarea es
-  de localizar/inventariar, no de juzgar o modificar contenido.
-- Baja el modelo delegado un escalón (Sonnet→Haiku) en toda sub-tarea mecánica
-  restante del plan actual.
-- Congela la exploración: deja de "mirar por si acaso" y trabaja solo sobre
-  las rutas/líneas ya identificadas.
-- Sustituye cualquier "continúa" tras una pausa larga por `/clear` + retomar
-  desde el traspaso en disco, salvo que estés a mitad de un paso.
-- Reporta en una sola pasada al final en vez de ir confirmando paso a paso.
+When a specific task has already spent more than expected, on top of the decalogue:
 
-## Profile: austero permanente (proyecto/rol de bajo presupuesto)
-
-Aplica cuando el objetivo (repo, agente o rol) tiene, por diseño, un
-presupuesto de tokens bajo de forma continuada, no solo puntual.
-
-- Todo subagente lanzado por defecto es `haiku` salvo que la tarea exija
-  juicio explícito (entonces se justifica por qué antes de subir a `sonnet`/`opus`).
-- Ninguna tarea determinista pasa por un subagente: va a script offline (0 tokens)
-  siempre que exista una forma reproducible de hacerlo.
-- Los planes se trocean en subplanes con checkpoint commiteable obligatorio;
-  no se permite una sola sesión larga para todo el trabajo.
-- Se prohíbe reabrir ficheros ya leídos en la misma sesión salvo que hayan
-  cambiado desde la última lectura.
-- Cualquier barrido amplio (todo el repo, todo el histórico) requiere aviso y
-  confirmación explícita antes de lanzarse.
+- Freeze exploration: work ONLY on paths/lines already identified; no "looking around just in case".
+- Drop the model one tier for every remaining mechanical delegation.
+- Verify between edits only if the result decides the next step; report once, at the end.
+- After a long pause at a task boundary: cut context and resume from disk, not "continue".
+- Wide sweeps (whole repo, full history, regenerating an entire doc): only with prior warning and confirmation.

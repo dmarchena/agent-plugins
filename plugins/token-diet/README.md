@@ -3,9 +3,9 @@
 A single, explicit-invocation command for the `agent-plugins` marketplace
 that analyzes a `CLAUDE.md`/`AGENTS.md` file, judges whether it already has
 a token-saving policy, recommends an action, and — with explicit
-confirmation — installs an opt-in, versioned token-saving ruleset: a short
-inline "caveman" summary plus a pointer to a full rules document (with more
-restrictive profiles) copied alongside it.
+confirmation — installs an opt-in, versioned token-saving ruleset: a 10-rule
+inline "caveman" decalogue plus a pointer to a full rules document (with a
+more restrictive overspend profile) copied alongside it.
 
 It is never auto-invoked by an LLM or a hook — only explicit invocation.
 
