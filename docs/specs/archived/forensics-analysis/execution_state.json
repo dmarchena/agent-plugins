@@ -54,7 +54,7 @@
       "actual_tokens": 63158,
       "deviation": 13158,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-forensics-analysis.test.mjs",
-      "commit": null,
+      "commit": "a17f5e8",
       "incidencia": null,
       "agentId": "a45bc5bdb8b27936e",
       "sessionId": "92df0b60-5319-4a10-89fb-e5795f6dfe4e"
