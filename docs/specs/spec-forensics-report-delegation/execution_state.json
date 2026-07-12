@@ -21,21 +21,21 @@
       "actual_tokens": 59694,
       "deviation": 24694,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/spec-forensics-report-delegation-skill-doc.test.mjs",
-      "commit": null,
+      "commit": "25fc937",
       "incidencia": null,
       "agentId": "a8ab9d1c8f21dad62",
       "sessionId": "79c93042-2fab-4b1a-821e-3c7dc1efceb9"
     },
     "T3": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 15000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 23045,
+      "deviation": 8045,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/spec-forensics-report-delegation-skill-doc.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a2525d7f8e4892d99",
+      "sessionId": "79c93042-2fab-4b1a-821e-3c7dc1efceb9"
     }
   },
   "pause": null
