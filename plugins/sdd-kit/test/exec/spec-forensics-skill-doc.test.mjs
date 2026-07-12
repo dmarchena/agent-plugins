@@ -49,10 +49,16 @@ test('AC3 — doc explains that anchor figures (total USD, orchestrator share) i
   assert.match(content, /anchor|cite|referenc/i, 'should state that judgment findings must cite/reference a signal');
 });
 
-test('AC4 — doc describes that the join-incomplete state must be declared explicitly (not just implied) and covers invoking forensics-analysis-validate.mjs\'s validateForensicsAnalysis(mdText, forensicsJson) to confirm the written doc satisfies these invariants', () => {
+test('R2.S1/AC3 — doc describes that the join-incomplete state must be declared explicitly (not just implied) and covers invoking the forensics-analysis-validate.mjs CLI entry point (SPECDIR arg, data.ok/data.errors envelope) rather than importing validateForensicsAnalysis as a function, to confirm the written doc satisfies these invariants', () => {
   // "declara explícitamente que el join fue incompleto"
   assert.match(content, /join.{0,20}incomplete|incomplete.{0,20}join/i, 'should require an explicit "join incomplete" statement');
-  // validator invocation with its exact exported signature
+  // R2.S1/AC3: CLI invocation by filename, with the SPECDIR arg and the
+  // data.ok/data.errors envelope fields called out
   assert.match(content, /forensics-analysis-validate\.mjs/, 'should reference the validator script by filename');
-  assert.match(content, /validateForensicsAnalysis/, 'should reference the exported validateForensicsAnalysis function');
+  assert.match(content, /node\s+\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/forensics-analysis-validate\.mjs\s+SPECDIR/, 'should document the CLI invocation shape (node ... forensics-analysis-validate.mjs SPECDIR)');
+  assert.match(content, /data\.ok/, 'should instruct reading data.ok from the CLI stdout envelope');
+  assert.match(content, /data\.errors/, 'should instruct reading data.errors from the CLI stdout envelope');
+  // R2.S1/AC3: must NO LONGER instruct importing validateForensicsAnalysis
+  // as a function call
+  assert.doesNotMatch(content, /validateForensicsAnalysis/, 'should no longer instruct importing validateForensicsAnalysis as a function call');
 });

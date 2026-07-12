@@ -47,6 +47,11 @@
 //     the document must state somewhere that the join is incomplete
 //     ("incomplete" / "incompleto").
 
+import fs from 'node:fs';
+import path from 'node:path';
+
+import { emitSuccess, emitError } from './lib/cli.mjs';
+
 const USD_TOLERANCE_ABS = 0.01;
 const SHARE_TOLERANCE_ABS = 0.002; // 0.2 percentage points, as a fraction
 
@@ -83,11 +88,49 @@ function sectionBody(lines, headings, idx) {
   return lines.slice(start, end).join('\n');
 }
 
+// Returns the indentation (number of leading spaces) before the bullet
+// marker if `line` starts a list item ("- ..." / "* ..."), or null
+// otherwise.
+function bulletIndent(line) {
+  const m = /^(\s*)[-*]\s+\S/.exec(line);
+  return m ? m[1].length : null;
+}
+
+// Extracts judgment findings as their FULL text: a bullet's first line plus
+// any continuation lines belonging to the same list item -- lines more
+// indented than the bullet marker, up to (not including) the next
+// bullet/heading/blank-line separator.
 function findBulletFindings(sectionText) {
-  return sectionText
-    .split('\n')
-    .filter((line) => /^\s*[-*]\s+\S/.test(line))
-    .map((line) => line.trim());
+  const rawLines = sectionText.split('\n');
+  const findings = [];
+  let current = null; // { lines: string[], indent: number }
+
+  const flush = () => {
+    if (current) findings.push(current.lines.join(' '));
+    current = null;
+  };
+
+  for (const line of rawLines) {
+    const indent = bulletIndent(line);
+    if (indent !== null) {
+      flush();
+      current = { lines: [line.trim()], indent };
+      continue;
+    }
+    const isBlank = /^\s*$/.test(line);
+    const isHeading = /^\s*#{1,6}\s+/.test(line);
+    if (current && !isBlank && !isHeading) {
+      const leadingLen = /^(\s*)/.exec(line)[1].length;
+      if (leadingLen > current.indent) {
+        current.lines.push(line.trim());
+        continue;
+      }
+    }
+    flush();
+  }
+  flush();
+
+  return findings;
 }
 
 // --- signal-name catalog ----------------------------------------------------
@@ -231,4 +274,32 @@ export function validateForensicsAnalysis(mdText, forensicsJson) {
   }
 
   return { ok: errors.length === 0, errors };
+}
+
+// --- CLI -------------------------------------------------------------------
+
+function main() {
+  const specDir = process.argv[2];
+  if (!specDir) {
+    emitError('Usage: node forensics-analysis-validate.mjs <SPECDIR>', 1);
+    return;
+  }
+
+  let mdText;
+  let forensicsJson;
+  try {
+    mdText = fs.readFileSync(path.join(specDir, 'forensics-analysis.md'), 'utf8');
+    forensicsJson = JSON.parse(fs.readFileSync(path.join(specDir, 'forensics.json'), 'utf8'));
+  } catch (err) {
+    emitError(err.message, 1);
+    return;
+  }
+
+  const outcome = validateForensicsAnalysis(mdText, forensicsJson);
+  emitSuccess(outcome);
+}
+
+const isMainModule = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule) {
+  main();
 }

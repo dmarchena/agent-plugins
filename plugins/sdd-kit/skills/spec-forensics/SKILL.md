@@ -114,12 +114,17 @@ without inventing numbers for them:
 
 ### Validating the written doc
 
-Before considering the run complete, invoke
-`scripts/forensics-analysis-validate.mjs`'s exported
-`validateForensicsAnalysis(mdText, forensicsJson)` — pass it the text of
-the just-written `forensics-analysis.md` and the parsed `forensics.json` —
-to confirm the deterministic/judgment separation, the anchor figures, the
-signal-anchoring rule, and the degraded-case handling above all hold. It
-returns `{ ok: boolean, errors: string[] }` and never composes or rewrites
-the doc itself; if `ok` is `false`, fix `forensics-analysis.md` and
-re-validate before relaying results to the user.
+Before considering the run complete, invoke the CLI entry point:
+
+```
+node ${CLAUDE_PLUGIN_ROOT}/scripts/forensics-analysis-validate.mjs SPECDIR
+```
+
+It reads the just-written `SPECDIR/forensics-analysis.md` and the parsed
+`SPECDIR/forensics.json` itself and prints a `{ ok: true, data: { ok:
+boolean, errors: string[] } }` envelope to stdout — read `data.ok`/
+`data.errors` from it to confirm the deterministic/judgment separation,
+the anchor figures, the signal-anchoring rule, and the degraded-case
+handling above all hold. It never composes or rewrites the doc itself; if
+`data.ok` is `false`, fix `forensics-analysis.md` and re-validate before
+relaying results to the user.

@@ -1,0 +1,98 @@
+{
+  "plan_id": "forensics-analysis-validate-cli-v1",
+  "project_name": "sdd-kit forensics-analysis-validate CLI + multi-line signal-anchoring",
+  "global_objective": "Add a CLI entry point to scripts/forensics-analysis-validate.mjs (reusing the existing lib/cli.mjs envelope and scripts/forensics.mjs's wrapper pattern), point spec-forensics/SKILL.md's doc at that CLI instead of the direct function import, and fix the judgment-finding signal-anchoring check so it matches a bullet's full multi-line text instead of only its first line.",
+  "source_spec": "docs/specs/forensics-analysis-validate-cli/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 225000,
+  "tasks": [
+    {
+      "task_id": "cli-entry-point",
+      "source_ids": ["R1", "R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation with clear acceptance criteria: a CLI wrapper reusing scripts/lib/cli.mjs's emitSuccess/emitError and mirroring scripts/forensics.mjs's main()/isMainModule pattern, no new design; sonnet per the most-austere-that-qualifies rule.",
+      "instructions": "Add a CLI entry point to scripts/forensics-analysis-validate.mjs, per R1.S1 and R1.S2, without changing the existing exported validateForensicsAnalysis(mdText, forensicsJson) signature or return shape. Mirror scripts/forensics.mjs's main()/isMainModule guard: read SPECDIR from argv, read SPECDIR/forensics-analysis.md and SPECDIR/forensics.json, call validateForensicsAnalysis with their contents, and pass its return value verbatim as data to emitSuccess from scripts/lib/cli.mjs (per R1.S1, success envelope regardless of the validator's own ok field; per R1.S2, a validator-reported failure is data, not a process failure — exit code stays 0). A missing SPECDIR argument, or a required file that is unreadable or not valid JSON, is a genuine process error: call emitError(reason) (per the spec's Technical Requirements 'Restricciones adicionales', inherited lib/cli.mjs behavior, not new logic to design).",
+      "expected_output_schema": "scripts/forensics-analysis-validate.mjs keeps exporting validateForensicsAnalysis unchanged and additionally runs, only when it is the main module, a CLI entry point that takes SPECDIR as its sole argument, reads SPECDIR/forensics-analysis.md and SPECDIR/forensics.json, invokes validateForensicsAnalysis, and emits the canonical {ok:true,data:<validator return value>} envelope via emitSuccess (exit 0), or emitError(reason) for a missing/unreadable/invalid input.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 70000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC1", "assertion": "Spawning the CLI against a SPECDIR fixture whose forensics-analysis.md and forensics.json reconcile (no violated invariant) prints exactly {\"ok\":true,\"data\":{\"ok\":true,\"errors\":[]}} to stdout and the process exits with code 0." },
+        { "ref": "AC2", "assertion": "Spawning the CLI against a SPECDIR fixture whose forensics-analysis.md violates an invariant prints {\"ok\":true,\"data\":{\"ok\":false,\"errors\":[...]}} with a non-empty errors array, and the process still exits with code 0." }
+      ]
+    },
+    {
+      "task_id": "skill-doc-update",
+      "source_ids": ["R2", "R2.S1"],
+      "dependencies": ["cli-entry-point"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Redactar documentación siguiendo un esquema ya existente (la sección 'Validating the written doc' de SKILL.md) más un ajuste literal de una aserción de test — sin diseño ni lógica nueva; sonnet doc_writer.",
+      "instructions": "Update the 'Validating the written doc' section of skills/spec-forensics/SKILL.md, per R2.S1, to instruct invoking the CLI entry point delivered by cli-entry-point (node ${CLAUDE_PLUGIN_ROOT}/scripts/forensics-analysis-validate.mjs SPECDIR) and reading data.ok/data.errors from its stdout envelope, instead of importing validateForensicsAnalysis and calling it as a function. Then update test/exec/spec-forensics-skill-doc.test.mjs's AC4 test so its assertions match the new wording while still verifying the same invariant: the doc must reference the CLI script by filename/invocation and must no longer instruct importing validateForensicsAnalysis as a function call.",
+      "expected_output_schema": "Updated skills/spec-forensics/SKILL.md 'Validating the written doc' section referencing the CLI invocation (not the direct function import), plus an updated AC4 assertion in test/exec/spec-forensics-skill-doc.test.mjs that matches the new wording and passes.",
+      "satisfies_acs": ["AC3"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "signal-anchoring-multiline-fix",
+      "source_ids": ["R3", "R3.S1", "R3.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded fix to existing matching logic in validateForensicsAnalysis (extend the text a judgment finding is matched against), clear ACs; sonnet. R3's spec 'Depende de:' line is '—', so no functional dependency; per the spec's Assumptions section the two independent pieces of work (this fix and cli-entry-point) are meant to land as two separate commits, which is already honored by keeping them as distinct tasks rather than merging them into one.",
+      "instructions": "Fix the judgment-finding signal-citation check inside validateForensicsAnalysis (scripts/forensics-analysis-validate.mjs) per R3.S1 and R3.S2: it currently matches each known signal name against only a bullet's own first trimmed line, so extend it to match against that bullet's full text — its first line plus any continuation lines belonging to the same list item (more-indented lines following it, up to the next bullet/heading/blank separator). Preserve the existing negative behavior (R3.S2) unchanged: a finding whose full multi-line text cites no known signal name must still produce the 'cites no known signal' error. Do not change validateForensicsAnalysis's exported signature or its {ok, errors} return shape, and do not touch any other validation rule.",
+      "expected_output_schema": "validateForensicsAnalysis's judgment-finding signal-citation check matches candidate signal names against each finding's full multi-line text (first line plus its continuation lines), not only its first line; the exported function's signature and {ok, errors} return shape are unchanged.",
+      "satisfies_acs": ["AC4", "AC5"],
+      "estimated_tokens": 60000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R3.S1", "assertion": "A judgment finding whose first line cites no signal but whose continuation line (2nd/3rd line, indented, same list item) cites a real signal name from forensics.json produces no 'cites no known signal' error for that finding." },
+        { "ref": "R3.S2", "assertion": "A judgment finding whose first line and every continuation line cite no real signal name still produces a 'cites no known signal' error for that finding." }
+      ]
+    },
+    {
+      "task_id": "e2e-cli-multiline-signal",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["cli-entry-point", "skill-doc-update", "signal-anchoring-multiline-fix"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "AC-E2E's CLI + multi-line-signal walkthrough isn't covered by the union of cli-entry-point's tests (simple fixtures, no multi-line finding) or signal-anchoring-multiline-fix's tests (call validateForensicsAnalysis directly, not via the CLI), so a new integration test must be authored — a code_writer node per the E2E-task-assignment rule, not a verifier.",
+      "instructions": "Author an end-to-end integration test for R-E2E.S1 that spawns cli-entry-point's CLI (scripts/forensics-analysis-validate.mjs) against a SPECDIR fixture combining the deliverables of cli-entry-point and signal-anchoring-multiline-fix: a forensics.json with a real signal (e.g. orchestrator_share) and a forensics-analysis.md whose judgment finding cites that signal only on a continuation line (2nd/3rd line) of its bullet, otherwise reconciling with no violated invariant. This exercises the same CLI invocation skill-doc-update pointed SKILL.md at, confirming its documented usage actually holds end-to-end. Assert stdout is exactly {\"ok\":true,\"data\":{\"ok\":true,\"errors\":[]}} and the process exits with code 0. Satisfy AC-E2E.",
+      "expected_output_schema": "A new automated test, co-located with the existing sdd-kit CLI/exec tests, that spawns node scripts/forensics-analysis-validate.mjs against a fixture SPECDIR (multi-line judgment finding citing its signal only in a continuation line) and asserts the exact success envelope {\"ok\":true,\"data\":{\"ok\":true,\"errors\":[]}} and exit code 0.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 55000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R-E2E.S1", "assertion": "Running node forensics-analysis-validate.mjs against a SPECDIR fixture whose forensics-analysis.md cites a real forensics.json signal only on a continuation line of a judgment finding prints {\"ok\":true,\"data\":{\"ok\":true,\"errors\":[]}} and the process exits with code 0." }
+      ]
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["cli-entry-point"],
+      "R2": ["skill-doc-update"],
+      "R3": ["signal-anchoring-multiline-fix"],
+      "R-E2E": ["e2e-cli-multiline-signal"]
+    },
+    "acs": {
+      "AC1": ["cli-entry-point"],
+      "AC2": ["cli-entry-point"],
+      "AC3": ["skill-doc-update"],
+      "AC4": ["signal-anchoring-multiline-fix"],
+      "AC5": ["signal-anchoring-multiline-fix"],
+      "AC-E2E": ["e2e-cli-multiline-signal"]
+    }
+  }
+}

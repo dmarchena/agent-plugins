@@ -94,3 +94,64 @@ test('negative: a judgment finding citing a fabricated signal name is rejected',
   assert.equal(result.ok, false);
   assert.ok(result.errors.some((e) => /cites no known signal/.test(e)), `expected a "cites no known signal" error, got: ${JSON.stringify(result.errors)}`);
 });
+
+// --- R3: judgment finding signal-citation matches the FULL bullet text
+// (first line + indented continuation lines of the same list item), not
+// just the bullet's first trimmed line.
+
+const R3_JSON = {
+  orchestrator: { real_cost_usd: 5 },
+  subagents_total: { real_cost_usd: 0 },
+  signals: {
+    special_signal_alpha: true,
+    orchestrator_share: 1,
+    per_model: {},
+    deviations: [],
+    incidences: [],
+  },
+  tasks: {},
+};
+
+function r3Doc(findingBody) {
+  return [
+    '# Fixture — R3 multi-line signal citation',
+    '',
+    '## Deterministic section',
+    '',
+    'Total USD: $5.00',
+    'Orchestrator share: 100.0%',
+    '',
+    '## Judgment findings',
+    '',
+    findingBody,
+    '',
+  ].join('\n');
+}
+
+test('R3.S1: a judgment finding whose first line cites no signal but whose continuation line cites a real signal name produces no "cites no known signal" error', () => {
+  const md = r3Doc(
+    [
+      '- **F1** — this first line mentions nothing special at all',
+      '  it continues here citing special_signal_alpha as the real signal.',
+    ].join('\n'),
+  );
+  const result = validateForensicsAnalysis(md, R3_JSON);
+  assert.ok(
+    !result.errors.some((e) => /cites no known signal/.test(e)),
+    `expected no "cites no known signal" error, got: ${JSON.stringify(result.errors)}`,
+  );
+});
+
+test('R3.S2: a judgment finding whose first line and every continuation line cite no real signal name still produces a "cites no known signal" error', () => {
+  const md = r3Doc(
+    [
+      '- **F2** — nothing here matches any known signal at all',
+      '  and neither does this continuation line whatsoever.',
+    ].join('\n'),
+  );
+  const result = validateForensicsAnalysis(md, R3_JSON);
+  assert.ok(
+    result.errors.some((e) => /cites no known signal/.test(e)),
+    `expected a "cites no known signal" error, got: ${JSON.stringify(result.errors)}`,
+  );
+});
