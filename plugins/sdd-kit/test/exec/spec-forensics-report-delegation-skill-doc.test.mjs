@@ -58,3 +58,27 @@ test('R1.S2 (satisfies AC2) — edge: doc documents an inline-composition fallba
   assert.match(content, /same\s+document\s+contract|identical\s+document\s+contract/i, 'should state the inline path follows the same document contract as delegation');
   assert.match(content, /forensics-analysis-validate\.mjs/, 'should require the validate/correct loop for the inline path too');
 });
+
+test('R2.S1 (satisfies AC3) — happy path: doc states each finding appears as exactly one bullet in its natural section, is not re-explained in another section, and that cross-referencing it by signal name or figure without re-explaining is explicitly allowed', () => {
+  // each finding appears as exactly one bullet, in its natural section
+  assert.match(content, /exactly\s+one\s+bullet/i, 'should state a finding appears as exactly one bullet');
+  assert.match(content, /natural\s+section/i, 'should frame that one bullet as living in its natural section');
+  // not re-explained in another section
+  assert.match(content, /not\s+(?:be\s+)?re-?explained/i, 'should state a finding is not re-explained elsewhere');
+  // cross-referencing by signal name or figure, without re-explaining, is explicitly allowed
+  assert.match(content, /cross-?referenc\w*/i, 'should name the allowed pattern as cross-referencing');
+  assert.match(content, /signal\s+name/i, 'should allow cross-referencing by signal name');
+  assert.match(content, /figure/i, 'should allow cross-referencing by figure');
+  assert.match(content, /allowed|permitted/i, 'should state the cross-referencing pattern is explicitly allowed');
+});
+
+test('R2.S2 (satisfies AC4) — edge: doc restricts the deterministic section (§1) to figures and anchors only with no narrative, deferring interpretation of those figures to the judgment sections', () => {
+  // deterministic section (§1) restricted to figures/anchors only
+  assert.match(content, /figures?\s+and\s+anchors?\s+only/i, 'should restrict the deterministic section to figures and anchors only');
+  // no narrative or explanatory prose in that section
+  assert.match(content, /no\s+narrative/i, 'should state the deterministic section holds no narrative');
+  // interpretation of those figures deferred to the judgment sections
+  assert.match(content, /interpretation/i, 'should reference interpretation of the figures');
+  assert.match(content, /deferred/i, 'should state interpretation is deferred');
+  assert.match(content, /judgment\s+section/i, 'should defer interpretation specifically to the judgment sections');
+});
