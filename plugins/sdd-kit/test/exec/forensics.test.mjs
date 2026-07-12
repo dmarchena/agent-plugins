@@ -282,6 +282,187 @@ test('R3.S2: for a run whose state pause is null, forensics.json pause_timeline 
   }
 });
 
+test('R1.S1: on a totally resolved SPECDIR, forensics.json contains a signals object with the six keys; the sum of per_model[*].tokens equals subagents_total.real_tokens and orchestrator_share equals orch_usd/total_usd within tolerance; deviations is ordered desc by real÷estimated', () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-r1s1-'));
+
+  const orchestratorUsage = { input_tokens: 10, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+  const subUsageAlpha = { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 300, cache_creation_input_tokens: 0 };
+  const subUsageBeta = { input_tokens: 500, output_tokens: 100, cache_read_input_tokens: 50, cache_creation_input_tokens: 0 };
+
+  writeProjectFixture(projectsRoot, 'project-sig', 'session-sig', 'agentAlpha', subUsageAlpha);
+  writeProjectFixture(projectsRoot, 'project-sig', 'session-sig', 'agentBeta', subUsageBeta);
+
+  // task-beta's estimate (100) is far below its real usage (650 tokens),
+  // so its real÷estimated ratio must sort ahead of task-alpha's (estimate
+  // 5000 against 1500 real tokens) — this is what exercises the "sorted
+  // desc" requirement rather than an order that happens to match insertion.
+  const specDir = makeSpecDir({
+    'task-alpha': taskEntry({ estimated_tokens: 5000, agentId: 'agentAlpha', sessionId: 'session-sig' }),
+    'task-beta': taskEntry({ estimated_tokens: 100, agentId: 'agentBeta', sessionId: 'session-sig' }),
+  });
+
+  try {
+    const result = runCli(specDir, { TOKEN_COST_PROJECTS_ROOT: projectsRoot });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+
+    const forensics = JSON.parse(fs.readFileSync(path.join(specDir, 'forensics.json'), 'utf8'));
+    const signals = forensics.signals;
+    assert.ok(signals, 'forensics.json must include a signals object');
+
+    for (const key of ['per_model', 'orchestrator_share', 'orchestrator_token_ratio', 'deviations', 'incidences', 'session_count']) {
+      assert.ok(Object.prototype.hasOwnProperty.call(signals, key), `signals must have key ${key}`);
+    }
+
+    const expectedSubTotalTokens = sumUsageTokens(subUsageAlpha) + sumUsageTokens(subUsageBeta);
+    const perModelTokenSum = Object.values(signals.per_model).reduce((acc, m) => acc + m.tokens, 0);
+    assert.equal(perModelTokenSum, expectedSubTotalTokens, 'sum of per_model[*].tokens must equal subagents_total.real_tokens');
+    assert.equal(perModelTokenSum, forensics.subagents_total.real_tokens);
+
+    const expectedOrchCost = costForUsage('sonnet', orchestratorUsage);
+    const expectedSubTotalCost = costForUsage('haiku', subUsageAlpha) + costForUsage('haiku', subUsageBeta);
+    const expectedShare = expectedOrchCost / (expectedOrchCost + expectedSubTotalCost);
+    assert.ok(
+      Math.abs(signals.orchestrator_share - expectedShare) < 0.0001,
+      'orchestrator_share must equal orch_usd/total_usd within tolerance',
+    );
+
+    assert.ok(Array.isArray(signals.deviations));
+    assert.equal(signals.deviations.length, 2);
+    for (let i = 1; i < signals.deviations.length; i++) {
+      assert.ok(signals.deviations[i - 1].ratio >= signals.deviations[i].ratio, 'deviations must be sorted desc by real÷estimated');
+    }
+    assert.equal(signals.deviations[0].task_id, 'task-beta', 'task-beta has the higher real÷estimated ratio and must sort first');
+
+    assert.equal(signals.session_count, 1);
+    assert.deepEqual(signals.incidences, []);
+  } finally {
+    fs.rmSync(specDir, { recursive: true, force: true });
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test('R1.S2: with at least one unresolved task and total cost 0, the script exits 0 without exception or NaN, each unresolved task is listed in signals.incidences and excluded from per_model, and orchestrator_share is 0 or null', () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-r1s2-'));
+
+  const specDir = makeSpecDir({
+    'task-null-agent': taskEntry({ estimated_tokens: 300, agentId: null, sessionId: null }),
+    'task-missing-transcript': taskEntry({ estimated_tokens: 250, agentId: 'ghostAgent', sessionId: 'session-does-not-exist' }),
+  });
+
+  try {
+    const result = runCli(specDir, { TOKEN_COST_PROJECTS_ROOT: projectsRoot });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+    assert.equal(result.stderr, '', 'no exception/stack trace expected on stderr');
+
+    const forensics = JSON.parse(fs.readFileSync(path.join(specDir, 'forensics.json'), 'utf8'));
+    const signals = forensics.signals;
+    assert.ok(signals, 'forensics.json must include a signals object');
+
+    assert.equal(forensics.subagents_total.real_tokens, 0);
+    assert.equal(forensics.subagents_total.real_cost_usd, 0);
+
+    assert.deepEqual(signals.per_model, {}, 'per_model must exclude unresolved tasks entirely (coste 0 -> nothing to aggregate)');
+
+    const incidenceIds = signals.incidences.map((i) => i.task_id).sort();
+    assert.deepEqual(incidenceIds, ['task-missing-transcript', 'task-null-agent']);
+
+    assert.ok(
+      signals.orchestrator_share === 0 || signals.orchestrator_share === null,
+      `orchestrator_share must be 0 or null, got ${signals.orchestrator_share}`,
+    );
+    assert.ok(!Number.isNaN(signals.orchestrator_share), 'orchestrator_share must never be NaN');
+    assert.ok(
+      signals.orchestrator_token_ratio === 0 || signals.orchestrator_token_ratio === null,
+      `orchestrator_token_ratio must be 0 or null, got ${signals.orchestrator_token_ratio}`,
+    );
+    assert.ok(!Number.isNaN(signals.orchestrator_token_ratio), 'orchestrator_token_ratio must never be NaN');
+
+    assert.deepEqual(signals.deviations, []);
+    assert.equal(signals.session_count, 0);
+  } finally {
+    fs.rmSync(specDir, { recursive: true, force: true });
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test('AC1: running the script over the token-diet-style SPECDIR fixture produces the six signals subkeys with the sum and share equalities and deviations ordered desc', () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-ac1-'));
+
+  const orchestratorUsage = { input_tokens: 10, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+  const subUsageRules = { input_tokens: 2000, output_tokens: 400, cache_read_input_tokens: 100, cache_creation_input_tokens: 0 };
+  const subUsageApply = { input_tokens: 300, output_tokens: 50, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+
+  writeProjectFixture(projectsRoot, 'project-token-diet', 'session-token-diet', 'agentRulesDoc', subUsageRules);
+  writeProjectFixture(projectsRoot, 'project-token-diet', 'session-token-diet', 'agentApply', subUsageApply);
+
+  const specDir = makeSpecDir({
+    't1-rules-doc': taskEntry({ estimated_tokens: 1800, agentId: 'agentRulesDoc', sessionId: 'session-token-diet' }),
+    't2-cmd-apply': taskEntry({ estimated_tokens: 900, agentId: 'agentApply', sessionId: 'session-token-diet' }),
+  });
+
+  try {
+    const result = runCli(specDir, { TOKEN_COST_PROJECTS_ROOT: projectsRoot });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+
+    const forensics = JSON.parse(fs.readFileSync(path.join(specDir, 'forensics.json'), 'utf8'));
+    const signals = forensics.signals;
+    assert.ok(signals, 'forensics.json must include a signals object');
+
+    for (const key of ['per_model', 'orchestrator_share', 'orchestrator_token_ratio', 'deviations', 'incidences', 'session_count']) {
+      assert.ok(Object.prototype.hasOwnProperty.call(signals, key), `signals must have key ${key}`);
+    }
+
+    const expectedSubTotalTokens = sumUsageTokens(subUsageRules) + sumUsageTokens(subUsageApply);
+    const perModelTokenSum = Object.values(signals.per_model).reduce((acc, m) => acc + m.tokens, 0);
+    assert.equal(perModelTokenSum, expectedSubTotalTokens);
+    assert.equal(perModelTokenSum, forensics.subagents_total.real_tokens);
+
+    const expectedOrchCost = costForUsage('sonnet', orchestratorUsage);
+    const expectedSubTotalCost = costForUsage('haiku', subUsageRules) + costForUsage('haiku', subUsageApply);
+    const expectedShare = expectedOrchCost / (expectedOrchCost + expectedSubTotalCost);
+    assert.ok(Math.abs(signals.orchestrator_share - expectedShare) < 0.0001);
+
+    assert.equal(signals.deviations.length, 2);
+    for (let i = 1; i < signals.deviations.length; i++) {
+      assert.ok(signals.deviations[i - 1].ratio >= signals.deviations[i].ratio, 'deviations must be ordered desc by real÷estimated');
+    }
+  } finally {
+    fs.rmSync(specDir, { recursive: true, force: true });
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test('AC2: on a SPECDIR fixture with one task lacking agentId and total cost 0, incidences lists the task, per_model excludes it, and orchestrator_share is never NaN', () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'forensics-root-ac2-'));
+
+  const specDir = makeSpecDir({
+    'task-no-agent': taskEntry({ estimated_tokens: 500, agentId: null, sessionId: null }),
+  });
+
+  try {
+    const result = runCli(specDir, { TOKEN_COST_PROJECTS_ROOT: projectsRoot });
+    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+
+    const forensics = JSON.parse(fs.readFileSync(path.join(specDir, 'forensics.json'), 'utf8'));
+    const signals = forensics.signals;
+    assert.ok(signals, 'forensics.json must include a signals object');
+
+    assert.equal(forensics.subagents_total.real_cost_usd, 0);
+    assert.equal(forensics.orchestrator.real_cost_usd, 0);
+
+    assert.equal(signals.incidences.length, 1);
+    assert.equal(signals.incidences[0].task_id, 'task-no-agent');
+
+    assert.deepEqual(signals.per_model, {});
+
+    assert.ok(!Number.isNaN(signals.orchestrator_share), 'orchestrator_share must never be NaN');
+    assert.ok(!Number.isNaN(signals.orchestrator_token_ratio), 'orchestrator_token_ratio must never be NaN');
+  } finally {
+    fs.rmSync(specDir, { recursive: true, force: true });
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
 function sha256OfFile(p) {
   return crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 }

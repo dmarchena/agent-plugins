@@ -1,0 +1,64 @@
+{
+  "plan_id": "forensics-analysis-plan-1",
+  "source_spec": "docs/specs/forensics-analysis/spec.md",
+  "branch": "feat/forensics-analysis",
+  "started_at": "2026-07-12T00:35:30.921Z",
+  "tasks": {
+    "t1-signals-block": {
+      "status": "done",
+      "estimated_tokens": 80000,
+      "actual_tokens": 55000,
+      "deviation": -25000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics.test.mjs plugins/sdd-kit/test/exec/forensics-cli-io.test.mjs plugins/sdd-kit/test/exec/e2e-forensics.test.mjs",
+      "commit": null,
+      "incidencia": null,
+      "agentId": "a2aba94c63b984591",
+      "sessionId": "c4435213-d6ca-44c2-baa6-146d17187b15"
+    },
+    "t2-analysis-validation": {
+      "status": "pending",
+      "estimated_tokens": 90000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "t3-skill-judgment-layer": {
+      "status": "pending",
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "t4-token-diet-analysis": {
+      "status": "pending",
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "t5-e2e-integration": {
+      "status": "pending",
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    }
+  },
+  "pause": null
+}

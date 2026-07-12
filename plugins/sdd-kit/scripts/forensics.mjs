@@ -150,6 +150,99 @@ function determineIncompleteReason(tasks, results) {
   return 'no subagents directory found';
 }
 
+// Builds the `per_model` block of R1's `signals`: tokens/cost aggregated by
+// model, computed directly off the whole session's subagent list (not by
+// walking per-task `results`) so its token sum is trivially equal to
+// subagents_total.real_tokens regardless of which subset of that session's
+// subagents the run's tasks happen to reference (R1.S1). No cached
+// analyze() result (nothing resolved at all) -> empty object, matching a
+// zeroed subagents_total (R1.S2).
+function buildPerModel(subs) {
+  const perModel = {};
+  for (const sub of subs || []) {
+    const model = (sub.models && sub.models[0]) || 'unknown';
+    if (!perModel[model]) {
+      perModel[model] = { tokens: 0, cost: 0 };
+    }
+    perModel[model].tokens += sub.tokens;
+    perModel[model].cost += sub.cost;
+  }
+  return perModel;
+}
+
+// Cost-based orchestrator/total split. Guards the coste-0 edge case (R1.S2):
+// a zero total (nothing resolved, or a resolved run whose priced cost is
+// exactly zero) never yields NaN/Infinity — it yields null.
+function buildOrchestratorShare(orchestrator, subagentsTotal) {
+  const totalUsd = orchestrator.real_cost_usd + subagentsTotal.real_cost_usd;
+  return totalUsd > 0 ? orchestrator.real_cost_usd / totalUsd : null;
+}
+
+// Same split, but token-based rather than cost-based, for callers who want a
+// pricing-independent ratio. Same zero-guard as buildOrchestratorShare.
+function buildOrchestratorTokenRatio(orchestrator, subagentsTotal) {
+  const totalTokens = orchestrator.real_tokens + subagentsTotal.real_tokens;
+  return totalTokens > 0 ? orchestrator.real_tokens / totalTokens : null;
+}
+
+// Builds `deviations`: one entry per RESOLVED task with a positive
+// estimated_tokens (a zero/missing estimate can't form a real÷estimated
+// ratio without dividing by zero), sorted desc so the worst
+// over-estimations sort first.
+function buildDeviations(results) {
+  const items = [];
+  for (const [taskId, r] of Object.entries(results)) {
+    if (
+      r.resolved
+      && typeof r.real_tokens === 'number'
+      && typeof r.estimated_tokens === 'number'
+      && r.estimated_tokens > 0
+    ) {
+      items.push({
+        task_id: taskId,
+        real_tokens: r.real_tokens,
+        estimated_tokens: r.estimated_tokens,
+        ratio: r.real_tokens / r.estimated_tokens,
+      });
+    }
+  }
+  items.sort((a, b) => b.ratio - a.ratio);
+  return items;
+}
+
+// Builds `incidences`: one entry per task that resolveTaskForensics could
+// NOT resolve — the task-level counterpart to determineIncompleteReason's
+// whole-run verdict, so a run with a mix of resolved/unresolved tasks still
+// surfaces exactly which task_ids need attention (R1.S2).
+function buildIncidences(tasks, results) {
+  const items = [];
+  for (const [taskId, r] of Object.entries(results)) {
+    if (!r.resolved) {
+      const task = tasks[taskId];
+      const reason = (!task || !task.agentId || !task.sessionId)
+        ? 'missing agentId or sessionId'
+        : 'transcript or subagent entry not found';
+      items.push({ task_id: taskId, reason });
+    }
+  }
+  return items;
+}
+
+// Builds the full R1 `signals` block: per_model / orchestrator_share /
+// orchestrator_token_ratio / deviations / incidences / session_count.
+// `sessionCount` is the number of distinct sessions runForensics actually
+// resolved a task against (the caller passes analyzeCache.size).
+function buildSignals(tasks, results, orchestrator, subagentsTotal, subs, sessionCount) {
+  return {
+    per_model: buildPerModel(subs),
+    orchestrator_share: buildOrchestratorShare(orchestrator, subagentsTotal),
+    orchestrator_token_ratio: buildOrchestratorTokenRatio(orchestrator, subagentsTotal),
+    deviations: buildDeviations(results),
+    incidences: buildIncidences(tasks, results),
+    session_count: sessionCount,
+  };
+}
+
 // Builds the `pause_timeline` array (R3.S2) from execution_state.json's
 // top-level `pause` field: null (never paused) yields [], never an error.
 // A non-null pause carries its own recorded accumulated real_tokens figure
@@ -195,8 +288,16 @@ export function runForensics(specDir, opts) {
   };
   const pause_timeline = buildPauseTimeline(state.pause);
   const incompleteReason = determineIncompleteReason(tasks, results);
+  const signals = buildSignals(
+    tasks,
+    results,
+    orchestrator,
+    subagents_total,
+    firstAnalyzed ? firstAnalyzed.subs : [],
+    analyzeCache.size,
+  );
 
-  const output = { tasks: results, orchestrator, subagents_total, pause_timeline };
+  const output = { tasks: results, orchestrator, subagents_total, pause_timeline, signals };
   if (incompleteReason) {
     output.incomplete = true;
     output.incomplete_reason = incompleteReason;
