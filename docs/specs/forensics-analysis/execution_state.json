@@ -32,21 +32,21 @@
       "actual_tokens": 59029,
       "deviation": 19029,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/spec-forensics-skill-doc.test.mjs",
-      "commit": null,
+      "commit": "6309da4",
       "incidencia": null,
       "agentId": "ae805704b7dd6ed4e",
       "sessionId": "92df0b60-5319-4a10-89fb-e5795f6dfe4e"
     },
     "t4-token-diet-analysis": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 50000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 46012,
+      "deviation": -3988,
+      "test_cmd": "node -e \"import('./plugins/sdd-kit/scripts/forensics-analysis-validate.mjs').then(async (m) => { const fs = await import('node:fs'); const dir = 'docs/specs/archived/token-diet'; const forensics = JSON.parse(fs.readFileSync(dir + '/forensics.json', 'utf8')); const md = fs.readFileSync(dir + '/forensics-analysis.md', 'utf8'); const r = m.validateForensicsAnalysis(md, forensics); if (!r.ok) { console.error('FAIL', JSON.stringify(r.errors)); process.exit(1); } console.log('OK'); });\"",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a16f728db21f6e95e",
+      "sessionId": "92df0b60-5319-4a10-89fb-e5795f6dfe4e"
     },
     "t5-e2e-integration": {
       "status": "pending",
