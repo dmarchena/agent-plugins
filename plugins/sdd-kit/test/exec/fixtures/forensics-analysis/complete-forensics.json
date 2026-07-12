@@ -1,0 +1,53 @@
+{
+  "tasks": {
+    "t1-alpha": {
+      "resolved": true,
+      "real_tokens": 500000,
+      "real_cost_usd": 1.5,
+      "estimated_tokens": 50000,
+      "deviation_real": 450000
+    },
+    "t2-beta": {
+      "resolved": true,
+      "real_tokens": 300000,
+      "real_cost_usd": 0.5,
+      "estimated_tokens": 40000,
+      "deviation_real": 260000
+    }
+  },
+  "orchestrator": {
+    "real_tokens": 4000000,
+    "real_cost_usd": 10.0
+  },
+  "subagents_total": {
+    "real_tokens": 800000,
+    "real_cost_usd": 2.0
+  },
+  "pause_timeline": [],
+  "signals": {
+    "per_model": {
+      "sonnet": {
+        "tokens": 800000,
+        "cost": 2.0
+      }
+    },
+    "orchestrator_share": 0.8333333333333334,
+    "orchestrator_token_ratio": 0.8333333333333334,
+    "deviations": [
+      {
+        "task_id": "t1-alpha",
+        "real_tokens": 500000,
+        "estimated_tokens": 50000,
+        "ratio": 10
+      },
+      {
+        "task_id": "t2-beta",
+        "real_tokens": 300000,
+        "estimated_tokens": 40000,
+        "ratio": 7.5
+      }
+    ],
+    "incidences": [],
+    "session_count": 1
+  }
+}

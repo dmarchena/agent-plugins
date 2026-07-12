@@ -1,0 +1,64 @@
+{
+  "plan_id": "forensics-analysis-plan-1",
+  "source_spec": "docs/specs/forensics-analysis/spec.md",
+  "branch": "feat/forensics-analysis",
+  "started_at": "2026-07-12T00:35:30.921Z",
+  "tasks": {
+    "t1-signals-block": {
+      "status": "done",
+      "estimated_tokens": 80000,
+      "actual_tokens": 55000,
+      "deviation": -25000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics.test.mjs plugins/sdd-kit/test/exec/forensics-cli-io.test.mjs plugins/sdd-kit/test/exec/e2e-forensics.test.mjs",
+      "commit": "5a25102",
+      "incidencia": null,
+      "agentId": "a2aba94c63b984591",
+      "sessionId": "c4435213-d6ca-44c2-baa6-146d17187b15"
+    },
+    "t2-analysis-validation": {
+      "status": "done",
+      "estimated_tokens": 90000,
+      "actual_tokens": 76724,
+      "deviation": -13276,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics-analysis-validate.test.mjs",
+      "commit": "a2215b3",
+      "incidencia": null,
+      "agentId": "a7498193cd4c147b4",
+      "sessionId": "92df0b60-5319-4a10-89fb-e5795f6dfe4e"
+    },
+    "t3-skill-judgment-layer": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 59029,
+      "deviation": 19029,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/spec-forensics-skill-doc.test.mjs",
+      "commit": "6309da4",
+      "incidencia": null,
+      "agentId": "ae805704b7dd6ed4e",
+      "sessionId": "92df0b60-5319-4a10-89fb-e5795f6dfe4e"
+    },
+    "t4-token-diet-analysis": {
+      "status": "done",
+      "estimated_tokens": 50000,
+      "actual_tokens": 46012,
+      "deviation": -3988,
+      "test_cmd": "node -e \"import('./plugins/sdd-kit/scripts/forensics-analysis-validate.mjs').then(async (m) => { const fs = await import('node:fs'); const dir = 'docs/specs/archived/token-diet'; const forensics = JSON.parse(fs.readFileSync(dir + '/forensics.json', 'utf8')); const md = fs.readFileSync(dir + '/forensics-analysis.md', 'utf8'); const r = m.validateForensicsAnalysis(md, forensics); if (!r.ok) { console.error('FAIL', JSON.stringify(r.errors)); process.exit(1); } console.log('OK'); });\"",
+      "commit": "1ad4048",
+      "incidencia": null,
+      "agentId": "a16f728db21f6e95e",
+      "sessionId": "92df0b60-5319-4a10-89fb-e5795f6dfe4e"
+    },
+    "t5-e2e-integration": {
+      "status": "done",
+      "estimated_tokens": 50000,
+      "actual_tokens": 63158,
+      "deviation": 13158,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-forensics-analysis.test.mjs",
+      "commit": "a17f5e8",
+      "incidencia": null,
+      "agentId": "a45bc5bdb8b27936e",
+      "sessionId": "92df0b60-5319-4a10-89fb-e5795f6dfe4e"
+    }
+  },
+  "pause": null
+}

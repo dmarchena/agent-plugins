@@ -44,12 +44,70 @@
     }
   },
   "orchestrator": {
-    "real_tokens": 16204092,
-    "real_cost_usd": 51.93598949999994
+    "real_tokens": 26591642,
+    "real_cost_usd": 83.18952149999991
   },
   "subagents_total": {
     "real_tokens": 6439280,
     "real_cost_usd": 8.557519450000001
   },
-  "pause_timeline": []
+  "pause_timeline": [],
+  "signals": {
+    "per_model": {
+      "claude-sonnet-5": {
+        "tokens": 5298417,
+        "cost": 3.78185625
+      },
+      "claude-haiku-4-5-20251001": {
+        "tokens": 162985,
+        "cost": 0.08737120000000001
+      },
+      "claude-opus-4-8": {
+        "tokens": 977878,
+        "cost": 4.6882920000000015
+      }
+    },
+    "orchestrator_share": 0.9067270250746979,
+    "orchestrator_token_ratio": 0.8050529743008688,
+    "deviations": [
+      {
+        "task_id": "cmd-base",
+        "real_tokens": 2447005,
+        "estimated_tokens": 90000,
+        "ratio": 27.188944444444445
+      },
+      {
+        "task_id": "cmd-apply",
+        "real_tokens": 1495451,
+        "estimated_tokens": 60000,
+        "ratio": 24.924183333333332
+      },
+      {
+        "task_id": "semantic-review",
+        "real_tokens": 977878,
+        "estimated_tokens": 40000,
+        "ratio": 24.44695
+      },
+      {
+        "task_id": "cmd-recommend",
+        "real_tokens": 789086,
+        "estimated_tokens": 50000,
+        "ratio": 15.78172
+      },
+      {
+        "task_id": "rules-doc",
+        "real_tokens": 566875,
+        "estimated_tokens": 50000,
+        "ratio": 11.3375
+      },
+      {
+        "task_id": "e2e-verify",
+        "real_tokens": 162985,
+        "estimated_tokens": 30000,
+        "ratio": 5.432833333333333
+      }
+    ],
+    "incidences": [],
+    "session_count": 1
+  }
 }

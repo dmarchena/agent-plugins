@@ -1,0 +1,122 @@
+{
+  "plan_id": "forensics-analysis-plan-1",
+  "project_name": "spec-forensics — reconstruct & persist analysis",
+  "global_objective": "Persistir el análisis de coste/oportunidades/malas prácticas de un run: un bloque `signals` determinista en forensics.mjs y un forensics-analysis.md durable compuesto por la skill, anclado a esos signals.",
+  "source_spec": "docs/specs/forensics-analysis/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 310000,
+  "tasks": [
+    {
+      "task_id": "t1-signals-block",
+      "source_ids": ["R1", "R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Implementación determinista acotada en forensics.mjs con criterios claros (R1.S1/R1.S2, AC1/AC2) y tests → code_writer/sonnet.",
+      "instructions": "Implementa el bloque determinista `signals` de R1 en el script de forensics (plugins/sdd-kit/scripts/forensics.mjs), añadido tanto a `data` del envelope de stdout como al forensics.json escrito, cubriendo el happy path R1.S1 y el edge R1.S2 (run incompleto / coste 0, sin NaN, sale 0). Añade tests a la suite de forensics existente en plugins/sdd-kit/test/exec/. No compongas prosa de juicio ni toques SKILL.md. Verde = AC1 y AC2.",
+      "expected_output_schema": "forensics.mjs enriquecido: forensics.json y el `data` del envelope incluyen un objeto `signals` con per_model, orchestrator_share, orchestrator_token_ratio, deviations (ordenado desc), incidences y session_count; el script sale 0 sin excepción ni NaN. Tests nuevos en verde.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 80000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R1.S1", "assertion": "Sobre un SPECDIR totalmente resuelto, forensics.json contiene un objeto signals con las seis claves; la suma de per_model[*].tokens iguala subagents_total.real_tokens y orchestrator_share iguala orch_usd/total_usd dentro de tolerancia float; deviations está ordenado de mayor a menor real÷estimated." },
+        { "ref": "R1.S2", "assertion": "Con al menos una tarea no resuelta y coste total 0, el script sale 0 sin excepción ni NaN, cada tarea no resuelta aparece listada en signals.incidences y queda excluida de per_model, y orchestrator_share es 0 o null." },
+        { "ref": "AC1", "assertion": "Correr el script sobre el SPECDIR token-diet produce las seis subclaves de signals con las igualdades de suma y de share y deviations ordenado desc." },
+        { "ref": "AC2", "assertion": "Sobre un SPECDIR fixture con una tarea sin agentId y total 0, incidences lista la tarea, per_model la excluye y orchestrator_share nunca es NaN." }
+      ]
+    },
+    {
+      "task_id": "t2-analysis-validation",
+      "source_ids": ["R2", "R2.S1", "R2.S2"],
+      "dependencies": ["t1-signals-block"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Validación determinista de los invariantes del forensics-analysis.md (anclaje a signals, separación determinista/juicio, sin cifras fabricadas en degradado) con fixtures; acotada con AC3/AC4 → code_writer/sonnet.",
+      "instructions": "Implementa la comprobación determinista de los invariantes de R2 sobre un forensics-analysis.md frente al forensics.json enriquecido que produce t1-signals-block: reconstrucción de coste determinista presente, secciones de juicio separadas de ella, cifras ancla (total USD, orchestrator share) coincidentes con forensics.json y cada hallazgo de juicio citando el nombre de un signal presente en forensics.json (R2.S1); y en el caso degradado, que se marquen las tareas no resueltas sin fabricar sus cifras y se declare el join incompleto (R2.S2). Añade fixtures (un md completo y uno degradado) y tests en plugins/sdd-kit/test/exec/. No compongas la prosa de juicio del md real ni edites SKILL.md.",
+      "expected_output_schema": "Validación determinista de los invariantes de R2 + fixtures (forensics-analysis.md completo y degradado) y tests que los verifican; suite en verde cubriendo AC3 y AC4.",
+      "satisfies_acs": ["AC3", "AC4"],
+      "estimated_tokens": 90000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R2.S1", "assertion": "Dado un forensics.json enriquecido y un forensics-analysis.md completo, la validación confirma reconstrucción determinista y secciones de juicio separadas, cifras ancla coincidentes con forensics.json y cada hallazgo de juicio citando un signal presente." },
+        { "ref": "R2.S2", "assertion": "Dado un forensics.json degradado (tarea no resuelta), la validación confirma que el md marca las tareas no resueltas, no contiene cifras fabricadas para ellas y declara el join incompleto." },
+        { "ref": "AC3", "assertion": "Existe un forensics-analysis.md con reconstrucción determinista y juicio separado; las cifras ancla (total USD, orchestrator share) coinciden con forensics.json y cada hallazgo cita un nombre de signal presente." },
+        { "ref": "AC4", "assertion": "Con un forensics.json degradado, el forensics-analysis.md se escribe, marca las tareas no resueltas, no fabrica sus cifras y declara el join incompleto." }
+      ]
+    },
+    {
+      "task_id": "t3-skill-judgment-layer",
+      "source_ids": ["R2", "R2.S1", "R2.S2"],
+      "dependencies": ["t1-signals-block", "t2-analysis-validation"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Redactar la capa de juicio en SKILL.md siguiendo un esquema (estructura orientativa + invariantes duros de R2), sin decisiones abiertas → doc_writer/sonnet.",
+      "instructions": "Actualiza plugins/sdd-kit/skills/spec-forensics/SKILL.md para añadir la capa de juicio de R2: tras enriquecer forensics.json con los signals de t1-signals-block, la skill lee spec.md + execution_plan.json + el forensics.json enriquecido y escribe SPECDIR/forensics-analysis.md automáticamente en cada run, con reconstrucción de coste determinista y secciones de juicio (oportunidades, malas prácticas) separadas de ella y cada hallazgo anclado a un signal, e invoca la validación de t2-analysis-validation. Documenta también el caso degradado (R2.S2). No toques el script.",
+      "expected_output_schema": "SKILL.md actualizado: documenta la emisión automática de forensics-analysis.md, sus invariantes (determinista/juicio separados, anclaje a signals), el caso degradado y la invocación del validador.",
+      "satisfies_acs": ["AC3", "AC4"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "t4-token-diet-analysis",
+      "source_ids": ["R2.S1", "R-E2E.S1"],
+      "dependencies": ["t1-signals-block", "t2-analysis-validation", "t3-skill-judgment-layer"],
+      "agent_type": "reviewer",
+      "subagent": "general-purpose",
+      "model": "opus",
+      "justification": "Componer el forensics-analysis.md durable de token-diet exige juicio (oportunidades/malas prácticas) sobre el gasto real; el spec fija Opus para la prosa de juicio → reviewer/opus.",
+      "instructions": "Aplicando la capa de juicio documentada en t3-skill-judgment-layer sobre el forensics.json enriquecido por t1-signals-block, compón/actualiza docs/specs/archived/token-diet/forensics-analysis.md como el artefacto durable real (ya no prototipo hand-authored): reconstrucción de coste determinista derivada de signals, secciones de juicio separadas y cada hallazgo citando el nombre exacto de un signal presente en forensics.json. Debe pasar la validación de t2-analysis-validation y sus cifras ancla reconciliar con forensics.json (R-E2E.S1).",
+      "expected_output_schema": "docs/specs/archived/token-diet/forensics-analysis.md durable: reconstrucción determinista + juicio anclado a signals, cifras ancla reconciliando con forensics.json, pasando el validador de t2.",
+      "satisfies_acs": ["AC-E2E", "AC3"],
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "t5-e2e-integration",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["t1-signals-block", "t2-analysis-validation", "t4-token-diet-analysis"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "AC-E2E es un recorrido cross-fichero sobre token-diet real no cubierto por los tests por-tarea (t1 sobre signals, t2 sobre fixtures); requiere escribir un test de integración → code_writer/sonnet (asset e2e-task-assignment).",
+      "instructions": "Escribe el test de integración de R-E2E, extendiendo la suite E2E de forensics existente en plugins/sdd-kit/test/exec/: sobre docs/specs/archived/token-diet/ corre el flujo de extremo a extremo (el script de t1-signals-block produciendo forensics.json con signals) y valida, con la lógica de t2-analysis-validation, que el forensics-analysis.md durable producido en t4-token-diet-analysis está presente con reconstrucción determinista + juicio anclado y que el total USD y el orchestrator share coinciden entre ambos ficheros.",
+      "expected_output_schema": "Test de integración E2E en verde que, sobre token-diet, comprueba forensics.json con signals + forensics-analysis.md presentes y reconciliando (total USD, orchestrator share).",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 50000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R-E2E.S1", "assertion": "Sobre token-diet, tras correr el flujo completo, el SPECDIR contiene forensics.json con signals y forensics-analysis.md con reconstrucción determinista + juicio anclado, y el total USD y el orchestrator share coinciden entre ambos ficheros." },
+        { "ref": "AC-E2E", "assertion": "Un run E2E sobre token-diet deja ambos ficheros con las cifras ancla (total USD, orchestrator share) coincidentes." }
+      ]
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["t1-signals-block"],
+      "R1.S1": ["t1-signals-block"],
+      "R1.S2": ["t1-signals-block"],
+      "R2": ["t2-analysis-validation", "t3-skill-judgment-layer", "t4-token-diet-analysis"],
+      "R2.S1": ["t2-analysis-validation", "t4-token-diet-analysis"],
+      "R2.S2": ["t2-analysis-validation", "t3-skill-judgment-layer"],
+      "R-E2E": ["t5-e2e-integration"],
+      "R-E2E.S1": ["t4-token-diet-analysis", "t5-e2e-integration"]
+    },
+    "acs": {
+      "AC1": ["t1-signals-block"],
+      "AC2": ["t1-signals-block"],
+      "AC3": ["t2-analysis-validation", "t3-skill-judgment-layer", "t4-token-diet-analysis"],
+      "AC4": ["t2-analysis-validation", "t3-skill-judgment-layer"],
+      "AC-E2E": ["t4-token-diet-analysis", "t5-e2e-integration"]
+    }
+  }
+}
