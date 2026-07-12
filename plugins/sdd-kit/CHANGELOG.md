@@ -4,6 +4,21 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.2.0
+
+- `spec-forensics` now delegates composition of `forensics-analysis.md` to a
+  `model: sonnet` subagent for a typical run — briefed with the three
+  artifact paths (`spec.md`, `execution_plan.json`, `forensics.json`), the
+  full document contract, and the compose→validate→correct loop — keeping
+  that schema-driven writing out of the more expensive orchestrator context.
+  An inline-composition fallback stays for runs too small for delegation to
+  pay off (the "small" call left to the invoking agent's judgment).
+- Tightened the `forensics-analysis.md` conciseness contract: one finding =
+  one bullet, never re-explained in another section (naming or citing it by
+  figure elsewhere is fine), and the deterministic section (§1) is now
+  restricted to figures/anchors with interpretation deferred to the judgment
+  sections.
+
 ## 1.1.0
 
 - Added a CLI entry point in `scripts/forensics-analysis-validate.mjs`

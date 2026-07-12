@@ -68,8 +68,9 @@ produced, never skipped.
 sections:
 
 1. **Deterministic cost-reconstruction section** (heading text containing
-   "Deterministic"/"Determinista") — figures copied or trivially derived
-   from `forensics.json`, never estimated or guessed. Must include at
+   "Deterministic"/"Determinista") — **figures and anchors only, no
+   narrative**: figures copied or trivially derived from `forensics.json`,
+   never estimated or guessed, with no explanatory prose. Must include at
    least:
    - `Total USD: $<figure>` — `orchestrator.real_cost_usd +
      subagents_total.real_cost_usd`.
@@ -77,7 +78,9 @@ sections:
      an explicit N/A line when it's `null`, e.g. a zero-cost run).
    These two anchor figures must numerically match `forensics.json`
    exactly (within float tolerance) — this is a hard invariant, not a
-   suggestion.
+   suggestion. Any interpretation of these figures is deferred to the
+   judgment sections below — §1 states the numbers, it does not explain
+   what they mean.
 2. **Judgment sections** (heading text containing
    "Judgment"/"Juicio"), placed *after* the deterministic section —
    this is where interpretation lives: **opportunities** (e.g. cheaper
@@ -92,6 +95,15 @@ signal that actually exists in `forensics.json` — a `signals` key
 `signals.deviations`/`signals.incidences` `task_id`. Never write a
 judgment bullet that doesn't name a real signal — that's a fabricated
 finding, not an anchored one.
+
+**Conciseness rule: one finding, one bullet.** Each finding appears as
+exactly one bullet, in its natural section — an anchor figure in the
+deterministic section, or an opportunity/bad-practice bullet in a
+judgment section — and is not re-explained in prose in any other
+section. Cross-referencing a finding elsewhere by its signal name or
+figure (e.g. "see `orchestrator_share` above") without re-explaining it is
+explicitly allowed; what's not allowed is restating the same explanation
+in a second section.
 
 ### Degraded case (unresolved tasks / incomplete join)
 
@@ -111,6 +123,37 @@ without inventing numbers for them:
   line containing "incomplete"/"incompleto") whenever any task is
   unresolved or `forensics.json.incomplete === true` — this must not be
   left implicit.
+
+### Composing the doc: delegate to a subagent, with an inline fallback
+
+Composing `forensics-analysis.md` is schema-driven writing backed by a
+mechanical validator — a task suited to a `model: sonnet` subagent, not
+one that needs to run in the (more expensive) orchestrator context. For a
+typical run, dispatch a subagent with **`model: sonnet`**, briefed with:
+
+- the three artifact paths to read — `SPECDIR/spec.md`,
+  `SPECDIR/execution_plan.json`, and the enriched `SPECDIR/forensics.json`;
+- the full **document contract** above (the deterministic/judgment
+  separation, the two anchor figures, the signal-anchoring rule, and the
+  degraded-case handling); and
+- the **compose → validate → correct loop**: write
+  `forensics-analysis.md`, invoke
+  `node ${CLAUDE_PLUGIN_ROOT}/scripts/forensics-analysis-validate.mjs SPECDIR`,
+  and on failure fix the doc and re-validate until `data.ok` is `true`.
+
+The subagent returns only a minimal result to the orchestrator: `ok`/the
+path it wrote. The written file on disk is the artifact — the response
+carries none of its prose.
+
+**Inline fallback for a small run.** When a run is small enough that a
+subagent's cold start would consume the delegation's savings, compose
+`forensics-analysis.md` inline instead of delegating. What counts as
+"small" is left to the invoking agent's judgment — there is no fixed
+numeric threshold (e.g. no fixed task-count cutoff) to check against.
+Whichever path is taken, inline composition follows the exact same
+document contract and the same compose → validate → correct loop as the
+delegated path: no shortcuts on the contract or on validation just
+because the work happened inline.
 
 ### Validating the written doc
 
