@@ -12,6 +12,9 @@
 #   5) Drift entre shared/<script> y sus copias vendorizadas
 #      (plugins/<plugin>/scripts/<script>, generadas por shared/build.sh):
 #      ver scripts/drift-check.sh.
+#   6) Drift de los artefactos cross-platform (Codex/Copilot) generados por
+#      scripts/generate-cross-platform.mjs a partir de cada .claude-plugin/
+#      plugin.json: `derive --check` falla si regenerarlos cambiaría algo.
 # Requisitos: `claude` CLI y `jq` en el PATH.
 set -euo pipefail
 
@@ -41,6 +44,9 @@ node --test "$ROOT"/shared/test/token-cost.test.mjs || fail=1
 
 echo "▶ Comprobando drift entre shared/ y las copias vendorizadas (scripts/drift-check.sh)…"
 "$ROOT"/scripts/drift-check.sh "$ROOT" || fail=1
+
+echo "▶ Comprobando drift de artefactos cross-platform (generate-cross-platform.mjs derive --check)…"
+node "$ROOT"/scripts/generate-cross-platform.mjs derive --check --root "$ROOT" || fail=1
 
 echo "▶ Validando presupuesto de tokens (budget-guard.mjs)…"
 node "$ROOT"/plugins/sdd-kit/scripts/budget-guard.mjs || fail=1

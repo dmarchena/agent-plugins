@@ -1,0 +1,11 @@
+# agent-plugins
+
+> Public plugin marketplace for AI coding agents — a monorepo of Markdown
+> plugins installable with Claude Code's native marketplace mechanism, with
+> agent-agnostic docs so the plugins aren't tied to a single agent.
+
+## Plugins
+
+- [claude-token-debug](plugins/claude-token-debug/AGENTS.md): A debugging toolkit for Claude Code itself, measuring real subagent transcripts and inspecting built-in agent prompts and tool schemas to answer where token spend actually goes.
+- [sdd-kit](plugins/sdd-kit/AGENTS.md): A spec-driven development kit carrying a feature from a rough idea to an executable task graph via spec, plan, exec, and verify stages.
+- [token-diet](plugins/token-diet/AGENTS.md): A single, explicit-invocation command that installs an opt-in token-saving ruleset into a project's or user's instructions file.

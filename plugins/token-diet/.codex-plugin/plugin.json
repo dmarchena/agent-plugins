@@ -1,0 +1,5 @@
+{
+  "name": "token-diet",
+  "version": "1.1.0",
+  "description": "Explicit-invocation command that analyzes a CLAUDE.md/AGENTS.md target, recommends a token-saving-ruleset action, and installs it (base summary + rules doc + versioned mark) on confirmation."
+}

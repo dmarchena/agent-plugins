@@ -13,6 +13,17 @@ claude plugin install sdd-kit@agent-plugins
 
 Then restart your session (or `/reload-plugins`).
 
+### Install matrix
+
+This marketplace is agent-agnostic; the same catalog installs from any of
+the supported platforms:
+
+| Platform | Add marketplace | Install a plugin |
+|----------|------------------|-------------------|
+| Claude Code | `claude plugin marketplace add dmarchena/agent-plugins` | `claude plugin install sdd-kit@agent-plugins` |
+| Codex | `codex plugin marketplace add dmarchena/agent-plugins` | `codex plugin install sdd-kit@agent-plugins` |
+| Copilot | `copilot plugin marketplace add dmarchena/agent-plugins` | `copilot plugin install sdd-kit@agent-plugins` |
+
 ## Plugins
 
 | Plugin | What it does |
