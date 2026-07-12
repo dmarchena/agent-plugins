@@ -16,15 +16,15 @@
       "sessionId": "1609f399-042e-416c-8e30-e20233e39d4c"
     },
     "skill-doc-update": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 40000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 55000,
+      "deviation": 15000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/spec-forensics-skill-doc.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a65436badfac73979",
+      "sessionId": "1609f399-042e-416c-8e30-e20233e39d4c"
     },
     "signal-anchoring-multiline-fix": {
       "status": "done",
@@ -32,7 +32,7 @@
       "actual_tokens": 30000,
       "deviation": -30000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics-analysis-validate.test.mjs",
-      "commit": null,
+      "commit": "52a5845",
       "incidencia": null,
       "agentId": "a8a8ac27a7ae7af17",
       "sessionId": "1609f399-042e-416c-8e30-e20233e39d4c"
