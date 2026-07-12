@@ -1,0 +1,53 @@
+{
+  "plan_id": "forensics-analysis-validate-cli-v1",
+  "source_spec": "docs/specs/forensics-analysis-validate-cli/spec.md",
+  "branch": "feat/forensics-analysis-validate-cli",
+  "started_at": "2026-07-12T20:51:06.909Z",
+  "tasks": {
+    "cli-entry-point": {
+      "status": "done",
+      "estimated_tokens": 70000,
+      "actual_tokens": 35000,
+      "deviation": -35000,
+      "test_cmd": "cd plugins/sdd-kit && node --test test/exec/forensics-analysis-validate-cli.test.mjs",
+      "commit": null,
+      "incidencia": null,
+      "agentId": "ab50d231a6062c0a0",
+      "sessionId": "1609f399-042e-416c-8e30-e20233e39d4c"
+    },
+    "skill-doc-update": {
+      "status": "pending",
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "signal-anchoring-multiline-fix": {
+      "status": "pending",
+      "estimated_tokens": 60000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "e2e-cli-multiline-signal": {
+      "status": "pending",
+      "estimated_tokens": 55000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    }
+  },
+  "pause": null
+}
