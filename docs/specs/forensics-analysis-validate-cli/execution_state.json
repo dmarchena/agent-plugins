@@ -21,7 +21,7 @@
       "actual_tokens": 55000,
       "deviation": 15000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/spec-forensics-skill-doc.test.mjs",
-      "commit": null,
+      "commit": "8ebface",
       "incidencia": null,
       "agentId": "a65436badfac73979",
       "sessionId": "1609f399-042e-416c-8e30-e20233e39d4c"
@@ -38,15 +38,15 @@
       "sessionId": "1609f399-042e-416c-8e30-e20233e39d4c"
     },
     "e2e-cli-multiline-signal": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 55000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 45000,
+      "deviation": -10000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-forensics-analysis-validate-cli-multiline-signal.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "ae65e9b8f23741601",
+      "sessionId": "1609f399-042e-416c-8e30-e20233e39d4c"
     }
   },
   "pause": null
