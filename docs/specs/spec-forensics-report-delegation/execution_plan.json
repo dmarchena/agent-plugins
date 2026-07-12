@@ -1,0 +1,94 @@
+{
+  "plan_id": "spec-forensics-report-delegation",
+  "project_name": "spec-forensics",
+  "global_objective": "Move forensics-analysis.md composition in spec-forensics' SKILL.md to a model: sonnet subagent (with an inline fallback for small runs) and add a conciseness rule so each finding is stated exactly once, verified by content-assertion tests on SKILL.md.",
+  "source_spec": "docs/specs/spec-forensics-report-delegation/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 90000,
+  "tasks": [
+    {
+      "task_id": "T1",
+      "source_ids": ["R1", "R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded content-assertion tests plus SKILL.md instruction edits with clear acceptance criteria (AC1, AC2); no design trade-offs, so the most austere qualifying role is code_writer/sonnet.",
+      "instructions": "Author content-assertion tests for R1.S1 and R1.S2 (satisfying AC1 and AC2) against spec-forensics' SKILL.md, following the existing spec-forensics-skill-doc content-assertion pattern noted in the spec's Assumptions (one test per spec ref, substring/regex assertions), then edit SKILL.md so they pass. Per R1.S1/AC1, SKILL.md must document dispatching a subagent with model: sonnet briefed with the three artifact paths, the full document contract, and the compose->validate->correct loop, and that the subagent returns only ok/path (not the document body). Per R1.S2/AC2, SKILL.md must document the inline-composition fallback for a small run as the invoking agent's judgment call with no fixed numeric threshold, under the identical document contract and loop as the delegated path. Preserve every existing SKILL.md invariant listed in the spec's Technical Requirements. This task has no dependencies: do not consume or reference any other task's output.",
+      "expected_output_schema": "Content-assertion test cases (AC1, AC2) plus the SKILL.md delegation-and-fallback instruction section, with the full suite green for those assertions.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R1.S1",
+          "assertion": "SKILL.md documents dispatching a subagent with model: sonnet, briefed with the three artifact paths, the full document contract, and the compose->validate->correct loop, and that the subagent returns only ok/path rather than the document body."
+        },
+        {
+          "ref": "R1.S2",
+          "assertion": "SKILL.md documents an inline-composition fallback for a small run, framed as the invoking agent's judgment with no fixed numeric threshold, under the same document contract and validate/correct loop as the delegated path."
+        }
+      ]
+    },
+    {
+      "task_id": "T2",
+      "source_ids": ["R2", "R2.S1", "R2.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded content-assertion tests plus SKILL.md instruction edits with clear acceptance criteria (AC3, AC4); no design trade-offs, so the most austere qualifying role is code_writer/sonnet.",
+      "instructions": "Author content-assertion tests for R2.S1 and R2.S2 (satisfying AC3 and AC4) against spec-forensics' SKILL.md, following the existing spec-forensics-skill-doc content-assertion pattern noted in the spec's Assumptions, then edit SKILL.md so they pass. Per R2.S1/AC3, SKILL.md must state the rule that each finding is one bullet in its natural section and is not re-explained in prose elsewhere, while explicitly allowing other sections to cross-reference it by signal name or figure without repeating the explanation. Per R2.S2/AC4, SKILL.md must restrict the deterministic section (section 1) to figures and anchors only with no narrative, deferring interpretation to the judgment sections. Preserve every existing SKILL.md invariant listed in the spec's Technical Requirements. This task has no dependencies: do not consume or reference any other task's output.",
+      "expected_output_schema": "Content-assertion test cases (AC3, AC4) plus the SKILL.md conciseness-rule and deterministic-section-restriction instruction text, with the full suite green for those assertions.",
+      "satisfies_acs": ["AC3", "AC4"],
+      "estimated_tokens": 35000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R2.S1",
+          "assertion": "SKILL.md states that each finding appears as exactly one bullet in its natural section and is not re-explained in another section, and that cross-referencing it by signal name or figure without re-explaining is explicitly allowed."
+        },
+        {
+          "ref": "R2.S2",
+          "assertion": "SKILL.md restricts the deterministic section (section 1) to figures and anchors only with no narrative, and defers interpretation of those figures to the judgment sections."
+        }
+      ]
+    },
+    {
+      "task_id": "T3",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["T1", "T2"],
+      "agent_type": "verifier",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "The end-to-end path is covered by the union of the content-assertion tests authored in T1 and T2; this node only re-runs the existing suite and confirms green, with no code to write, so verifier/haiku applies.",
+      "instructions": "Run the full spec-forensics SKILL.md content-assertion suite and confirm it is green, covering AC1 through AC4 end to end per R-E2E.S1. This consumes the SKILL.md edits and content-assertion tests authored by tasks T1 and T2. Write no code and add no tests; if any assertion fails, report exactly which one and stop, do not fix it.",
+      "expected_output_schema": "A pass/fail report confirming the full spec-forensics SKILL.md content-assertion suite (AC1-AC4) is green.",
+      "satisfies_acs": ["AC1", "AC2", "AC3", "AC4"],
+      "estimated_tokens": 15000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1"],
+      "R1.S1": ["T1"],
+      "R1.S2": ["T1"],
+      "R2": ["T2"],
+      "R2.S1": ["T2"],
+      "R2.S2": ["T2"],
+      "R-E2E": ["T3"],
+      "R-E2E.S1": ["T3"]
+    },
+    "acs": {
+      "AC1": ["T1", "T3"],
+      "AC2": ["T1", "T3"],
+      "AC3": ["T2", "T3"],
+      "AC4": ["T2", "T3"]
+    }
+  }
+}
