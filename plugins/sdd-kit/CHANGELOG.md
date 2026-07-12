@@ -4,6 +4,20 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.1.0
+
+- Added a CLI entry point in `scripts/forensics-analysis-validate.mjs`
+  (reusing `lib/cli.mjs`'s canonical `{ok,data}` envelope, same pattern as
+  `forensics.mjs`) so `spec-forensics` no longer needs an ad-hoc `node -e`
+  wrapper to invoke `validateForensicsAnalysis` — the `SKILL.md`'s
+  "Validating the written doc" section now documents the CLI invocation
+  instead of the direct import.
+- Fixed judgment-finding signal-anchoring to match a cited signal name
+  against the full multi-line bullet (continuation lines included) instead
+  of only its first line, so legitimate findings that cite the signal on a
+  2nd/3rd continuation line no longer fail validation with a spurious
+  "cites no known signal" error.
+
 ## 1.0.0
 
 - First stable release. Added `signals` (per-model rollup, orchestrator share/
