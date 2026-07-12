@@ -1,0 +1,97 @@
+{
+  "plan_id": "trim-cli-data-v1",
+  "source_spec": "docs/specs/trim-cli-data/spec.md",
+  "branch": "refactor/trim-cli-data",
+  "started_at": "2026-07-12T22:55:20.029Z",
+  "tasks": {
+    "T1_field_inventory": {
+      "status": "done",
+      "estimated_tokens": 80000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": "node docs/specs/trim-cli-data/verify-field-inventory.mjs",
+      "commit": null,
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": "bffecea8-3fb9-4fe9-afce-a8a1715d852b"
+    },
+    "T2_baseline_measurements": {
+      "status": "pending",
+      "estimated_tokens": 90000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T3_contract_doc": {
+      "status": "pending",
+      "estimated_tokens": 60000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T4_trim_dead_fields": {
+      "status": "pending",
+      "estimated_tokens": 120000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T5_restructure_heavy_payloads": {
+      "status": "pending",
+      "estimated_tokens": 130000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T6_contract_annotations": {
+      "status": "pending",
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T7_after_measurements": {
+      "status": "pending",
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T8_e2e_green_gate": {
+      "status": "pending",
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    }
+  },
+  "pause": null
+}
