@@ -21,21 +21,21 @@
       "actual_tokens": 76724,
       "deviation": -13276,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics-analysis-validate.test.mjs",
-      "commit": null,
+      "commit": "a2215b3",
       "incidencia": null,
       "agentId": "a7498193cd4c147b4",
       "sessionId": "92df0b60-5319-4a10-89fb-e5795f6dfe4e"
     },
     "t3-skill-judgment-layer": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 40000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 59029,
+      "deviation": 19029,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/spec-forensics-skill-doc.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "ae805704b7dd6ed4e",
+      "sessionId": "92df0b60-5319-4a10-89fb-e5795f6dfe4e"
     },
     "t4-token-diet-analysis": {
       "status": "pending",
