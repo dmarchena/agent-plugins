@@ -20,7 +20,7 @@ an LLM or a hook; the user must run the command explicitly.
 2. **Recommend (R2)** — from that analysis, emit exactly one recommendation
    (`add` / `replace` / `extend` / `update` / `none`) with a one-line reason.
 3. **Copy the rules doc (R3)** — copy `assets/rules.md` (base "caveman"
-   summary + more restrictive profiles) to the chosen destination (default:
+   decalogue + a more restrictive overspend profile) to the chosen destination (default:
    project → `docs/`, user → `~/.claude/`), warning when the destination
    falls outside the current repo (won't be versioned, pointer becomes an
    absolute path).
@@ -29,9 +29,7 @@ an LLM or a hook; the user must run the command explicitly.
    attribution mark into the target file, replacing (not duplicating) an
    existing token-diet block.
 
-Steps 1 and 3 are implemented; steps 2 and 4 are marked as explicit
-placeholder sections in the command prompt, added by later work on this
-plugin.
+All four steps are implemented in the command prompt.
 
 ## Commands
 

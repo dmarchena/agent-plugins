@@ -4,6 +4,19 @@ All notable changes to the `token-diet` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.2.0
+
+- Replaced the rules document (`assets/rules.md`) with an agent-friendly
+  10-rule "caveman" decalogue derived from Anthropic's context-engineering
+  and Claude Code cost guidance plus measured session findings, and a single
+  "scrooge" overspend profile (the two prose-heavy profiles are gone).
+- Translated the whole plugin (rules doc, `/token-diet:install` prompt and
+  its output-contract literals, tests) to English.
+- Updated `/token-diet:install` and tests to the new section name
+  ("Base decalogue (caveman)"), the 10-line inline block, and the v1.2.0
+  attribution mark, so previously installed rulesets get an `update`
+  recommendation.
+
 ## 1.1.0
 
 - Added cross-platform manifests (root `plugin.json`, `.codex-plugin/plugin.json`)

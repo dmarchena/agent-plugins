@@ -18,7 +18,7 @@ function findCommandFile() {
   return entries.length > 0 ? join(COMMANDS_DIR, entries[0]) : null;
 }
 
-test('AC1/AC2/AC5/AC6 scaffold — plugin.json exists, parses, and pins v1.0.0', () => {
+test('AC1/AC2/AC5/AC6 scaffold — plugin.json exists, parses, and pins the current version', () => {
   assert.ok(existsSync(PLUGIN_JSON_PATH), `expected ${PLUGIN_JSON_PATH} to exist`);
   const raw = readFileSync(PLUGIN_JSON_PATH, 'utf8');
   let parsed;
@@ -28,8 +28,8 @@ test('AC1/AC2/AC5/AC6 scaffold — plugin.json exists, parses, and pins v1.0.0',
   assert.equal(parsed.name, 'token-diet');
   assert.equal(
     parsed.version,
-    '1.0.0',
-    'initial plugin.json version must be exactly "1.0.0" (embedded in the attribution mark)'
+    '1.2.0',
+    'plugin.json version must match the attribution mark version used in commands/install.md'
   );
 });
 
@@ -65,11 +65,11 @@ test('R1.S1 — no policy / no mark literal report strings are present', () => {
   const cmdPath = findCommandFile();
   const content = readFileSync(cmdPath, 'utf8');
   assert.ok(
-    content.includes('sin política de ahorro de tokens detectada'),
+    content.includes('no token-saving policy detected'),
     'expected the literal R1.S1 "no policy detected" report string'
   );
   assert.ok(
-    content.includes('sin marca token-diet'),
+    content.includes('no token-diet mark'),
     'expected the literal R1.S1 "no mark" report string'
   );
 });
@@ -88,15 +88,15 @@ test('R1.S2 — non-existent target: informs and offers to create it, without ab
   const content = readFileSync(cmdPath, 'utf8');
   const lower = content.toLowerCase();
   assert.ok(
-    lower.includes('no existe') || lower.includes('does not exist'),
+    lower.includes('does not exist'),
     'expected the command to state the target file does not exist'
   );
   assert.ok(
-    lower.includes('ofrece') || lower.includes('offer'),
+    lower.includes('offer'),
     'expected the command to offer creating the missing target'
   );
   assert.ok(
-    lower.includes('sin abortar') || lower.includes('no aborta') || lower.includes('without aborting') || lower.includes('do not abort'),
+    lower.includes('without aborting') || lower.includes('do not abort'),
     'expected the command to state it does not abort with an error on a missing target'
   );
 });
@@ -114,11 +114,11 @@ test('R3.S2 — destination outside the repo: "not versioned" warning and absolu
   const content = readFileSync(cmdPath, 'utf8');
   const lower = content.toLowerCase();
   assert.ok(
-    lower.includes('no quedará versionado') || lower.includes('no versionado') || lower.includes('not versioned'),
+    lower.includes('not versioned') || lower.includes('not be versioned'),
     'expected the R3.S2 "will not be versioned" warning'
   );
   assert.ok(
-    lower.includes('ruta absoluta') || lower.includes('absolute path') || lower.includes('puntero absoluto'),
+    lower.includes('absolute path'),
     'expected the R3.S2 absolute-pointer wording'
   );
 });
