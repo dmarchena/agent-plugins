@@ -10,7 +10,7 @@
       "actual_tokens": 35000,
       "deviation": -35000,
       "test_cmd": "cd plugins/sdd-kit && node --test test/exec/forensics-analysis-validate-cli.test.mjs",
-      "commit": null,
+      "commit": "5ffeb4a",
       "incidencia": null,
       "agentId": "ab50d231a6062c0a0",
       "sessionId": "1609f399-042e-416c-8e30-e20233e39d4c"
@@ -27,15 +27,15 @@
       "sessionId": null
     },
     "signal-anchoring-multiline-fix": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 60000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 30000,
+      "deviation": -30000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/forensics-analysis-validate.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a8a8ac27a7ae7af17",
+      "sessionId": "1609f399-042e-416c-8e30-e20233e39d4c"
     },
     "e2e-cli-multiline-signal": {
       "status": "pending",
