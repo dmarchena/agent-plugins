@@ -1,0 +1,42 @@
+{
+  "plan_id": "spec-forensics-report-delegation",
+  "source_spec": "docs/specs/spec-forensics-report-delegation/spec.md",
+  "branch": "feat/spec-forensics-report-delegation",
+  "started_at": "2026-07-12T22:18:43.930Z",
+  "tasks": {
+    "T1": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 56114,
+      "deviation": 16114,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/spec-forensics-report-delegation-skill-doc.test.mjs",
+      "commit": null,
+      "incidencia": null,
+      "agentId": "a6b9fb505bccfc5dc",
+      "sessionId": "79c93042-2fab-4b1a-821e-3c7dc1efceb9"
+    },
+    "T2": {
+      "status": "pending",
+      "estimated_tokens": 35000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T3": {
+      "status": "pending",
+      "estimated_tokens": 15000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    }
+  },
+  "pause": null
+}
