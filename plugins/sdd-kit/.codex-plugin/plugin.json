@@ -1,5 +1,5 @@
 {
   "name": "sdd-kit",
-  "version": "0.7.0",
+  "version": "1.0.0",
   "description": "Spec-driven development kit: skills for the spec.md, the execution plan, and executing it (spec → plan → exec)."
 }

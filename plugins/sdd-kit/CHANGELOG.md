@@ -4,6 +4,17 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.0.0
+
+- First stable release. Added `signals` (per-model rollup, orchestrator share/
+  token ratio, deviations `real ÷ estimated`, incidences, session count) as a
+  deterministic block computed by `forensics.mjs` from the join +
+  `execution_plan.json` + `execution_state.json`, and a durable
+  `forensics-analysis.md` judgment layer emitted alongside `forensics.json` on
+  every forensics run — deterministic cost reconstruction plus opportunities/
+  bad-practices sections, each finding anchored to a named signal, degrading
+  gracefully (no fabricated figures) when the join is incomplete.
+
 ## 0.7.0
 
 - Added cross-platform manifests (root `plugin.json`, `.codex-plugin/plugin.json`)
