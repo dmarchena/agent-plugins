@@ -1,0 +1,52 @@
+{
+  "tasks": {
+    "t1-alpha": {
+      "resolved": true,
+      "real_tokens": 500000,
+      "real_cost_usd": 1.5,
+      "estimated_tokens": 50000,
+      "deviation_real": 450000
+    },
+    "t2-gamma": {
+      "resolved": false,
+      "real_tokens": null,
+      "real_cost_usd": null,
+      "estimated_tokens": 40000,
+      "deviation_real": null
+    }
+  },
+  "orchestrator": {
+    "real_tokens": 4000000,
+    "real_cost_usd": 10.0
+  },
+  "subagents_total": {
+    "real_tokens": 500000,
+    "real_cost_usd": 1.5
+  },
+  "pause_timeline": [],
+  "signals": {
+    "per_model": {
+      "sonnet": {
+        "tokens": 500000,
+        "cost": 1.5
+      }
+    },
+    "orchestrator_share": 0.8695652173913043,
+    "orchestrator_token_ratio": 0.8888888888888888,
+    "deviations": [
+      {
+        "task_id": "t1-alpha",
+        "real_tokens": 500000,
+        "estimated_tokens": 50000,
+        "ratio": 10
+      }
+    ],
+    "incidences": [
+      {
+        "task_id": "t2-gamma",
+        "reason": "missing agentId or sessionId"
+      }
+    ],
+    "session_count": 1
+  }
+}
