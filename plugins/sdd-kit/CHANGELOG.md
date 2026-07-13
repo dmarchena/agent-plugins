@@ -4,6 +4,22 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.3.1
+
+- `exec-tools.mjs complete` and `complete --batch` now refuse to record
+  state or commit a delegated task unless an agent id is supplied via
+  `--agent-id`/`agent_id`, or the gap is explicitly acknowledged via
+  `--no-agent-id "<reason>"`/`no_agent_id: "<reason>"`. Previously the id
+  was advisory prose only, so an orchestrating session could silently omit
+  it and the gap surfaced only when `spec-forensics` ran, often after the
+  spec was already archived (issue #46). Rejection exits non-zero with
+  `error.reason` starting `MISSING_AGENT_ID: <task_id>` and leaves the
+  state file and git log unchanged; the batch guard is all-or-nothing,
+  matching the existing `--files` guard.
+- Updated plan-executor's `SKILL.md` (§2/§3) to document the new guard and
+  its acknowledgment escape hatch, rewritten as one-rule-per-flag bullets
+  instead of run-on prose.
+
 ## 1.3.0
 
 - Added `plan-tools.mjs calibration-snapshot <archivedDir> [--out <path>]`, a
