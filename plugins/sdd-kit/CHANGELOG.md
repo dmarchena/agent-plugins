@@ -4,6 +4,21 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.3.0
+
+- Added `plan-tools.mjs calibration-snapshot <archivedDir> [--out <path>]`, a
+  deterministic command that joins every archived spec's
+  `execution_state.json` (`actual_tokens`) to its `execution_plan.json`
+  (`agent_type`, dependencies, task order/count) into a committed Markdown
+  snapshot — one row per executed task with a signed `deviation%`, plus a
+  per-plan bias summary so the sign-flip between over- and under-estimated
+  plans is visible without reading every row. The snapshot regenerates
+  byte-identical from unchanged inputs.
+- Updated plan-writer's estimation guidance
+  (`assets/task-fields-detail.md`) to weight `estimated_tokens` by how much
+  prior context a task must read rather than its nominal complexity, and
+  linked it to the new `assets/calibration-snapshot.md` reference.
+
 ## 1.2.1
 
 - Trimmed CLI stdout `data` payloads across the nine sdd-kit CLIs to only
