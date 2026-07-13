@@ -10,21 +10,21 @@
       "actual_tokens": 95000,
       "deviation": 50000,
       "test_cmd": "node --test plugins/sdd-kit/test/calibration-snapshot-cli.test.mjs",
-      "commit": null,
+      "commit": "aae6018",
       "incidencia": null,
       "agentId": "a6c1c09c82b7b82e3",
       "sessionId": "ecc4e14b-8aac-4a28-9930-d2335c5c7f5e"
     },
     "bias-summary": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 28000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 45000,
+      "deviation": 17000,
+      "test_cmd": "node --test plugins/sdd-kit/test/calibration-snapshot-cli.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a12c7cc6d50d764da",
+      "sessionId": "ecc4e14b-8aac-4a28-9930-d2335c5c7f5e"
     },
     "deterministic-output": {
       "status": "pending",

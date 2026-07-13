@@ -114,3 +114,32 @@
 | verify-ac-parser-loud-fail | T3 | verifier | 2 | 2 | 3 | 25000 | 25000 | +0% |
 
 excluded: 1
+
+## Per-plan bias summary
+
+| plan_slug | mean_deviation_pct |
+|---|---|
+| change-type-versioning-policy | +500% |
+| executor-minimal-brief | -27% |
+| executor-minimal-return | +34% |
+| executor-scoped-commit | +154% |
+| fix-commit-state-ordering | -64% |
+| forensics-analysis | +4% |
+| forensics-analysis-validate-cli | -20% |
+| forensics-persist-ids | +41% |
+| multi-platform-marketplace | +11% |
+| sdd-kit-skill-token-budget | +766% |
+| sdd-kit-token-reduction | -57% |
+| sdd-verify-cli-and-budget-pause | +17% |
+| shared-scripts-and-real-cost | +151% |
+| spec-forensics | -21% |
+| spec-forensics-report-delegation | +55% |
+| token-cost-cli | -1% |
+| token-diet | -9% |
+| trim-cli-data | +70% |
+| unify-cli-io | +112% |
+| verifier-task-shape | -12% |
+| verify | +113% |
+| verify-ac-parser-loud-fail | +7% |
+
+overall: +102%

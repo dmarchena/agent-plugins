@@ -134,3 +134,109 @@ test('calibration-snapshot es determinista: dos ejecuciones sobre el mismo input
   const second = parseEnvelope(runCalibrationSnapshot([ARCHIVED_FIXTURES_DIR]));
   assert.equal(first.data.markdown, second.data.markdown, 'el snapshot debe ser byte-identico entre ejecuciones sobre el mismo input');
 });
+
+// ---------------------------------------------------------------------------
+// R2 (docs/specs/token-estimator-calibration/spec.md): per-plan bias summary
+// ---------------------------------------------------------------------------
+//
+// R2.S1: the summary lists each plan (that contributed at least one row to
+// the main table) with the signed mean of its rows' numeric deviation%, plus
+// one overall grand-mean line across all included rows. plan-alpha's two
+// rows are T1=+30%, T2=-25% -> mean = round((30-25)/2) = round(2.5) = +3
+// (Math.round rounds .5 away from zero for positives). plan-beta's only
+// included row (U1) has deviation% = N/A (estimated_tokens was 0), so its
+// mean must render N/A rather than NaN/crash from an empty-denominator
+// division. plan-gamma-unexecuted contributes zero rows at all, so it must
+// not appear in the summary either. The overall line covers the same two
+// numeric rows (T1, T2) as plan-alpha, so it lands on the same +3%.
+
+test('R2.S1: el summary lista el mean deviation% firmado por plan, con N/A cuando el plan no tiene filas con deviation% numerico, y una linea overall', () => {
+  const result = runCalibrationSnapshot([ARCHIVED_FIXTURES_DIR]);
+  const parsed = parseEnvelope(result);
+  const md = parsed.data.markdown;
+
+  assert.match(md, /## Per-plan bias summary/, `debe existir una seccion de resumen por plan; markdown=${md}`);
+  assert.match(
+    md,
+    /\|\s*plan-alpha\s*\|\s*\+3%\s*\|/,
+    `plan-alpha debe listar mean deviation% = +3% (round((30-25)/2)); markdown=${md}`
+  );
+  assert.match(
+    md,
+    /\|\s*plan-beta\s*\|\s*N\/A\s*\|/,
+    `plan-beta debe listar N/A cuando ninguna de sus filas incluidas tiene deviation% numerico; markdown=${md}`
+  );
+  assert.doesNotMatch(
+    md,
+    /plan-gamma-unexecuted/,
+    'plan-gamma-unexecuted no contribuye ninguna fila y no debe aparecer en el summary'
+  );
+  assert.match(md, /overall:\s*\+3%/, `debe existir una linea overall con el mean global firmado; markdown=${md}`);
+});
+
+test('R2.S1/AC3: sobre los datos reales archivados, fix-commit-state-ordering tiene mean deviation% negativo y verify positivo', () => {
+  const realArchivedDir = path.join(__dirname, '..', '..', '..', 'docs', 'specs', 'archived');
+  const result = runCalibrationSnapshot([realArchivedDir]);
+  assert.equal(result.status, 0, `debe terminar con codigo 0; stderr=${result.stderr}`);
+  const parsed = parseEnvelope(result);
+  const md = parsed.data.markdown;
+
+  const fixMatch = md.match(/\|\s*fix-commit-state-ordering\s*\|\s*([+-]\d+)%\s*\|/);
+  assert.ok(fixMatch, `debe existir una fila de resumen para fix-commit-state-ordering; markdown=${md}`);
+  assert.ok(
+    Number(fixMatch[1]) < 0,
+    `fix-commit-state-ordering debe tener mean deviation% negativo (sobre-estimado); obtenido=${fixMatch[1]}%`
+  );
+
+  const verifyMatch = md.match(/\|\s*verify\s*\|\s*([+-]\d+)%\s*\|/);
+  assert.ok(verifyMatch, `debe existir una fila de resumen para verify; markdown=${md}`);
+  assert.ok(
+    Number(verifyMatch[1]) > 0,
+    `verify debe tener mean deviation% positivo (sub-estimado); obtenido=${verifyMatch[1]}%`
+  );
+});
+
+// R3/AC4: regenerar el snapshot contra el directorio real de specs
+// archivadas debe producir exactamente el Markdown ya committeado en
+// plugins/sdd-kit/skills/plan-writer/assets/calibration-snapshot.md -- es
+// decir, `git diff --exit-code` sobre ese fichero no debe reportar cambios
+// tras una regeneracion. A diferencia del test sintetico de arriba (mismo
+// input dos veces), este ejercita el caso real de AC4: input real,
+// artefacto real committeado.
+//
+// Ambos lados se leen en el momento de ejecutar el test (no se cachea nada
+// de una carga anterior de este fichero), para que el resultado sea
+// correcto sin importar el orden relativo frente a otra tarea que este
+// regenerando este mismo fichero committeado en paralelo.
+test('R3/AC4: regenerar contra docs/specs/archived/ real es byte-identico al snapshot actualmente committeado en disco', () => {
+  const REAL_ARCHIVED_DIR = path.join(__dirname, '..', '..', '..', 'docs', 'specs', 'archived');
+  const COMMITTED_SNAPSHOT_PATH = path.join(
+    __dirname,
+    '..',
+    'skills',
+    'plan-writer',
+    'assets',
+    'calibration-snapshot.md'
+  );
+
+  assert.ok(
+    fs.existsSync(REAL_ARCHIVED_DIR),
+    `debe existir el directorio real de specs archivadas: ${REAL_ARCHIVED_DIR}`
+  );
+  assert.ok(
+    fs.existsSync(COMMITTED_SNAPSHOT_PATH),
+    `debe existir el snapshot actualmente committeado: ${COMMITTED_SNAPSHOT_PATH}`
+  );
+
+  const committed = fs.readFileSync(COMMITTED_SNAPSHOT_PATH, 'utf8');
+
+  const result = runCalibrationSnapshot([REAL_ARCHIVED_DIR]);
+  assert.equal(result.status, 0, `debe terminar con codigo 0; stderr=${result.stderr}`);
+  const regenerated = parseEnvelope(result).data.markdown;
+
+  assert.equal(
+    regenerated,
+    committed,
+    'regenerar contra docs/specs/archived/ debe ser byte-identico al fichero committeado (AC4: git diff --exit-code no debe reportar cambios)'
+  );
+});

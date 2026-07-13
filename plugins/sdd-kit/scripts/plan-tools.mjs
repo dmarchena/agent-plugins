@@ -568,16 +568,74 @@ const CALIBRATION_SNAPSHOT_HEADER =
   '| plan_slug | task_id | agent_type | task_index | dependencies | plan_size | estimated_tokens | actual_tokens | deviation_pct |';
 const CALIBRATION_SNAPSHOT_DIVIDER = '|---|---|---|---|---|---|---|---|---|';
 
+// Shared with the per-row deviation% cell and the R2 summary's mean cells,
+// so both render `N/A` the same way and signed values the same way (explicit
+// `+` for non-negative, bare `-` for negative, via the numeric sign already
+// carried by Math.round).
+function formatSignedPct(value) {
+  return value === null ? 'N/A' : `${value >= 0 ? '+' : ''}${value}%`;
+}
+
+// R2 (docs/specs/token-estimator-calibration/spec.md): per-plan bias summary.
+//
+// Groups `rows` (collectCalibrationRows' output, already sorted by plan slug
+// then plan-order task index) by planSlug, in first-appearance order -- which
+// is the same as the table's slug order, since rows are pre-sorted, so this
+// needs no extra sort to stay deterministic. For each plan, averages only
+// the rows whose deviationPct is numeric (a row with null/0 estimated_tokens
+// renders `N/A` in the table per R1.S2 and is excluded from its plan's mean
+// too, rather than treated as 0 -- an N/A isn't a zero deviation, it's an
+// unknown one). A plan whose every row is N/A (e.g. every estimated_tokens
+// was 0) would otherwise divide 0/0 into NaN; instead its mean is `null`,
+// rendered `N/A` like any other missing value. `overallMeanDeviationPct` is
+// the same signed-mean rule applied across every plan's numeric rows at
+// once (the "one overall line" from R2's requirement text).
+function computeBiasSummary(rows) {
+  const perPlanOrder = [];
+  const perPlanAcc = new Map(); // planSlug -> { sum, count }
+  let overallSum = 0;
+  let overallCount = 0;
+
+  for (const r of rows) {
+    if (!perPlanAcc.has(r.planSlug)) {
+      perPlanAcc.set(r.planSlug, { sum: 0, count: 0 });
+      perPlanOrder.push(r.planSlug);
+    }
+    if (r.deviationPct !== null) {
+      const acc = perPlanAcc.get(r.planSlug);
+      acc.sum += r.deviationPct;
+      acc.count += 1;
+      overallSum += r.deviationPct;
+      overallCount += 1;
+    }
+  }
+
+  const perPlan = perPlanOrder.map((planSlug) => {
+    const { sum, count } = perPlanAcc.get(planSlug);
+    return { planSlug, meanDeviationPct: count === 0 ? null : Math.round(sum / count) };
+  });
+
+  return {
+    perPlan,
+    overallMeanDeviationPct: overallCount === 0 ? null : Math.round(overallSum / overallCount),
+  };
+}
+
 // Renders { rows, excluded } (collectCalibrationRows' return shape) into the
 // R1 Markdown snapshot: a nine-column table (one row per included task) plus
 // a trailing `excluded: <K>` line. Pure string formatting, no filesystem or
 // timestamp dependency, so it is byte-identical for identical input.
+//
+// R2 appends a second section AFTER the `excluded:` line (rather than before
+// it, or interleaved into the main table) so the main table + excluded count
+// -- R1's whole contract -- stays a stable, unchanged prefix of the output,
+// and the new per-plan summary reads as a distinct, clearly-labeled section
+// appended at the end.
 function renderCalibrationSnapshot({ rows, excluded }) {
   const lines = [CALIBRATION_SNAPSHOT_HEADER, CALIBRATION_SNAPSHOT_DIVIDER];
 
   for (const r of rows) {
-    const deviationCell =
-      r.deviationPct === null ? 'N/A' : `${r.deviationPct >= 0 ? '+' : ''}${r.deviationPct}%`;
+    const deviationCell = formatSignedPct(r.deviationPct);
     lines.push(
       `| ${r.planSlug} | ${r.taskId} | ${r.agentType} | ${r.taskIndex} | ${r.dependencyCount} | ${r.planSize} | ${r.estimatedTokens} | ${r.actualTokens} | ${deviationCell} |`
     );
@@ -585,6 +643,19 @@ function renderCalibrationSnapshot({ rows, excluded }) {
 
   lines.push('');
   lines.push(`excluded: ${excluded}`);
+
+  const { perPlan, overallMeanDeviationPct } = computeBiasSummary(rows);
+
+  lines.push('');
+  lines.push('## Per-plan bias summary');
+  lines.push('');
+  lines.push('| plan_slug | mean_deviation_pct |');
+  lines.push('|---|---|');
+  for (const p of perPlan) {
+    lines.push(`| ${p.planSlug} | ${formatSignedPct(p.meanDeviationPct)} |`);
+  }
+  lines.push('');
+  lines.push(`overall: ${formatSignedPct(overallMeanDeviationPct)}`);
 
   return lines.join('\n') + '\n';
 }
