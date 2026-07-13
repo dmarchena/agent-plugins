@@ -12,11 +12,16 @@ docs/specs/markvault/spec.md).
 before importing any extractor-related module, so no strategy or its
 backend library can ever attempt an outbound connection.
 
-Scope note: this module does NOT select a strategy automatically
-(`--strategy auto` is a separate sibling task, R3/fallback-chain) -- out
-of scope here by design.
+`--strategy` defaults to (and can be explicitly passed as) `"auto"`: the R3
+fallback chain tries the structured strategy (pymupdf4llm) first and, if it
+fails or produces text below a minimum length threshold, falls back to
+pdftotext -- whose own internal OCR recourse (see
+`strategies/pdftotext_strategy.py`) is the deepest link in the chain.
+`markitdown` is never part of this chain; it stays an explicit-selection-only
+strategy (unaffected by any of the auto logic below).
 
 Usage:
+    python3 -m markvault.cli document.pdf
     python3 -m markvault.cli document.pdf --strategy pymupdf4llm
     python3 -m markvault.cli document.pdf --strategy pdftotext --out /tmp/out.md
 """
@@ -25,9 +30,13 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from . import red_guard
+
+#: Registered name of the strategy that requests fallback-chain selection
+#: instead of an explicit, single named strategy.
+AUTO_STRATEGY_NAME = "auto"
 
 #: Magic bytes every valid PDF starts with; used for a real structural
 #: readability check independent of file extension (R2.S3: "missing,
@@ -63,10 +72,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("pdf", help="Path to the input PDF.")
     parser.add_argument(
         "--strategy",
-        required=True,
+        default=AUTO_STRATEGY_NAME,
         help=(
             "Registered extraction strategy name (e.g. pymupdf4llm, "
-            "pdftotext, markitdown). 'auto' selection is not implemented here."
+            "pdftotext, markitdown), or 'auto' (the default) to run the R3 "
+            "fallback chain: structured -> pdftotext -> pdftotext's own "
+            "internal OCR recourse."
         ),
     )
     parser.add_argument(
@@ -75,6 +86,55 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output .md path. Defaults to the input PDF's path with a .md suffix.",
     )
     return parser
+
+
+def _run_auto_chain(pdf_path: Path, registry: "StrategyRegistry") -> Tuple[str, str, bool]:
+    """Run the R3 automatic fallback chain: structured -> pdftotext -> OCR.
+
+    Tries the structured strategy (pymupdf4llm) first. If it raises
+    `ExtractionError`, or its output is shorter than the shared minimum
+    threshold (`pdftotext_strategy.MIN_CHARS`, ~20 chars per the spec's
+    Assumptions section), falls back to `pdftotext`.
+
+    `PdftotextStrategy.extract()` already folds its own internal OCR
+    recourse into one call (see strategies/pdftotext_strategy.py), which
+    would report as plain `strategy=pdftotext` even when OCR is what
+    actually produced the text. To report the deepest link genuinely used,
+    per R3.S2's `strategy=ocr` stderr contract, this replicates the same
+    threshold check the strategy makes internally, via its own helpers,
+    instead of duplicating its subprocess logic here.
+
+    `markitdown` is deliberately never part of this chain (R3).
+
+    Returns:
+        (text, effective_strategy_name, fallback_occurred) -- fallback_occurred
+        is False only when the structured strategy succeeds outright.
+
+    Raises:
+        ExtractionError: if every link in the chain is exhausted without
+            producing usable text (mirrors the single-strategy failure
+            contract, so callers can handle it identically).
+    """
+    from .strategies.base import ExtractionError
+    from .strategies.pdftotext_strategy import MIN_CHARS as AUTO_MIN_CHARS
+
+    structured = registry.get("pymupdf4llm")
+    try:
+        text = structured.extract(pdf_path)
+        if len(text.strip()) >= AUTO_MIN_CHARS:
+            return text, structured.name, False
+    except ExtractionError:
+        pass
+
+    plain_strategy = registry.get("pdftotext")
+    # Private helpers, deliberately reused rather than duplicated (see
+    # docstring above) -- strategies/pdftotext_strategy.py is not modified.
+    plain_text = plain_strategy._pdftotext(pdf_path)  # type: ignore[attr-defined]
+    if len(plain_text.strip()) >= plain_strategy.min_chars:
+        return plain_text, "pdftotext", True
+
+    ocr_text = plain_strategy._ocr(pdf_path)  # type: ignore[attr-defined]
+    return ocr_text, "ocr", True
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -94,32 +154,47 @@ def main(argv: Optional[List[str]] = None) -> int:
     out_path = Path(args.out) if args.out is not None else pdf_path.with_suffix(".md")
 
     registry = default_registry()
+    is_auto = args.strategy == AUTO_STRATEGY_NAME
 
-    try:
-        strategy = registry.get(args.strategy)
-    except UnknownStrategyError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+    strategy = None
+    if not is_auto:
+        try:
+            strategy = registry.get(args.strategy)
+        except UnknownStrategyError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
 
     if not pdf_path.is_file() or not _looks_like_pdf(pdf_path):
         print(UNREADABLE_PDF_MESSAGE.format(path=pdf_path), file=sys.stderr)
         return 1
 
+    fallback_occurred = False
     try:
-        text = strategy.extract(pdf_path)
+        if is_auto:
+            text, strategy_name, fallback_occurred = _run_auto_chain(pdf_path, registry)
+        else:
+            text = strategy.extract(pdf_path)
+            strategy_name = strategy.name
     except ExtractionError:
         # Normalize any backend failure (corrupt-but-magic-valid PDF,
-        # missing extraction binary, etc.) to the same pinned message --
-        # never forward the backend's own error text, which could echo
-        # fragments of the input.
+        # missing extraction binary, chain fully exhausted, etc.) to the
+        # same pinned message -- never forward the backend's own error
+        # text, which could echo fragments of the input.
         print(UNREADABLE_PDF_MESSAGE.format(path=pdf_path), file=sys.stderr)
         return 1
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(text, encoding="utf-8")
 
+    # The fallback=yes/no field is only meaningful (and only reported) in
+    # auto mode -- explicit named-strategy invocations keep the exact
+    # pre-existing stderr format, unaffected by any of the fallback logic
+    # above (per this task's constraints).
+    fallback_field = (
+        f" fallback={'yes' if fallback_occurred else 'no'}" if is_auto else ""
+    )
     print(
-        f"path={out_path} chars={len(text)} strategy={strategy.name}",
+        f"path={out_path} chars={len(text)} strategy={strategy_name}{fallback_field}",
         file=sys.stderr,
     )
     return 0
