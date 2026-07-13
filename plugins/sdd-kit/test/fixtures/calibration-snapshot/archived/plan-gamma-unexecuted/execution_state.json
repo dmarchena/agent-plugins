@@ -1,0 +1,27 @@
+{
+  "plan_id": "plan-gamma-unexecuted-v1",
+  "source_spec": "docs/specs/plan-gamma-unexecuted/spec.md",
+  "branch": "feat/plan-gamma-unexecuted",
+  "started_at": "2026-01-03T00:00:00.000Z",
+  "tasks": {
+    "V1": {
+      "status": "pending",
+      "estimated_tokens": 100,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    },
+    "V2": {
+      "status": "pending",
+      "estimated_tokens": 200,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null
+    }
+  },
+  "pause": null
+}

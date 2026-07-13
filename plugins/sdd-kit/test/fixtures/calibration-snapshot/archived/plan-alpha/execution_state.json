@@ -1,0 +1,27 @@
+{
+  "plan_id": "plan-alpha-v1",
+  "source_spec": "docs/specs/plan-alpha/spec.md",
+  "branch": "feat/plan-alpha",
+  "started_at": "2026-01-01T00:00:00.000Z",
+  "tasks": {
+    "T1": {
+      "status": "done",
+      "estimated_tokens": 100,
+      "actual_tokens": 130,
+      "deviation": 30,
+      "test_cmd": "node --test fixture.test.mjs",
+      "commit": "aaaaaaa",
+      "incidencia": null
+    },
+    "T2": {
+      "status": "done",
+      "estimated_tokens": 200,
+      "actual_tokens": 150,
+      "deviation": -50,
+      "test_cmd": "node --test fixture.test.mjs",
+      "commit": "bbbbbbb",
+      "incidencia": null
+    }
+  },
+  "pause": null
+}

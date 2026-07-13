@@ -5,6 +5,7 @@
 // Usage:
 //   node plan-tools.mjs inspect-spec <spec.md>
 //   node plan-tools.mjs check-plan <spec.md> <plan.json>
+//   node plan-tools.mjs calibration-snapshot <archivedDir> [--out <path>]
 //
 // Convention: success -> exit 0, stdout carries {ok:true,data:...}.
 //             failure -> exit != 0, stdout carries {ok:false,error:{reason}}
@@ -12,7 +13,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { emitSuccess, emitError } from './lib/cli.mjs';
+import { emitSuccess, emitError, parseFlags } from './lib/cli.mjs';
 
 // ---------------------------------------------------------------------------
 // Generic utilities
@@ -452,6 +453,155 @@ function cmdCheckPlan(specPath, planPath) {
 }
 
 // ---------------------------------------------------------------------------
+// calibration-snapshot: R1 (docs/specs/token-estimator-calibration/spec.md)
+// ---------------------------------------------------------------------------
+//
+// Reads every immediate subdirectory of `archivedDir` that carries BOTH an
+// execution_state.json and an execution_plan.json, joins each executed
+// task's recorded consumption (state) with its planned structure (plan) on
+// task id, and produces a Markdown snapshot: one row per executed task
+// (actual_tokens non-null), nine columns, plus an `excluded: <K>` line
+// counting every task skipped because its actual_tokens was null (including
+// every task of a plan that was never executed).
+//
+// Deterministic by construction: subdirectories are sorted by name, and
+// tasks within a plan are sorted by their plan-order index (falling back to
+// task_id for any task not found in the plan, which shouldn't happen in
+// well-formed archives) -- re-running against unchanged inputs always
+// yields the same row order and the same Markdown bytes.
+//
+// Kept as two separate steps (collect -> render) rather than one fused
+// function so a later task can extend the collected data (e.g. a per-plan
+// mean deviation% for R2) without having to first factor this apart.
+
+// Returns { rows, excluded } for every archived <slug> dir under
+// `archivedDir` that has both execution_state.json and execution_plan.json.
+// `rows` is already sorted (by plan slug, then plan-order task index) so the
+// caller can render it directly without any further sorting.
+function collectCalibrationRows(archivedDir) {
+  let entries;
+  try {
+    entries = fs.readdirSync(archivedDir, { withFileTypes: true });
+  } catch (err) {
+    emitError(`could not read archived dir: ${archivedDir} (${err.message})`);
+  }
+
+  const slugs = entries
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort();
+
+  const rows = [];
+  let excluded = 0;
+
+  for (const slug of slugs) {
+    const dirPath = path.join(archivedDir, slug);
+    const statePath = path.join(dirPath, 'execution_state.json');
+    const planPath = path.join(dirPath, 'execution_plan.json');
+    if (!fs.existsSync(statePath) || !fs.existsSync(planPath)) continue;
+
+    let state;
+    let plan;
+    try {
+      state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+      plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
+    } catch (err) {
+      emitError(`could not parse JSON for archived dir ${slug}: ${err.message}`);
+    }
+
+    const planTasks = Array.isArray(plan.tasks) ? plan.tasks : [];
+    const planSize = planTasks.length;
+    const planIndexById = new Map(planTasks.map((t, i) => [t.task_id, i]));
+    const planTaskById = new Map(planTasks.map((t) => [t.task_id, t]));
+
+    const stateTasks =
+      state.tasks && typeof state.tasks === 'object' && !Array.isArray(state.tasks) ? state.tasks : {};
+
+    const taskIds = Object.keys(stateTasks).sort((a, b) => {
+      const ia = planIndexById.has(a) ? planIndexById.get(a) : Number.MAX_SAFE_INTEGER;
+      const ib = planIndexById.has(b) ? planIndexById.get(b) : Number.MAX_SAFE_INTEGER;
+      if (ia !== ib) return ia - ib;
+      return a < b ? -1 : a > b ? 1 : 0;
+    });
+
+    for (const taskId of taskIds) {
+      const stateTask = stateTasks[taskId];
+      const planTask = planTaskById.get(taskId);
+
+      // Unusable join: no plan task of this id to source structural fields
+      // from. Counted as excluded rather than silently dropped.
+      if (!planTask) {
+        excluded++;
+        continue;
+      }
+
+      const actualTokens = stateTask ? stateTask.actual_tokens : null;
+      if (actualTokens === null || actualTokens === undefined) {
+        excluded++;
+        continue;
+      }
+
+      const estimatedTokens = planTask.estimated_tokens;
+      const deviationPct =
+        estimatedTokens === null || estimatedTokens === undefined || estimatedTokens === 0
+          ? null
+          : Math.round(((actualTokens - estimatedTokens) / estimatedTokens) * 100);
+
+      rows.push({
+        planSlug: slug,
+        taskId,
+        agentType: planTask.agent_type,
+        taskIndex: planIndexById.get(taskId),
+        dependencyCount: Array.isArray(planTask.dependencies) ? planTask.dependencies.length : 0,
+        planSize,
+        estimatedTokens,
+        actualTokens,
+        deviationPct,
+      });
+    }
+  }
+
+  return { rows, excluded };
+}
+
+const CALIBRATION_SNAPSHOT_HEADER =
+  '| plan_slug | task_id | agent_type | task_index | dependencies | plan_size | estimated_tokens | actual_tokens | deviation_pct |';
+const CALIBRATION_SNAPSHOT_DIVIDER = '|---|---|---|---|---|---|---|---|---|';
+
+// Renders { rows, excluded } (collectCalibrationRows' return shape) into the
+// R1 Markdown snapshot: a nine-column table (one row per included task) plus
+// a trailing `excluded: <K>` line. Pure string formatting, no filesystem or
+// timestamp dependency, so it is byte-identical for identical input.
+function renderCalibrationSnapshot({ rows, excluded }) {
+  const lines = [CALIBRATION_SNAPSHOT_HEADER, CALIBRATION_SNAPSHOT_DIVIDER];
+
+  for (const r of rows) {
+    const deviationCell =
+      r.deviationPct === null ? 'N/A' : `${r.deviationPct >= 0 ? '+' : ''}${r.deviationPct}%`;
+    lines.push(
+      `| ${r.planSlug} | ${r.taskId} | ${r.agentType} | ${r.taskIndex} | ${r.dependencyCount} | ${r.planSize} | ${r.estimatedTokens} | ${r.actualTokens} | ${deviationCell} |`
+    );
+  }
+
+  lines.push('');
+  lines.push(`excluded: ${excluded}`);
+
+  return lines.join('\n') + '\n';
+}
+
+function cmdCalibrationSnapshot(archivedDir, flags) {
+  const { rows, excluded } = collectCalibrationRows(archivedDir);
+  const markdown = renderCalibrationSnapshot({ rows, excluded });
+
+  if (flags.out && flags.out !== true) {
+    fs.writeFileSync(String(flags.out), markdown);
+  }
+
+  emitSuccess({ rows: rows.length, excluded, markdown });
+  process.exit(0);
+}
+
+// ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
 
@@ -468,8 +618,17 @@ function main() {
       emitError('usage: plan-tools.mjs check-plan <spec.md> <plan.json>');
     }
     cmdCheckPlan(specPath, planPath);
+  } else if (subcommand === 'calibration-snapshot') {
+    const [archivedDir] = args;
+    if (!archivedDir) {
+      emitError('usage: plan-tools.mjs calibration-snapshot <archivedDir> [--out <path>]');
+    }
+    const flags = parseFlags(args);
+    cmdCalibrationSnapshot(archivedDir, flags);
   } else {
-    emitError('unknown subcommand: usage: plan-tools.mjs <inspect-spec|check-plan> <args>');
+    emitError(
+      'unknown subcommand: usage: plan-tools.mjs <inspect-spec|check-plan|calibration-snapshot> <args>'
+    );
   }
 }
 

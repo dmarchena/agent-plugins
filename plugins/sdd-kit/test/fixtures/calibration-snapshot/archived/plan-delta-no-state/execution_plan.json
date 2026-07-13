@@ -1,0 +1,30 @@
+{
+  "plan_id": "plan-delta-no-state-v1",
+  "project_name": "fixture",
+  "global_objective": "fixture plan with no execution_state.json at all -- must be skipped entirely (not counted as excluded)",
+  "source_spec": "docs/specs/plan-delta-no-state/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 100,
+  "tasks": [
+    {
+      "task_id": "W1",
+      "source_ids": ["R1"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "fixture",
+      "instructions": "fixture instructions referencing R1",
+      "expected_output_schema": "fixture",
+      "satisfies_acs": ["AC1"],
+      "estimated_tokens": 100,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [{ "ref": "AC1", "assertion": "fixture" }]
+    }
+  ],
+  "coverage": {
+    "requirements": { "R1": ["W1"] },
+    "acs": { "AC1": ["W1"] }
+  }
+}
