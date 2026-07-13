@@ -31,22 +31,32 @@ For every other CLI: the command is run for real, stdout's single JSON line
 is parsed, `.data` is re-serialized with `JSON.stringify` (compact, matching
 `emitSuccess`'s own serialization) and fed to `estimateTokens()`.
 
-## Baseline table
+## Baseline and after-trim measurements table
 
-| CLI | Payload shape | Baseline tokens | Command |
-|---|---|---|---|
-| budget-guard.mjs | results (default skills/hwm dirs) | 158 | `node plugins/sdd-kit/scripts/budget-guard.mjs` |
-| exec-tools.mjs | next | 52 | `node plugins/sdd-kit/scripts/exec-tools.mjs next docs/specs/archived/spec-forensics` |
-| exec-tools.mjs | report | 734 | `node plugins/sdd-kit/scripts/exec-tools.mjs report docs/specs/archived/spec-forensics` |
-| exec-tools.mjs | extract | 318 | `node plugins/sdd-kit/scripts/exec-tools.mjs extract docs/specs/trim-cli-data R2.S1 R2.S2 AC3 AC4` |
-| forensics-analysis-validate.mjs | validate (default) | 15 | `node plugins/sdd-kit/scripts/forensics-analysis-validate.mjs docs/specs/archived/forensics-analysis` |
-| forensics.mjs | report (default) | 767 | `TMPDIR_FX=$(mktemp -d) && cp -r docs/specs/archived/forensics-analysis "$TMPDIR_FX/forensics-analysis" && node plugins/sdd-kit/scripts/forensics.mjs "$TMPDIR_FX/forensics-analysis"` |
-| plan-tools.mjs | inspect-spec | 15 | `node plugins/sdd-kit/scripts/plan-tools.mjs inspect-spec docs/specs/archived/spec-forensics/spec.md` |
-| plan-tools.mjs | check-plan | 24 | `node plugins/sdd-kit/scripts/plan-tools.mjs check-plan docs/specs/archived/spec-forensics/spec.md docs/specs/archived/spec-forensics/execution_plan.json` |
-| token-cost.mjs | session report | 441 | `node plugins/sdd-kit/scripts/token-cost.mjs docs/specs/trim-cli-data/fixtures/token-cost/session-a.jsonl` |
-| tokenizer.mjs | N/A (no stdout envelope) | 0 | `node plugins/sdd-kit/scripts/tokenizer.mjs` |
-| verify-tools.mjs | report (default) | 726 | `node plugins/sdd-kit/scripts/verify-tools.mjs report docs/specs/archived/spec-forensics` |
-| versioning-report.mjs | warnings (default) | 9 | `node plugins/sdd-kit/scripts/versioning-report.mjs .` |
+| CLI | Payload shape | Baseline tokens | Command | After tokens | Δ |
+|---|---|---|---|---|---|
+| budget-guard.mjs | results (default skills/hwm dirs) | 158 | `node plugins/sdd-kit/scripts/budget-guard.mjs` | 150 | 8 |
+| exec-tools.mjs | next | 52 | `node plugins/sdd-kit/scripts/exec-tools.mjs next docs/specs/archived/spec-forensics` | 52 | 0 |
+| exec-tools.mjs | report | 734 | `node plugins/sdd-kit/scripts/exec-tools.mjs report docs/specs/archived/spec-forensics` | 612 | 122 |
+| exec-tools.mjs | extract | 318 | `node plugins/sdd-kit/scripts/exec-tools.mjs extract docs/specs/trim-cli-data R2.S1 R2.S2 AC3 AC4` | 318 | 0 |
+| forensics-analysis-validate.mjs | validate (default) | 15 | `node plugins/sdd-kit/scripts/forensics-analysis-validate.mjs docs/specs/archived/forensics-analysis` | 7 | 8 |
+| forensics.mjs | report (default) | 767 | `TMPDIR_FX=$(mktemp -d) && cp -r docs/specs/archived/forensics-analysis "$TMPDIR_FX/forensics-analysis" && node plugins/sdd-kit/scripts/forensics.mjs "$TMPDIR_FX/forensics-analysis"` | 682 | 85 |
+| plan-tools.mjs | inspect-spec | 15 | `node plugins/sdd-kit/scripts/plan-tools.mjs inspect-spec docs/specs/archived/spec-forensics/spec.md` | 15 | 0 |
+| plan-tools.mjs | check-plan | 24 | `node plugins/sdd-kit/scripts/plan-tools.mjs check-plan docs/specs/archived/spec-forensics/spec.md docs/specs/archived/spec-forensics/execution_plan.json` | 8 | 16 |
+| token-cost.mjs | session report | 441 | `node plugins/sdd-kit/scripts/token-cost.mjs docs/specs/trim-cli-data/fixtures/token-cost/session-a.jsonl` | 441 | 0 |
+| tokenizer.mjs | N/A (no stdout envelope) | 0 | `node plugins/sdd-kit/scripts/tokenizer.mjs` | N/A | N/A |
+| verify-tools.mjs | report (default) | 726 | `node plugins/sdd-kit/scripts/verify-tools.mjs report docs/specs/archived/spec-forensics` | 728 | -2 |
+| versioning-report.mjs | warnings (default) | 9 | `node plugins/sdd-kit/scripts/versioning-report.mjs .` | 2 | 7 |
+
+### Summary
+
+**Total reduction: 244 tokens** (3,259 → 3,015 across nine measured CLIs; tokenizer.mjs excluded as N/A)
+
+- **Before**: 3,259 tokens
+- **After**: 3,015 tokens
+- **Reduction**: 244 tokens (7.5% decrease)
+
+Nine of eleven payload shapes improved or held steady; verify-tools.mjs report increased by 2 tokens (a marginal regression within the noise), but the portfolio as a whole achieved the target savings required by AC-E2E.
 
 ## Notes on shape selection
 
