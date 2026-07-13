@@ -1,0 +1,360 @@
+{
+  "plan_id": "markvault-v1",
+  "project_name": "markvault",
+  "global_objective": "markvault plugin that extracts a document's text (v1: PDF only) to Markdown deterministically, offline and at ~0-token cost, with interchangeable strategies behind a format-agnostic contract (input path + supports()), a registry resolving by name and capability, an auto fallback chain (PDF), a fail-closed anti-network-leak guardrail, a skill that returns only path+statistics, and a benchmark comparing strategies. Generic identity and contract left ready to admit non-PDF formats (xlsx/docx/pptx via markitdown) as a future non-breaking addition.",
+  "source_spec": "docs/specs/markvault/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 575000,
+  "tasks": [
+    {
+      "task_id": "barrier-red-guard",
+      "source_ids": [
+        "R4",
+        "R4.S2",
+        "R4.S3"
+      ],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Porting the red_guard module is bounded implementation with mechanical acceptance criteria (socket blocking, offline env vars); Sonnet suffices.",
+      "instructions": "Create inside the plugin (plugins/markvault/) the anti-network-leak barrier module satisfying R4.S2 and R4.S3: it intercepts socket opening (connect/connect_ex/create_connection) fail-closed, aborting with the block message pinned in R4.S2/AC9, and forces the offline-mode environment variables of R4.S3 to 1. Build on the architecture described in plugins/markvault/PDF_EXTRACCION_Y_ANONIMIZACION.md (section 3, red_guard). Activation must be idempotent. Do not implement extraction or strategies here. All code, comments and error messages in English (repo rule), matching the exact strings the spec pins.",
+      "expected_output_schema": "Python barrier module (e.g. red_guard) with an idempotent activation function that patches socket to abort any connection and sets HF_HUB_OFFLINE/TRANSFORMERS_OFFLINE/HF_DATASETS_OFFLINE to 1.",
+      "satisfies_acs": [
+        "AC9",
+        "AC10"
+      ],
+      "estimated_tokens": 60000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R4.S2",
+          "assertion": "with the barrier active, an attempt to open a network connection aborts the run with a non-zero exit code and a message identifying the network block"
+        },
+        {
+          "ref": "R4.S3",
+          "assertion": "after activating the barrier the three offline-mode environment variables for model libraries equal 1"
+        }
+      ]
+    },
+    {
+      "task_id": "strategy-interface",
+      "source_ids": [
+        "R1",
+        "R1.S1",
+        "R1.S2",
+        "R1.S3"
+      ],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Defining the strategy interface and the three v1 implementations is bounded implementation with clear ACs (selection by name, error on unknown).",
+      "instructions": "Implement in plugins/markvault/ the common extraction strategy interface and the three v1 implementations required by R1: structured Markdown (pymupdf4llm), plain text based on pdftotext with OCR as recourse (tesseract), and markitdown using ONLY its base PDF converter (pdfminer.six + pdfplumber, 100% local) \u2014 do NOT install or invoke its LLM-Vision OCR extras or the Azure Document Intelligence path (they violate the network/0-token guardrail). Follow the methods described in plugins/markvault/PDF_EXTRACCION_Y_ANONIMIZACION.md. The contract must be FORMAT-AGNOSTIC: each strategy receives an input path (do not assume 'pdf' in the signature), exposes supports(path)->bool declaring which formats it accepts, and returns text/Markdown. Provide a registry that resolves strategies by name AND by capability (which strategies support a given file), exposes the effectively used strategy (R1.S1, R1.S3), and on an unknown name fails naming the strategy and listing the valid ones (R1.S2, exact stderr string pinned in AC2). In v1 all three strategies declare PDF-only support. Do NOT implement format detection or non-PDF strategies: only leave the seam (supports + capability registry). markitdown does NOT enter the default auto chain (explicit selection only); it stays available to the benchmark as one more registry strategy. Per R2, the three text-based strategies must be deterministic (identical bytes across runs). Patterns: Strategy + Registry (NO DDD). Do not write the .md or the CLI command here: this task delivers only the interface, the strategies and the selection registry. All code and messages in English (repo rule). Locate external binaries (pdftotext, pdftoppm, tesseract) via PATH in a cross-platform way (e.g. shutil.which) and use pathlib for any path handling, per the spec's platform note: v1 officially targets and CI-verifies Linux and macOS only; staying Windows-compatible is a no-extra-cost side effect, not a tested or required goal.",
+      "expected_output_schema": "Python module(s) with a format-agnostic strategy interface (input path -> text/markdown, supports(path)->bool), the pymupdf4llm, pdftotext-OCR and markitdown strategies, and a registry resolving by name and capability that exposes the used name and validates unknown names.",
+      "satisfies_acs": [
+        "AC2"
+      ],
+      "estimated_tokens": 90000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R1.S1",
+          "assertion": "selecting an existing strategy by name returns extracted text and exposes the name of the strategy effectively used"
+        },
+        {
+          "ref": "R1.S2",
+          "assertion": "selecting a non-existent strategy name produces an error that names the unknown strategy and lists the valid ones"
+        }
+      ]
+    },
+    {
+      "task_id": "cli-extract",
+      "source_ids": [
+        "R2",
+        "R2.S1",
+        "R2.S2",
+        "R2.S3",
+        "R1.S1",
+        "R1.S3"
+      ],
+      "dependencies": [
+        "strategy-interface"
+      ],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "CLI command integrating strategy selection and writing the .md; bounded implementation with deterministic ACs over files and exit codes.",
+      "instructions": "Create the plugin scaffolding (plugins/markvault/plugin.json and command registration) and the CLI command satisfying R2 and R1.S1: given a PDF, select the strategy (consuming the registry from the strategy-interface task), write a .md (next to the PDF by default, or at --out), report chars and strategy on stderr using the exact keys pinned in R2.S1/AC3, and apply the exit codes and the exact stderr messages of R2.S1/R2.S2/R2.S3 (unreadable input: exit != 0, message pinned in AC5, without dumping content, no .md created). Determinism per R2 applies to the text-based strategies. Set an initial semver version in plugin.json when introducing the plugin; per AGENTS.md the version bump + CHANGELOG entry happen when the branch lands on main, not on intermediate commits. The anti-network barrier is wired in the barrier-privacy-wiring task, not here. The --strategy markitdown value (R1.S3/AC15) must work like any other registry strategy: it produces the .md and reports strategy=markitdown. All code and messages in English (repo rule). Handle the --out and default output paths with pathlib.Path rather than hardcoded POSIX separators, per the spec's platform note: v1 officially targets and CI-verifies Linux and macOS only; Windows compatibility is a no-extra-cost side effect, not tested or required.",
+      "expected_output_schema": "Plugin structure (plugin.json + command) and a CLI that converts a PDF into a deterministic .md, with --strategy and --out, stderr reporting chars and strategy, and exit codes per R2.S1-S3.",
+      "satisfies_acs": [
+        "AC1",
+        "AC3",
+        "AC4",
+        "AC5",
+        "AC15"
+      ],
+      "estimated_tokens": 95000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R1.S1",
+          "assertion": "invoking the command with an explicit strategy produces the .md with that strategy and reports its name on stderr"
+        },
+        {
+          "ref": "R2.S1",
+          "assertion": "invoking the command on an electronic PDF without an output path creates a .md next to the PDF with non-empty content, reports chars and strategy on stderr, and exits with code 0"
+        },
+        {
+          "ref": "R2.S2",
+          "assertion": "with an explicit output path the .md is written exactly at that path"
+        },
+        {
+          "ref": "R2.S3",
+          "assertion": "on an input not readable as a PDF the command exits with a non-zero code, warns without dumping content, and creates no .md"
+        }
+      ]
+    },
+    {
+      "task_id": "fallback-chain",
+      "source_ids": [
+        "R3",
+        "R3.S1",
+        "R3.S2"
+      ],
+      "dependencies": [
+        "strategy-interface",
+        "cli-extract"
+      ],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Auto-chain logic with threshold and fallback reporting; bounded implementation with ACs observable on stderr and in the .md.",
+      "instructions": "Implement the --strategy auto mode (the default) satisfying R3: try the structured strategy and, if it fails or produces text below the minimum threshold, fall back to pdftotext and then to OCR, reporting the effective strategy and whether fallback occurred (R3.S1 no fallback on electronic PDF; R3.S2 ends in ocr with fallback on image PDF \u2014 exact stderr strings pinned in AC6/AC7). markitdown is NOT a link in the auto chain (R3). Reuse the registry from strategy-interface and the CLI from cli-extract. The default insufficient-text threshold is ~20 characters (see the spec's Assumptions). All code and messages in English (repo rule).",
+      "expected_output_schema": "Auto selection logic integrated in the command: structured->pdftotext->OCR chain with threshold, reporting on stderr the effective strategy and fallback yes/no, producing a non-empty .md.",
+      "satisfies_acs": [
+        "AC6",
+        "AC7"
+      ],
+      "estimated_tokens": 70000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R3.S1",
+          "assertion": "in auto mode on a readable electronic PDF the output is produced with the structured strategy and no fallback is reported"
+        },
+        {
+          "ref": "R3.S2",
+          "assertion": "in auto mode on an image PDF without embedded text the chain falls through to OCR, reports that fallback occurred, and produces a non-empty .md"
+        }
+      ]
+    },
+    {
+      "task_id": "barrier-privacy-wiring",
+      "source_ids": [
+        "R4.S1",
+        "R5.S1"
+      ],
+      "dependencies": [
+        "barrier-red-guard",
+        "cli-extract"
+      ],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Wires the barrier into the command entrypoint and pins the content-free output contract; bounded implementation with mechanical ACs (exit 0 with barrier, report without PDF text).",
+      "instructions": "Wire the activation of the barrier from the barrier-red-guard task into the entrypoint of the cli-extract command (before importing any extractor), so that a real extraction with any v1 strategy completes without network errors (R4.S1) and the command's metadata report (stderr, per R5.S1) contains only the .md path and the statistics, never the extracted text (mechanical probe in AC11: grep of the PDF's known text over the report = 0 matches). Do not read or print the PDF content. All code and messages in English (repo rule).",
+      "expected_output_schema": "Command with the barrier activated at the entrypoint and a metadata report (stderr) emitting path + statistics with no line of the PDF's text.",
+      "satisfies_acs": [
+        "AC8",
+        "AC11"
+      ],
+      "estimated_tokens": 55000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R4.S1",
+          "assertion": "a real extraction with any v1 strategy with the barrier active completes with exit code 0 and no network error"
+        },
+        {
+          "ref": "R5.S1",
+          "assertion": "the command's metadata report contains the .md path and the statistics but no line of the text extracted from the PDF"
+        }
+      ]
+    },
+    {
+      "task_id": "skill-file",
+      "source_ids": [
+        "R5",
+        "R5.S2"
+      ],
+      "dependencies": [
+        "cli-extract",
+        "barrier-privacy-wiring"
+      ],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Writing the skill (SKILL.md with frontmatter) following the plugin's skill schema; structured documentation, not code, and the remaining AC (R5.S2) is conversational judgment.",
+      "instructions": "Write the plugin's skill (SKILL.md with its frontmatter) satisfying R5: it invokes the local command (with the barrier and the output contract from barrier-privacy-wiring) and returns to the user only path + statistics, explicitly documenting the consent gate of R5.S2: the .md content is only read into context if the user explicitly asks; in the default flow it is never read. Include no extraction logic. Written in English (repo rule).",
+      "expected_output_schema": "SKILL.md with valid frontmatter instructing to invoke the command and report only path+statistics, and documenting the consent gate for reading the content.",
+      "satisfies_acs": [
+        "AC12"
+      ],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "benchmark-harness",
+      "source_ids": [
+        "R6",
+        "R6.S1",
+        "R6.S2"
+      ],
+      "dependencies": [
+        "strategy-interface",
+        "cli-extract"
+      ],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Benchmark command + test corpus with golden files; bounded implementation with mechanical tabular output and deterministic ACs.",
+      "instructions": "Implement the benchmark command of R6 together with its test corpus (at minimum one electronic PDF and one image/scanned PDF, public/non-sensitive) and their golden .md files. Run every strategy (from the strategy-interface registry) over every PDF and emit, per (PDF x strategy): time_ms, deterministic (identical hash across 2 runs), structure counts (headings/tables/lists), and diff_ok against the golden (R6.S1, column names pinned in AC13); an altered golden must mark diff_ok=no and the summary must report >=1 failure while the exit code stays 0 (R6.S2/AC14 \u2014 non-zero exit is reserved for a strategy crashing or the harness failing, per R6). The output must be mechanical and make no network use. All code and column names in English (repo rule). Handle corpus and golden-file paths with pathlib.Path, per the spec's platform note: v1 officially targets and CI-verifies Linux and macOS only; Windows compatibility is a no-extra-cost side effect, not tested or required.",
+      "expected_output_schema": "Benchmark command + corpus (PDFs + golden .md) emitting a table/JSON with one row per (PDF, strategy) with columns time_ms, deterministic, headings, tables, lists, diff_ok, and a failure summary; exit 0 whenever all strategies completed.",
+      "satisfies_acs": [
+        "AC13",
+        "AC14"
+      ],
+      "estimated_tokens": 100000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R6.S1",
+          "assertion": "the benchmark emits one row per PDF-strategy combination with columns for time, determinism, structure counts and the diff result against the golden, and exits with code 0 when all complete"
+        },
+        {
+          "ref": "R6.S2",
+          "assertion": "if a strategy's output differs from its expected golden file the row marks the diff as failed and the summary reports at least one golden failure while the exit code is still 0"
+        }
+      ]
+    },
+    {
+      "task_id": "e2e-integration",
+      "source_ids": [
+        "R-E2E",
+        "R-E2E.S1"
+      ],
+      "dependencies": [
+        "barrier-privacy-wiring",
+        "fallback-chain",
+        "skill-file",
+        "strategy-interface",
+        "cli-extract"
+      ],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "End-to-end integration test tying the full flow and verifying no-egress under OS-level network denial; no per-task test covers this cross-requirement walkthrough, so it must be authored (code_writer per e2e assignment rule).",
+      "instructions": "Write the end-to-end integration test of R-E2E.S1: converting an electronic PDF via the skill/command creates the .md with non-empty content and reports path + statistics without dumping content, and the same command run under the platform's OS-level network-denial mechanism (sandbox-exec -n 'deny network*' on macOS; unshare -n on Linux \u2014 the test must pick the mechanism available on the running platform so CI on Linux can execute it; per the spec's platform note, v1 officially targets and CI-verifies Linux and macOS only, so this test is not run or required on Windows) completes with exit code 0. Compose the cli-extract, fallback-chain, barrier-privacy-wiring and skill-file tasks; do not reimplement their logic. All code and messages in English (repo rule).",
+      "expected_output_schema": "E2E integration test running the full flow (skill->command->.md) verifying non-empty .md, content-free report, and exit 0 under the platform's OS-level network denial (sandbox-exec on macOS, unshare -n on Linux).",
+      "satisfies_acs": [
+        "AC-E2E"
+      ],
+      "estimated_tokens": 70000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R-E2E.S1",
+          "assertion": "converting an electronic PDF via the skill creates the .md with non-empty content, the report includes path and statistics without dumping content, and the same command run under the platform's OS-level network denial completes with exit code 0"
+        }
+      ]
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": [
+        "strategy-interface",
+        "cli-extract"
+      ],
+      "R2": [
+        "cli-extract"
+      ],
+      "R3": [
+        "fallback-chain"
+      ],
+      "R4": [
+        "barrier-red-guard",
+        "barrier-privacy-wiring"
+      ],
+      "R5": [
+        "barrier-privacy-wiring",
+        "skill-file"
+      ],
+      "R6": [
+        "benchmark-harness"
+      ],
+      "R-E2E": [
+        "e2e-integration"
+      ]
+    },
+    "acs": {
+      "AC1": [
+        "cli-extract"
+      ],
+      "AC2": [
+        "strategy-interface"
+      ],
+      "AC3": [
+        "cli-extract"
+      ],
+      "AC4": [
+        "cli-extract"
+      ],
+      "AC5": [
+        "cli-extract"
+      ],
+      "AC6": [
+        "fallback-chain"
+      ],
+      "AC7": [
+        "fallback-chain"
+      ],
+      "AC8": [
+        "barrier-privacy-wiring"
+      ],
+      "AC9": [
+        "barrier-red-guard"
+      ],
+      "AC10": [
+        "barrier-red-guard"
+      ],
+      "AC11": [
+        "barrier-privacy-wiring"
+      ],
+      "AC12": [
+        "skill-file"
+      ],
+      "AC13": [
+        "benchmark-harness"
+      ],
+      "AC14": [
+        "benchmark-harness"
+      ],
+      "AC15": [
+        "cli-extract"
+      ],
+      "AC-E2E": [
+        "e2e-integration"
+      ]
+    }
+  }
+}

@@ -23,6 +23,11 @@
       "name": "token-diet",
       "source": "./plugins/token-diet",
       "description": "Explicit-invocation command that analyzes a CLAUDE.md/AGENTS.md target and installs an opt-in token-saving ruleset on confirmation."
+    },
+    {
+      "name": "markvault",
+      "source": "./plugins/markvault",
+      "description": "Deterministic, offline, ~0-token PDF-to-Markdown extraction with an interchangeable strategy chain and a fail-closed anti-network-leak guardrail."
     }
   ]
 }

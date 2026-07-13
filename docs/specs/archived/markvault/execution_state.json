@@ -1,0 +1,97 @@
+{
+  "plan_id": "markvault-v1",
+  "source_spec": "docs/specs/markvault/spec.md",
+  "branch": "feat/markvault",
+  "started_at": "2026-07-13T16:03:31.817Z",
+  "tasks": {
+    "barrier-red-guard": {
+      "status": "done",
+      "estimated_tokens": 60000,
+      "actual_tokens": 50000,
+      "deviation": -10000,
+      "test_cmd": "python3 -m pytest plugins/markvault/tests/test_red_guard.py -q",
+      "commit": "d6c7ac1",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
+    },
+    "strategy-interface": {
+      "status": "done",
+      "estimated_tokens": 90000,
+      "actual_tokens": 55000,
+      "deviation": -35000,
+      "test_cmd": "python3 -m pytest plugins/markvault/tests/test_strategy_registry.py plugins/markvault/tests/test_strategies.py -q",
+      "commit": "3343a2b",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
+    },
+    "cli-extract": {
+      "status": "done",
+      "estimated_tokens": 95000,
+      "actual_tokens": 65000,
+      "deviation": -30000,
+      "test_cmd": "python3 -m pytest plugins/markvault/tests/test_cli_extract.py -q",
+      "commit": "0816191",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
+    },
+    "fallback-chain": {
+      "status": "done",
+      "estimated_tokens": 70000,
+      "actual_tokens": 106475,
+      "deviation": 36475,
+      "test_cmd": "python3 -m pytest plugins/markvault/tests/ -q",
+      "commit": "c03bfd6",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
+    },
+    "barrier-privacy-wiring": {
+      "status": "done",
+      "estimated_tokens": 55000,
+      "actual_tokens": 35000,
+      "deviation": -20000,
+      "test_cmd": "python3 -m pytest plugins/markvault/tests/ -q",
+      "commit": "ce9ce75",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
+    },
+    "skill-file": {
+      "status": "done",
+      "estimated_tokens": 40000,
+      "actual_tokens": 45000,
+      "deviation": 5000,
+      "test_cmd": "python3 -m pytest plugins/markvault/tests/test_skill_file.py -q",
+      "commit": "10280f9",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
+    },
+    "benchmark-harness": {
+      "status": "done",
+      "estimated_tokens": 100000,
+      "actual_tokens": 55000,
+      "deviation": -45000,
+      "test_cmd": "python3 -m pytest plugins/markvault/tests/test_strategy_registry.py plugins/markvault/tests/test_strategies.py plugins/markvault/tests/test_red_guard.py plugins/markvault/tests/test_benchmark.py -q",
+      "commit": "3547c47",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
+    },
+    "e2e-integration": {
+      "status": "done",
+      "estimated_tokens": 70000,
+      "actual_tokens": 55000,
+      "deviation": -15000,
+      "test_cmd": "python3 -m pytest plugins/markvault/tests/test_e2e_integration.py -q -rs",
+      "commit": "9d5bc80",
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
+    }
+  },
+  "pause": null
+}

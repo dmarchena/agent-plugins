@@ -1,0 +1,112 @@
+{
+  "tasks": {
+    "barrier-red-guard": {
+      "resolved": false,
+      "real_tokens": null,
+      "real_cost_usd": null,
+      "estimated_tokens": 60000,
+      "deviation_real": null
+    },
+    "strategy-interface": {
+      "resolved": false,
+      "real_tokens": null,
+      "real_cost_usd": null,
+      "estimated_tokens": 90000,
+      "deviation_real": null
+    },
+    "cli-extract": {
+      "resolved": false,
+      "real_tokens": null,
+      "real_cost_usd": null,
+      "estimated_tokens": 95000,
+      "deviation_real": null
+    },
+    "fallback-chain": {
+      "resolved": false,
+      "real_tokens": null,
+      "real_cost_usd": null,
+      "estimated_tokens": 70000,
+      "deviation_real": null
+    },
+    "barrier-privacy-wiring": {
+      "resolved": false,
+      "real_tokens": null,
+      "real_cost_usd": null,
+      "estimated_tokens": 55000,
+      "deviation_real": null
+    },
+    "skill-file": {
+      "resolved": false,
+      "real_tokens": null,
+      "real_cost_usd": null,
+      "estimated_tokens": 40000,
+      "deviation_real": null
+    },
+    "benchmark-harness": {
+      "resolved": false,
+      "real_tokens": null,
+      "real_cost_usd": null,
+      "estimated_tokens": 100000,
+      "deviation_real": null
+    },
+    "e2e-integration": {
+      "resolved": false,
+      "real_tokens": null,
+      "real_cost_usd": null,
+      "estimated_tokens": 70000,
+      "deviation_real": null
+    }
+  },
+  "orchestrator": {
+    "real_tokens": 0,
+    "real_cost_usd": 0
+  },
+  "subagents_total": {
+    "real_tokens": 0,
+    "real_cost_usd": 0
+  },
+  "pause_timeline": [],
+  "signals": {
+    "per_model": {},
+    "orchestrator_share": null,
+    "orchestrator_token_ratio": null,
+    "deviations": [],
+    "incidences": [
+      {
+        "task_id": "barrier-red-guard",
+        "reason": "missing agentId or sessionId"
+      },
+      {
+        "task_id": "strategy-interface",
+        "reason": "missing agentId or sessionId"
+      },
+      {
+        "task_id": "cli-extract",
+        "reason": "missing agentId or sessionId"
+      },
+      {
+        "task_id": "fallback-chain",
+        "reason": "missing agentId or sessionId"
+      },
+      {
+        "task_id": "barrier-privacy-wiring",
+        "reason": "missing agentId or sessionId"
+      },
+      {
+        "task_id": "skill-file",
+        "reason": "missing agentId or sessionId"
+      },
+      {
+        "task_id": "benchmark-harness",
+        "reason": "missing agentId or sessionId"
+      },
+      {
+        "task_id": "e2e-integration",
+        "reason": "missing agentId or sessionId"
+      }
+    ],
+    "session_count": 0
+  },
+  "incomplete": true,
+  "incomplete_reason": "no agentId recorded for any task"
+}
