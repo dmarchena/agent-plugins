@@ -28,7 +28,7 @@ test('AC1/AC2/AC5/AC6 scaffold — plugin.json exists, parses, and pins the curr
   assert.equal(parsed.name, 'token-diet');
   assert.equal(
     parsed.version,
-    '1.2.0',
+    '1.3.0',
     'plugin.json version must match the attribution mark version used in commands/install.md'
   );
 });

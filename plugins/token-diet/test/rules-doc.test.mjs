@@ -11,7 +11,7 @@ test('R3/AC5 — the rules document plugins/token-diet/assets/token-diet-rules.m
   assert.ok(existsSync(RULES_PATH), `expected to find ${RULES_PATH}`);
 });
 
-test('R3/AC5 — the document contains a base "caveman" section with a 10-line decalogue', () => {
+test('R3/AC5 — the document contains a base "caveman" section with an 11-line decalogue', () => {
   const content = readFileSync(RULES_PATH, 'utf8');
 
   // Locate the base section: a heading mentioning "base" or "caveman"
@@ -32,8 +32,8 @@ test('R3/AC5 — the document contains a base "caveman" section with a 10-line d
 
   assert.equal(
     nonEmptyBulletLines.length,
-    10,
-    `expected a decalogue of exactly 10 lines in the base section, found ${nonEmptyBulletLines.length}`
+    11,
+    `expected a decalogue of exactly 11 lines in the base section, found ${nonEmptyBulletLines.length}`
   );
 });
 
@@ -49,6 +49,24 @@ test('R3/AC5 — the document has at least one more-restrictive "profile" headin
   assert.ok(
     profileHeadingMatch,
     'expected at least one clearly separated "profile" section heading after the base section'
+  );
+});
+
+test('R2.S1/AC3 — the document has a detail-section heading strictly between the base and profile headings', () => {
+  const content = readFileSync(RULES_PATH, 'utf8');
+
+  const baseHeadingMatch = content.match(/^#{1,3}\s.*(base|caveman).*$/im);
+  assert.ok(baseHeadingMatch, 'precondition: the base heading must exist');
+
+  const afterBase = content.slice(baseHeadingMatch.index + baseHeadingMatch[0].length);
+  const profileHeadingMatch = afterBase.match(/^#{1,3}\s.*profile.*$/im);
+  assert.ok(profileHeadingMatch, 'precondition: the profile heading must exist after the base section');
+
+  const between = afterBase.slice(0, profileHeadingMatch.index);
+  const detailHeadingMatch = between.match(/^#{1,3}\s.*$/m);
+  assert.ok(
+    detailHeadingMatch,
+    'expected a new on-demand "detail" section heading strictly between the base and profile headings'
   );
 });
 

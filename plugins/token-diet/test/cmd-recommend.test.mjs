@@ -51,11 +51,11 @@ test('R2 — recommendation logic maps each analysis case to its outcome', () =>
   );
 });
 
-test('R2.S1 / AC3 — mark present with version EQUAL to current (v1.2.0) -> recommend none, no change proposed', () => {
+test('R2.S1 / AC3 — mark present with version EQUAL to current (v1.3.0) -> recommend none, no change proposed', () => {
   const content = readCommand();
   assert.ok(
-    content.includes('already covered by token-diet v1.2.0'),
-    'expected the exact R2.S1 reason literal "already covered by token-diet v1.2.0"'
+    content.includes('already covered by token-diet v1.3.0'),
+    'expected the exact R2.S1 reason literal "already covered by token-diet v1.3.0"'
   );
   const lower = content.toLowerCase();
   assert.ok(
@@ -64,11 +64,11 @@ test('R2.S1 / AC3 — mark present with version EQUAL to current (v1.2.0) -> rec
   );
 });
 
-test('R2.S2 / AC4 — mark present with version OLDER than current -> recommend update, naming the version jump v1.0.0 -> v1.2.0', () => {
+test('R2.S2 / AC4 — mark present with version OLDER than current -> recommend update, naming the version jump v1.2.0 -> v1.3.0', () => {
   const content = readCommand();
   assert.ok(/`update`/.test(content), 'expected the update outcome to be documented');
   assert.ok(
-    /v1\.0\.0\s*(→|->)\s*v1\.2\.0/.test(content),
-    'expected the command to name the concrete version jump v1.0.0 -> v1.2.0 as an example'
+    /v1\.2\.0\s*(→|->)\s*v1\.3\.0/.test(content),
+    'expected the command to name the concrete version jump v1.2.0 -> v1.3.0 as an example'
   );
 });

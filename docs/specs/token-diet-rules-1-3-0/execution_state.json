@@ -43,21 +43,21 @@
       "actual_tokens": 18000,
       "deviation": -2000,
       "test_cmd": "node --test plugins/token-diet/test/version-bump.test.mjs",
-      "commit": null,
+      "commit": "f405ae9",
       "incidencia": null,
       "agentId": "a22d7c4571084d4b4",
       "sessionId": "40c24ad5-9b5e-419c-978f-052e054b4301"
     },
     "t5-update-tests": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 45000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 95000,
+      "deviation": 50000,
+      "test_cmd": "node --test plugins/token-diet/test/*.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "aa4f96d2eb7382484",
+      "sessionId": "40c24ad5-9b5e-419c-978f-052e054b4301"
     },
     "t6-e2e-consistency": {
       "status": "pending",
