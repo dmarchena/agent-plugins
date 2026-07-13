@@ -21,21 +21,21 @@
       "actual_tokens": 104675,
       "deviation": 14675,
       "test_cmd": "node --test plugins/sdd-kit/test/trim-cli-data-baseline-measurements.test.mjs",
-      "commit": null,
+      "commit": "cc00c4e",
       "incidencia": null,
       "agentId": "a30e5a7fbf3418200",
       "sessionId": "bffecea8-3fb9-4fe9-afce-a8a1715d852b"
     },
     "T3_contract_doc": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 60000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 58102,
+      "deviation": -1898,
+      "test_cmd": "node --test plugins/sdd-kit/test/trim-cli-data-contract-doc.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a690088684110bd7c",
+      "sessionId": "c5b1fc56-1d6a-47ce-80e6-fcf4c7746b26"
     },
     "T4_trim_dead_fields": {
       "status": "pending",
