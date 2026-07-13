@@ -76,21 +76,21 @@
       "actual_tokens": 46975,
       "deviation": 6975,
       "test_cmd": "node --test plugins/sdd-kit/test/trim-cli-data-after-measurements.test.mjs",
-      "commit": null,
+      "commit": "c87f9e2",
       "incidencia": null,
       "agentId": "ad3db18c5590882ef",
       "sessionId": "c5b1fc56-1d6a-47ce-80e6-fcf4c7746b26"
     },
     "T8_e2e_green_gate": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 30000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 50752,
+      "deviation": 20752,
+      "test_cmd": "bash scripts/validate.sh && node --test plugins/sdd-kit/test/**/*.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "af3f050f1d9e7e14d",
+      "sessionId": "c5b1fc56-1d6a-47ce-80e6-fcf4c7746b26"
     }
   },
   "pause": null
