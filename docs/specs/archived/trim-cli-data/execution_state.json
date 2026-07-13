@@ -87,7 +87,7 @@
       "actual_tokens": 50752,
       "deviation": 20752,
       "test_cmd": "bash scripts/validate.sh && node --test plugins/sdd-kit/test/**/*.test.mjs",
-      "commit": null,
+      "commit": "20fd8a3",
       "incidencia": null,
       "agentId": "af3f050f1d9e7e14d",
       "sessionId": "c5b1fc56-1d6a-47ce-80e6-fcf4c7746b26"

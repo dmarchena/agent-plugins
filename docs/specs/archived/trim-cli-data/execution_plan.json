@@ -1,0 +1,193 @@
+{
+  "plan_id": "trim-cli-data-v1",
+  "project_name": "sdd-kit trim-cli-data",
+  "global_objective": "Audit the field-to-consumer contract of the nine sdd-kit CLIs, remove unused data fields, move heavy consumed detail to file artifacts, and prove a net token reduction with every consumer intact (issue #29, phase 2 of #20).",
+  "source_spec": "docs/specs/trim-cli-data/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 580000,
+  "tasks": [
+    {
+      "task_id": "T1_field_inventory",
+      "source_ids": ["R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "researcher",
+      "subagent": "Explore",
+      "model": "haiku",
+      "justification": "Read-only enumeration of emitted fields and grep for their consumers; mechanical locate/inventory work.",
+      "instructions": "Read the nine CLI scripts under plugins/sdd-kit/scripts/ listed in the spec's Scope. For each CLI, enumerate every field its stdout data payload can emit (per R1.S1, including per-subcommand shapes) and locate every repo file that consumes each field, searching skills (SKILL.md and assets), commands, and other scripts. Per R1.S2, the test suite is not a consumer: a field referenced only by tests is classified unused. Return a structured inventory mapping CLI -> data field -> consumer file path(s) or the literal marker 'unused'. Read-only: write no files.",
+      "expected_output_schema": "Structured markdown inventory returned as task output: one block per CLI (and per distinct payload shape), each field listed with its consumer file path(s) or 'unused'.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 80000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "T2_baseline_measurements",
+      "source_ids": ["R2.S1", "R2.S2"],
+      "dependencies": [],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Producing measurements.md to a fixed schema requires synthesizing representative invocations from fixtures; bounded doc work with clear acceptance criteria.",
+      "instructions": "Per R2.S1 and R2.S2, synthesize one representative invocation for each of the nine CLIs under plugins/sdd-kit/scripts/ (for CLIs whose subcommands emit distinct data shapes, one invocation per distinct shape), using repo fixtures and archived docs/specs/archived/*/ execution states as inputs. Run each invocation, extract the serialized data value from the stdout envelope, and measure it with plugins/sdd-kit/scripts/tokenizer.mjs. Write docs/specs/trim-cli-data/measurements.md containing: a baseline table (CLI, payload shape, baseline tokens) and, for every payload, the exact reproducible command used, so a later after-measurement can re-run the identical invocations. Do not modify any CLI script.",
+      "expected_output_schema": "docs/specs/trim-cli-data/measurements.md with one baseline token figure per distinct CLI payload shape and the exact reproducible command for each.",
+      "satisfies_acs": ["AC3", "AC4"],
+      "estimated_tokens": 90000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "T3_contract_doc",
+      "source_ids": ["R1.S1", "R1.S2", "R2.S1"],
+      "dependencies": ["T1_field_inventory", "T2_baseline_measurements"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Writing the living contract doc to a fixed schema from already-gathered inputs; bounded doc work.",
+      "instructions": "Consume the inventory returned by T1_field_inventory and the baseline figures in docs/specs/trim-cli-data/measurements.md written by T2_baseline_measurements. Write plugins/sdd-kit/docs/cli-data-contract.md satisfying R1.S1 and R1.S2: one section per CLI covering all nine, where every field emitted in that CLI's data payload appears as a row naming its consumer file path(s) or the literal marker 'unused' (fields referenced only by tests are 'unused'). Per R2.S1, each CLI section also carries its baseline token weight taken from measurements.md.",
+      "expected_output_schema": "plugins/sdd-kit/docs/cli-data-contract.md with nine per-CLI sections: field rows naming consumer path(s) or 'unused', plus the baseline token weight per CLI payload.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 60000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "T4_trim_dead_fields",
+      "source_ids": ["R3.S1", "R3.S2"],
+      "dependencies": ["T3_contract_doc"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation with clear acceptance criteria: remove exactly the fields the contract marks unused and keep the suite green.",
+      "instructions": "Consume plugins/sdd-kit/docs/cli-data-contract.md written by T3_contract_doc. For every CLI whose contract section lists one or more 'unused' fields, remove those fields from the stdout data payload per R3.S1; per R3.S2, do not touch any CLI whose contract lists no 'unused' fields. Update every affected consumer (SKILL.md, skill assets, commands, other scripts) and the tests in the same change, per the spec's Scope. Keep the envelope shape and scripts/lib/cli.mjs untouched (Technical Requirements). Run the plugin test suite and scripts/validate.sh to confirm green.",
+      "expected_output_schema": "Code diff limited to CLIs with 'unused' contract rows plus their consumers and tests; test suite and scripts/validate.sh green; summary listing trimmed fields per CLI.",
+      "satisfies_acs": ["AC5"],
+      "estimated_tokens": 120000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R3.S1",
+          "assertion": "A representative invocation of each trimmed CLI emits a stdout data payload containing none of the field names its contract section marks unused."
+        },
+        {
+          "ref": "R3.S2",
+          "assertion": "CLIs whose contract section lists no unused fields show no change in script or payload after the trim pass."
+        },
+        {
+          "ref": "AC5",
+          "assertion": "The full plugin test suite and repo validation pass after the unused fields are removed."
+        }
+      ]
+    },
+    {
+      "task_id": "T5_restructure_heavy_payloads",
+      "source_ids": ["R4.S1", "R4.S2"],
+      "dependencies": ["T2_baseline_measurements", "T3_contract_doc", "T4_trim_dead_fields"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation applying the spec's explicit 200-token rule; restructure follows the existing file-artifact pattern, and ambiguous classifications are returned, not decided.",
+      "instructions": "Consume the contract in plugins/sdd-kit/docs/cli-data-contract.md (T3_contract_doc), the baselines in docs/specs/trim-cli-data/measurements.md (T2_baseline_measurements), and the already-trimmed scripts from T4_trim_dead_fields. Apply R4 to each CLI whose consumed data payload exceeds 200 tokens measured with plugins/sdd-kit/scripts/tokenizer.mjs: per R4.S1, move the rich detail to a file artifact following the existing pattern (e.g. forensics.json) and keep the stdout data at or under 200 tokens including the path of the detail file; per R4.S2, if every field of a heavy payload is read by its consumer on every invocation, leave it on stdout and report that CLI as a justification candidate. Update every affected consumer so it reads the detail file only when it needs the detail, and update tests in the same change. Keep the envelope shape and scripts/lib/cli.mjs untouched, and add no verbosity flags (Technical Requirements). If a payload's classification under R4's rule is ambiguous from the contract, stop and return the ambiguity instead of deciding.",
+      "expected_output_schema": "Code diff restructuring each over-threshold CLI (detail file artifact + lean stdout with file path) plus consumer and test updates; report naming restructured CLIs and any R4.S2 stay-on-stdout candidates with their reason.",
+      "satisfies_acs": ["AC7"],
+      "estimated_tokens": 130000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R4.S1",
+          "assertion": "Each restructured CLI's stdout data payload measures at most 200 tokens with the kit tokenizer and includes the path of an existing file containing the full detail."
+        },
+        {
+          "ref": "R4.S1",
+          "assertion": "Every consumed field moved off stdout is present in the referenced detail file."
+        },
+        {
+          "ref": "AC7",
+          "assertion": "The full plugin test suite and repo validation pass after the restructure."
+        }
+      ]
+    },
+    {
+      "task_id": "T6_contract_annotations",
+      "source_ids": ["R3.S2", "R4.S2"],
+      "dependencies": ["T3_contract_doc", "T4_trim_dead_fields", "T5_restructure_heavy_payloads"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Recording outcomes in the living contract doc following its established schema; bounded doc work.",
+      "instructions": "Consume the trim outcome reported by T4_trim_dead_fields and the restructure report from T5_restructure_heavy_payloads. Update plugins/sdd-kit/docs/cli-data-contract.md: per R3.S2, every CLI left untouched by the trim pass gets the literal entry 'no change' in its contract section; per R4.S2, every heavy payload that stayed on stdout because all its fields are read on every invocation gets its justification recorded in its contract section instead of a detail file.",
+      "expected_output_schema": "Updated plugins/sdd-kit/docs/cli-data-contract.md: 'no change' entries for untouched CLIs and a recorded stay-on-stdout justification for each fully-consumed heavy payload.",
+      "satisfies_acs": ["AC6", "AC8"],
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "T7_after_measurements",
+      "source_ids": ["R-E2E.S1"],
+      "dependencies": ["T2_baseline_measurements", "T3_contract_doc", "T4_trim_dead_fields", "T5_restructure_heavy_payloads"],
+      "agent_type": "terminal_operator",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "Mechanical re-run of the reproducible commands already documented in measurements.md, plus a table update.",
+      "instructions": "Consume docs/specs/trim-cli-data/measurements.md written by T2_baseline_measurements: re-run the exact reproducible command recorded there for every payload against the final scripts produced by T4_trim_dead_fields and T5_restructure_heavy_payloads, measure each serialized data value with plugins/sdd-kit/scripts/tokenizer.mjs, and update measurements.md with an after column and a before/after total per R-E2E.S1. Do not modify any script; report the total reduction figure.",
+      "expected_output_schema": "Updated docs/specs/trim-cli-data/measurements.md with before/after token figures per payload and a before/after total row.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "T8_e2e_green_gate",
+      "source_ids": ["R-E2E.S1"],
+      "dependencies": ["T2_baseline_measurements", "T3_contract_doc", "T6_contract_annotations", "T7_after_measurements"],
+      "agent_type": "verifier",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "The union of T4/T5 per-task tests already exercises the E2E path; this node only re-runs the existing suite and confirms the recorded figures, so verifier per the E2E assignment rule.",
+      "instructions": "Consume docs/specs/trim-cli-data/measurements.md as updated by T7_after_measurements and plugins/sdd-kit/docs/cli-data-contract.md as updated by T6_contract_annotations. Verify AC-E2E per R-E2E.S1: (1) scripts/validate.sh and the sdd-kit test suite exit 0; (2) measurements.md shows a total after strictly lower than the total before; (3) for every field the contract marks with a consumer, the field is present either in the corresponding CLI's stdout data payload or in the detail file that payload references. Write no code and no new tests; report each check as green or red with evidence.",
+      "expected_output_schema": "Verification report: pass/fail per check (suite exit code, total reduction figure, consumed-field reachability) with command output as evidence.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 30000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1_field_inventory", "T3_contract_doc"],
+      "R1.S1": ["T1_field_inventory", "T3_contract_doc"],
+      "R1.S2": ["T1_field_inventory", "T3_contract_doc"],
+      "R2": ["T2_baseline_measurements", "T3_contract_doc"],
+      "R2.S1": ["T2_baseline_measurements", "T3_contract_doc"],
+      "R2.S2": ["T2_baseline_measurements"],
+      "R3": ["T4_trim_dead_fields", "T6_contract_annotations"],
+      "R3.S1": ["T4_trim_dead_fields"],
+      "R3.S2": ["T4_trim_dead_fields", "T6_contract_annotations"],
+      "R4": ["T5_restructure_heavy_payloads", "T6_contract_annotations"],
+      "R4.S1": ["T5_restructure_heavy_payloads"],
+      "R4.S2": ["T5_restructure_heavy_payloads", "T6_contract_annotations"],
+      "R-E2E": ["T7_after_measurements", "T8_e2e_green_gate"],
+      "R-E2E.S1": ["T7_after_measurements", "T8_e2e_green_gate"]
+    },
+    "acs": {
+      "AC1": ["T1_field_inventory", "T3_contract_doc"],
+      "AC2": ["T1_field_inventory", "T3_contract_doc"],
+      "AC3": ["T2_baseline_measurements"],
+      "AC4": ["T2_baseline_measurements"],
+      "AC5": ["T4_trim_dead_fields"],
+      "AC6": ["T6_contract_annotations"],
+      "AC7": ["T5_restructure_heavy_payloads"],
+      "AC8": ["T6_contract_annotations"],
+      "AC-E2E": ["T7_after_measurements", "T8_e2e_green_gate"]
+    }
+  }
+}
