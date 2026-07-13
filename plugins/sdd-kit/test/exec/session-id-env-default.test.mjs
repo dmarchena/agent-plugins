@@ -188,6 +188,7 @@ test('R1.S2: --session-id flag takes precedence over env; absent both, sessionId
       '--tokens', '1200', '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
       '--files', `impl/${taskId}.mjs,t/${taskId}.check.mjs`,
       '--session-id', 'sess-explicit',
+      '--agent-id', 'agent-fixture',
     ], { CLAUDE_CODE_SESSION_ID: 'sess-from-env-2' });
 
     assert.strictEqual(result1.data.status, 'done');
@@ -211,6 +212,7 @@ test('R1.S2: --session-id flag takes precedence over env; absent both, sessionId
         CLI, 'complete', specDir, taskId,
         '--tokens', '1200', '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
         '--files', `impl/${taskId}.mjs,t/${taskId}.check.mjs`,
+        '--agent-id', 'agent-fixture',
         // no --session-id, no env var.
       ], { cwd: repo, encoding: 'utf8', env: envNoSession });
       const parsed = JSON.parse(result2);

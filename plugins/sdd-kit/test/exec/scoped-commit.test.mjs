@@ -197,7 +197,7 @@ test('R1.S1: single-task complete with --files commits only those files + state,
     const result = cli(repo, [
       'complete', specDir, 'task-a',
       '--tokens', '1200', '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
-      '--files', 'a.mjs,a.test.mjs',
+      '--files', 'a.mjs,a.test.mjs', '--agent-id', 'agent-fixture',
     ]);
     assert.strictEqual(result.data.status, 'done');
     assert.ok(result.data.commit);
@@ -224,6 +224,7 @@ test('R1.S2: single-task complete with no file list refuses to commit/stage and 
     const res = cliExpectFail(repo, [
       'complete', specDir, 'task-a',
       '--tokens', '1200', '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
+      '--agent-id', 'agent-fixture',
     ]);
     assert.notStrictEqual(res.status, 0, 'must exit non-zero');
     const parsed = JSON.parse(res.stdout);
@@ -251,7 +252,7 @@ test('R1.S2b: an empty/whitespace-only --files value is treated the same as an a
     const res = cliExpectFail(repo, [
       'complete', specDir, 'task-a',
       '--tokens', '1200', '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
-      '--files', '  , ,',
+      '--files', '  , ,', '--agent-id', 'agent-fixture',
     ]);
     assert.notStrictEqual(res.status, 0, 'must exit non-zero');
     const parsed = JSON.parse(res.stdout);
@@ -275,7 +276,7 @@ test('R1.S3: two disjoint single-task completions against the same tree each com
     const resultA = cli(repo, [
       'complete', specDir, 'task-a',
       '--tokens', '1200', '--test-cmd', testCmdA, '--rojo', 'fail', '--verde', 'pass',
-      '--files', 'a.mjs,a.test.mjs',
+      '--files', 'a.mjs,a.test.mjs', '--agent-id', 'agent-fixture',
     ]);
     assert.strictEqual(resultA.data.status, 'done');
     const filesA = git(repo, ['show', '--name-only', '--pretty=format:', resultA.data.commit]).split('\n').filter(Boolean).sort();
@@ -284,7 +285,7 @@ test('R1.S3: two disjoint single-task completions against the same tree each com
     const resultB = cli(repo, [
       'complete', specDir, 'task-b',
       '--tokens', '1100', '--test-cmd', testCmdB, '--rojo', 'fail', '--verde', 'pass',
-      '--files', 'b.mjs,b.test.mjs',
+      '--files', 'b.mjs,b.test.mjs', '--agent-id', 'agent-fixture',
     ]);
     assert.strictEqual(resultB.data.status, 'done');
     const filesB = git(repo, ['show', '--name-only', '--pretty=format:', resultB.data.commit]).split('\n').filter(Boolean).sort();

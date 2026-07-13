@@ -132,7 +132,7 @@ function cmdNext(specDir) {
 function completeOne(plan, state, statePath, entry) {
   const {
     taskId, tokens, testCmd, rojo, verde, message, files = null,
-    agentId = null, sessionId = null,
+    agentId = null, sessionId = null, noAgentIdReason = null,
   } = entry;
   const task = plan.tasks.find((t) => t.task_id === taskId);
   if (!task) return { status: 'error', task_id: taskId, error: 'UNKNOWN_TASK: ' + taskId };
@@ -142,10 +142,13 @@ function completeOne(plan, state, statePath, entry) {
 
   if (res.done) {
     const msg = message || `${taskId}: test + implementation (green verified)`;
-    // R1.S2: a task can still reach 'done' with no agentId join (e.g. the
-    // orchestrator couldn't recover it) — this must degrade gracefully, not
-    // abort the run, but it does leave a paper trail via incidencia.
-    const doneIncidencia = agentId == null ? 'agentId no obtenido para esta tarea' : null;
+    // agentid-capture spec R1.S3: a task can still reach 'done' with no
+    // agentId join when the gap was explicitly acknowledged via
+    // --no-agent-id "<reason>" (the caller must have already refused the
+    // unacknowledged case via agentIdGuardReason() before reaching here) —
+    // this degrades gracefully, leaving a paper trail via incidencia that
+    // carries the caller-supplied reason verbatim rather than a generic string.
+    const doneIncidencia = agentId == null ? (noAgentIdReason || 'agentId no obtenido para esta tarea') : null;
     // Persist this task's OWN status/tokens/test_cmd before committing, so
     // the commit captures its own flip, not the previous task's (the bug
     // this fixes). The commit hash can't be known before the commit exists
@@ -179,6 +182,20 @@ function completeOne(plan, state, statePath, entry) {
   return { status: 'not-done', task_id: taskId, reason: res.reason, incidencia, rerun_output: res.rerun_output };
 }
 
+// agentid-capture spec R1: a delegated task closed with no captured agent id
+// must be refused unless the gap is explicitly acknowledged. Returns the
+// MISSING_AGENT_ID: <taskId> reason string to pass to emitError() when the
+// guard should fire, or null when it's fine to proceed (either an agentId
+// was supplied, or its absence was acknowledged via --no-agent-id/
+// no_agent_id). Exported as a small, reusable predicate rather than inlined
+// only in cmdComplete so complete --batch's per-entry version of the same
+// rule (a later task) can reuse this exact logic.
+export function agentIdGuardReason(agentId, noAgentIdReason, taskId) {
+  if (agentId != null) return null;
+  if (noAgentIdReason != null) return null;
+  return 'MISSING_AGENT_ID: ' + taskId;
+}
+
 // complete <specDir> <taskId> --tokens N --test-cmd CMD --rojo pass|fail --verde pass|fail [--message MSG]
 // Records the result of a subagent attempt and applies deterministic verification.
 function cmdComplete(specDir, taskId, flags) {
@@ -192,9 +209,17 @@ function cmdComplete(specDir, taskId, flags) {
   const tokens = flags.tokens !== undefined && flags.tokens !== true ? parseInt(flags.tokens, 10) : null;
   const message = (flags.message && flags.message !== true) ? String(flags.message) : null;
   const agentId = (flags['agent-id'] && flags['agent-id'] !== true) ? String(flags['agent-id']) : null;
+  const noAgentIdReason = (flags['no-agent-id'] && flags['no-agent-id'] !== true) ? String(flags['no-agent-id']) : null;
   const sessionId = (flags['session-id'] && flags['session-id'] !== true)
     ? String(flags['session-id'])
     : (process.env.CLAUDE_CODE_SESSION_ID ?? null);
+
+  // agentid-capture spec R1.S2: a delegated task closed with neither
+  // --agent-id nor the --no-agent-id acknowledgment is refused outright —
+  // checked before ANY state write or git commit (same placement as the
+  // --files guard just below), so a missing id can't reach completeOne at all.
+  const guardReason = agentIdGuardReason(agentId, noAgentIdReason, taskId);
+  if (guardReason) emitError(guardReason, 1);
 
   // R1.S2: the single-task path must never fall back to git.mjs's `add -A`
   // whole-tree stage — it requires an explicit, non-empty, comma-separated
@@ -217,7 +242,7 @@ function cmdComplete(specDir, taskId, flags) {
   }
 
   const result = completeOne(plan, state, p.state, {
-    taskId, tokens, testCmd, rojo: flags.rojo, verde: flags.verde, message, files, agentId, sessionId,
+    taskId, tokens, testCmd, rojo: flags.rojo, verde: flags.verde, message, files, agentId, sessionId, noAgentIdReason,
   });
   // T4-trim-cli-data: task_id/error are unused on the single-task `complete`
   // path (only the test suite ever read them) — trimmed here, at the CLI

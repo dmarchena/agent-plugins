@@ -111,7 +111,7 @@ function writeTaskFiles(repo, taskId, ref, shouldPass) {
 function completeArgs(specDir, taskId, tokens, testCmd) {
   return [
     'complete', specDir, taskId, '--tokens', String(tokens), '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
-    '--files', `impl/${taskId}.mjs,t/${taskId}.check.mjs`,
+    '--files', `impl/${taskId}.mjs,t/${taskId}.check.mjs`, '--agent-id', 'agent-fixture',
   ];
 }
 

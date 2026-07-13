@@ -1,0 +1,53 @@
+{
+  "plan_id": "agentid-capture-2026-07-13",
+  "source_spec": "docs/specs/agentid-capture/spec.md",
+  "branch": "fix/agentid-capture",
+  "started_at": "2026-07-13T17:56:36.268Z",
+  "tasks": {
+    "T1-single-complete-guard": {
+      "status": "done",
+      "estimated_tokens": 48000,
+      "actual_tokens": 45000,
+      "deviation": -3000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/agentid-persist.test.mjs",
+      "commit": null,
+      "incidencia": null,
+      "agentId": "ac4f669010d411264",
+      "sessionId": "6a359d9b-2082-42e7-a36c-c956442fbef4"
+    },
+    "T2-batch-complete-guard": {
+      "status": "pending",
+      "estimated_tokens": 42000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T3-skill-contract-doc": {
+      "status": "pending",
+      "estimated_tokens": 22000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T4-e2e-reject-then-record": {
+      "status": "pending",
+      "estimated_tokens": 43000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    }
+  },
+  "pause": null
+}

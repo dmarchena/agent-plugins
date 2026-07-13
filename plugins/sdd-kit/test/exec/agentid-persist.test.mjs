@@ -1,12 +1,15 @@
 // test/exec/agentid-persist.test.mjs — R1.S1/R1.S2/R1.S3 (AC1/AC2/AC3)
 //
 // The exec stage must persist the executing subagent's agentId/sessionId per
-// task in execution_state.json, degrading gracefully (still reaching `done`,
-// recording an incidencia) when the join is missing, and loading
-// backward-compatibly when a pre-schema state lacks the fields entirely.
-// R1.S3 (state.mjs#read() normalization) is unit-tested directly in
-// state.test.mjs; this file covers R1.S1/R1.S2 end-to-end via the CLI, plus
-// a schema-shape check for R1.S1.
+// task in execution_state.json. Per docs/specs/agentid-capture/spec.md's R1,
+// the single-task `complete` command now REFUSES to record/commit a
+// delegated task closed with no captured agent id unless the gap is
+// explicitly acknowledged via `--no-agent-id "<reason>"` (superseding the old
+// unconditional graceful-degrade-everywhere behavior). This file covers:
+//   - R1.S1/AC1: an agent id supplied -> exit 0, state entry records it.
+//   - R1.S2/AC2: neither an id nor the ack flag -> refused, nothing written.
+//   - R1.S3/AC3: the ack flag with a reason -> graceful degrade, agentId
+//     null, incidencia containing the reason verbatim.
 
 import { test } from 'node:test';
 import assert from 'node:assert';
@@ -152,6 +155,25 @@ function stateOf(absSpecDir) {
   return JSON.parse(fs.readFileSync(path.join(absSpecDir, 'execution_state.json'), 'utf8'));
 }
 
+// Runs the CLI expecting a non-zero exit; returns { status, stdout, stderr }
+// instead of throwing, so the test can assert on the failure itself (mirrors
+// test/exec/scoped-commit.test.mjs's cliExpectFail).
+function cliExpectFail(repo, args, envOverrides) {
+  let env = process.env;
+  if (envOverrides) {
+    env = { ...process.env, ...envOverrides };
+    for (const key of Object.keys(envOverrides)) {
+      if (envOverrides[key] === undefined) delete env[key];
+    }
+  }
+  try {
+    const stdout = execFileSync('node', [CLI, ...args], { cwd: repo, encoding: 'utf8', env });
+    return { status: 0, stdout, stderr: '' };
+  } catch (e) {
+    return { status: e.status, stdout: e.stdout, stderr: e.stderr };
+  }
+}
+
 // --- R1.S1: real agentId/sessionId join is persisted, schema-valid --------
 
 test('R1.S1: completing with --agent-id/--session-id persists both in the task state entry', () => {
@@ -200,18 +222,66 @@ test('R1.S1: completing with --agent-id/--session-id persists both in the task s
   }
 });
 
-// --- R1.S2: missing agentId degrades gracefully, still reaches done -------
+// --- R1.S2: no id, no acknowledgment -> blocked, nothing written ----------
 
-test('R1.S2: completing without --agent-id still reaches done, with agentId null and a non-null incidencia', () => {
-  const { repo, specDir, absSpecDir } = setupRepo('exec-agentid-missing-');
+test('R1.S2: completing with neither --agent-id nor --no-agent-id exits non-zero, error.reason starts MISSING_AGENT_ID: and names the task_id, and state/git are unchanged', () => {
+  const { repo, specDir, absSpecDir } = setupRepo('exec-agentid-blocked-');
   try {
     const testCmd = writeTaskFiles(repo, 'task-a', 'R1.S1', true);
+
+    const stateBefore = stateOf(absSpecDir);
+    const logBefore = git(repo, ['log', '--oneline']);
+
+    const res = cliExpectFail(repo, [
+      'complete', specDir, 'task-a',
+      '--tokens', '1200', '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
+      '--files', 'impl/task-a.mjs,t/task-a.check.mjs',
+      // no --agent-id / --no-agent-id: the gap is neither filled nor acknowledged.
+    ], { CLAUDE_CODE_SESSION_ID: undefined });
+
+    assert.notStrictEqual(res.status, 0, 'must exit non-zero');
+    const parsed = JSON.parse(res.stdout);
+    assert.strictEqual(parsed.ok, false);
+    assert.ok(
+      parsed.error.reason.startsWith('MISSING_AGENT_ID:'),
+      `error.reason must start with 'MISSING_AGENT_ID:', got: ${parsed.error.reason}`,
+    );
+    assert.ok(
+      parsed.error.reason.includes('task-a'),
+      `error.reason must name the task_id, got: ${parsed.error.reason}`,
+    );
+
+    // Nothing written to state and no new commit — read the raw file rather
+    // than assuming stateOf() would still find an entry for this task.
+    const stateAfter = stateOf(absSpecDir);
+    assert.deepStrictEqual(stateAfter, stateBefore, 'execution_state.json must be unchanged');
+    assert.strictEqual(
+      stateAfter.tasks['task-a'].status,
+      'pending',
+      'task-a must have no recorded done/not-done entry',
+    );
+
+    const logAfter = git(repo, ['log', '--oneline']);
+    assert.strictEqual(logAfter, logBefore, 'git log must be unchanged (no new commit)');
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+// --- R1.S3: gap explicitly acknowledged -> graceful degrade ---------------
+
+test('R1.S3: completing with --no-agent-id "<reason>" exits 0, records agentId null and an incidencia containing the reason', () => {
+  const { repo, specDir, absSpecDir } = setupRepo('exec-agentid-ack-');
+  try {
+    const testCmd = writeTaskFiles(repo, 'task-a', 'R1.S1', true);
+    const reason = 'orchestrator could not recover the agent id for this task';
 
     const result = cli(repo, [
       'complete', specDir, 'task-a',
       '--tokens', '1200', '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
       '--files', 'impl/task-a.mjs,t/task-a.check.mjs',
-      // no --agent-id / --session-id: the join is unavailable.
+      '--no-agent-id', reason,
+      // no --agent-id / --session-id: the join is unavailable but acknowledged.
     ], { CLAUDE_CODE_SESSION_ID: undefined }); // isolate from the ambient shell's session id (unrelated to this test's agentId assertions)
 
     // The run is not aborted: it exits 0 (execFileSync would throw otherwise)
@@ -223,8 +293,11 @@ test('R1.S2: completing without --agent-id still reaches done, with agentId null
     assert.strictEqual(entry.status, 'done');
     assert.strictEqual(entry.agentId, null);
     assert.strictEqual(entry.sessionId, null);
-    assert.ok(entry.incidencia, 'missing agentId join must be recorded as a non-null incidencia');
-    assert.notStrictEqual(entry.incidencia, null);
+    assert.ok(entry.incidencia, 'an acknowledged missing agentId join must be recorded as a non-null incidencia');
+    assert.ok(
+      entry.incidencia.includes(reason),
+      `incidencia must contain the acknowledgment reason verbatim, got: ${entry.incidencia}`,
+    );
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }

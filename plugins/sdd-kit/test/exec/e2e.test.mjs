@@ -205,6 +205,7 @@ function runTask(repo, specDir, taskId, ref) {
     '--rojo', 'fail',
     '--verde', 'pass',
     '--files', `impl/${taskId}.mjs,t/${taskId}.test.mjs`,
+    '--agent-id', 'agent-fixture',
   ]);
 }
 

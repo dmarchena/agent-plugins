@@ -163,6 +163,7 @@ test('R2.S1: complete on a verifier task whose suite passes returns done, state 
       'complete', specDir, 'task-verify',
       '--tokens', '500', '--test-cmd', testCmd, '--rojo', 'pass', '--verde', 'pass',
       '--files', path.join(specDir, 'verify-report.txt'),
+      '--agent-id', 'agent-fixture',
     ]);
 
     assert.strictEqual(result.data.status, 'done', 'R2.S1: a verifier task whose suite passes must close done');
@@ -193,6 +194,7 @@ test('R2.S2: complete on a verifier task whose suite fails on the orchestrator r
       'complete', specDir, 'task-verify',
       '--tokens', '500', '--test-cmd', testCmd, '--rojo', 'pass', '--verde', 'pass',
       '--files', 'placeholder.txt',
+      '--agent-id', 'agent-fixture',
     ]);
 
     assert.strictEqual(result.data.status, 'not-done', 'R2.S2: a failing orchestrator re-run must not close the task');
@@ -223,6 +225,7 @@ test('R2.S3: complete on a terminal_operator task with a passed red phase still 
       'complete', specDir, 'task-op',
       '--tokens', '500', '--test-cmd', testCmd, '--rojo', 'pass', '--verde', 'pass',
       '--files', 'placeholder.txt',
+      '--agent-id', 'agent-fixture',
     ]);
 
     assert.strictEqual(result.data.status, 'not-done', 'R2.S3: non-verifier tasks are unaffected by the waiver');
