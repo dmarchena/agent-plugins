@@ -10,21 +10,21 @@
       "actual_tokens": 50000,
       "deviation": -10000,
       "test_cmd": "python3 -m pytest plugins/markvault/tests/test_red_guard.py -q",
-      "commit": null,
+      "commit": "d6c7ac1",
       "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
       "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
     },
     "strategy-interface": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 90000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 55000,
+      "deviation": -35000,
+      "test_cmd": "python3 -m pytest plugins/markvault/tests/test_strategy_registry.py plugins/markvault/tests/test_strategies.py -q",
       "commit": null,
-      "incidencia": null,
+      "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
-      "sessionId": null
+      "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
     },
     "cli-extract": {
       "status": "pending",
