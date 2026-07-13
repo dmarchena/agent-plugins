@@ -87,7 +87,7 @@
       "actual_tokens": 55000,
       "deviation": -15000,
       "test_cmd": "python3 -m pytest plugins/markvault/tests/test_e2e_integration.py -q -rs",
-      "commit": null,
+      "commit": "9d5bc80",
       "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
       "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
