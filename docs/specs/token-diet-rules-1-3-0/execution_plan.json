@@ -1,0 +1,149 @@
+{
+  "plan_id": "token-diet-rules-1-3-0",
+  "project_name": "token-diet",
+  "global_objective": "Ship token-diet v1.3.0: rename the rules document to token-diet-rules.md, enrich the base inline block from 10 to 11 decision-aware lines, add an on-demand detail section, bump every version pin to 1.3.0, and update the test suite to pin the new contract green.",
+  "source_spec": "docs/specs/token-diet-rules-1-3-0/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 151000,
+  "tasks": [
+    {
+      "task_id": "t1-rename-rules-doc",
+      "source_ids": ["R5", "R5.S1", "R5.S2"],
+      "dependencies": [],
+      "agent_type": "terminal_operator",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "Mechanical rename plus find-and-replace of one known path across a fixed set of files - bounded, low-judgment work; haiku terminal_operator.",
+      "instructions": "Implement R5 (R5.S1, R5.S2). Rename plugins/token-diet/assets/rules.md to plugins/token-diet/assets/token-diet-rules.md, using git mv to preserve history, and update every in-repo reference to the old path in commands/install.md, README.md, AGENTS.md and the plugin tests, per R5. Leave pre-1.3.0 CHANGELOG.md history entries untouched (R5.S2). This task has no dependencies - do not assume any prior task output.",
+      "expected_output_schema": "The renamed file plugins/token-diet/assets/token-diet-rules.md exists and plugins/token-diet/assets/rules.md no longer exists, with all path references in commands/install.md, README.md, AGENTS.md and tests repointed to the new name; no stale assets/rules.md reference remains outside pre-1.3.0 CHANGELOG history.",
+      "satisfies_acs": ["AC9", "AC10"],
+      "estimated_tokens": 15000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "t2-extend-base-block",
+      "source_ids": ["R1", "R1.S1", "R1.S2"],
+      "dependencies": ["t1-rename-rules-doc"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Authoring schematic Markdown rule lines to a fixed line count and a semantic checklist - documentation redaction against clear criteria; sonnet doc_writer.",
+      "instructions": "Implement R1 (R1.S1, R1.S2) on the file renamed by t1-rename-rules-doc (plugins/token-diet/assets/token-diet-rules.md). Rewrite the base section so it holds exactly 11 non-empty bullet lines, preserving all 10 original semantic points (R1.S2) and folding in the six decision nuances enumerated in R1. Keep each rule a single schematic English line in the caveman style. Consume t1-rename-rules-doc's renamed file as the file to edit.",
+      "expected_output_schema": "The base section of token-diet-rules.md rewritten to exactly 11 non-empty bullet lines, preserving the 10 original decalogue points (enriched or verbatim) and embedding the 6 named nuances (cheap-explorer guardrail, delegation cost + model pinning, >=2 batching threshold, resume-from-disk figures, plans/docs hierarchy, grep-all-readers).",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "t3-add-detail-section",
+      "source_ids": ["R2", "R2.S1", "R2.S2"],
+      "dependencies": ["t2-extend-base-block"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Authoring a structured detail section at a fixed position following a 6-entry schema - documentation redaction against clear criteria; sonnet doc_writer.",
+      "instructions": "Implement R2 (R2.S1, R2.S2) in plugins/token-diet/assets/token-diet-rules.md as edited by t2-extend-base-block. Add the on-demand detail section between the base section and the scrooge profile section, with 6 entries mapping to R1's nuances and their rationale/figures, and make the base section intro reference it by name (R2.S1). Leave the scrooge profile section content unchanged (R2.S2).",
+      "expected_output_schema": "A new detail-section heading in token-diet-rules.md placed between the base section and the scrooge profile section, containing 6 identifiable entries (one per R1 nuance) with rationale and figures, the base intro referencing the detail section by name, and the scrooge profile section's 5 bullet lines unchanged.",
+      "satisfies_acs": ["AC3", "AC4"],
+      "estimated_tokens": 28000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "t4-version-bump",
+      "source_ids": ["R3", "R3.S1", "R3.S2"],
+      "dependencies": ["t2-extend-base-block", "t3-add-detail-section"],
+      "agent_type": "terminal_operator",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "Literal version bump across manifests, command literals and changelog with one documented exception (R3.S2) - bounded, low-judgment edit when the exception is named explicitly; haiku terminal_operator.",
+      "instructions": "Implement R3 (R3.S1, R3.S2). Bump every current-version pin from 1.2.0 to 1.3.0 across the three manifests (plugin.json, .claude-plugin/plugin.json, .codex-plugin/plugin.json), the version literals in commands/install.md (current-version references, the 'Produced with token-diet (v1.3.0)' mark, the R2.S1 reason literal 'already covered by token-diet v1.3.0'), and add a new ## 1.3.0 CHANGELOG entry describing both the rule nuances (from t2-extend-base-block and t3-add-detail-section) and the rename (from t1-rename-rules-doc). Per R3.S2, preserve the R2.S2 older-version example naming a concrete v1.2.0 -> v1.3.0 jump - do not blind-replace every 1.2.0.",
+      "expected_output_schema": "The three manifests declare version 1.3.0, commands/install.md carries the 'Produced with token-diet (v1.3.0)' mark and the 'already covered by token-diet v1.3.0' reason literal, CHANGELOG.md has a new ## 1.3.0 entry covering nuances and rename, the R2.S2 older-version v1.2.0 -> v1.3.0 example is preserved, and no current-version 1.2.0 remains outside CHANGELOG history and that example.",
+      "satisfies_acs": ["AC5", "AC6"],
+      "estimated_tokens": 20000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "t5-update-tests",
+      "source_ids": ["R4", "R4.S1", "R4.S2"],
+      "dependencies": ["t2-extend-base-block", "t3-add-detail-section", "t4-version-bump"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Updating and extending test assertions to pin the new content/path/version contract needs code judgment against clear acceptance criteria; sonnet code_writer with a test_contract.",
+      "instructions": "Implement R4 (R4.S1, R4.S2). Update the plugin's tests to the new content, path and version produced by t2-extend-base-block, t3-add-detail-section and t4-version-bump: the rules-doc test (new assets/token-diet-rules.md path, 11 base lines, detail section present) and the command tests cmd-apply, cmd-base, cmd-recommend (v1.3.0 literals and the new path). The full suite must pass (R4.S1) and the updated assertions must reject the old v1.2.0 shape (R4.S2).",
+      "expected_output_schema": "Updated plugin test files (rules-doc test plus cmd-apply, cmd-base, cmd-recommend) asserting the new path, 11 base lines, detail-section presence and v1.3.0 literals; node --test plugins/token-diet/test/ passes and the same assertions fail when run against the pre-1.3.0 file contents.",
+      "satisfies_acs": ["AC7", "AC8"],
+      "estimated_tokens": 45000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        {
+          "ref": "R4.S1",
+          "assertion": "running the full plugin test suite over the updated files completes with exit code 0 and zero failures"
+        },
+        {
+          "ref": "R4.S2",
+          "assertion": "the updated test assertions fail when evaluated against the pre-1.3.0 rules and install content, proving they pin the new contract rather than being tautological"
+        }
+      ]
+    },
+    {
+      "task_id": "t6-e2e-consistency",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["t1-rename-rules-doc", "t2-extend-base-block", "t3-add-detail-section", "t4-version-bump", "t5-update-tests"],
+      "agent_type": "verifier",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "The union of the per-task tests already exercises the release path; this task only re-runs the suite and confirms the grep invariants, writing no code - haiku verifier per the E2E-task-assignment rule.",
+      "instructions": "Verify R-E2E (R-E2E.S1). Run the full suite (node --test plugins/token-diet/test/) and the release-consistency grep sweep combining the AC1/AC3/AC5/AC9/AC10 invariants over the outputs of t1-rename-rules-doc, t2-extend-base-block, t3-add-detail-section, t4-version-bump and t5-update-tests. Confirm everything is green; do not write code or tests - run the existing suite and the invariant checks only.",
+      "expected_output_schema": "A pass/fail report confirming node --test plugins/token-diet/test/ exits 0 and every release invariant holds: token-diet-rules.md exists (rules.md gone), base section has 11 bullets, the detail heading exists, all three manifests say 1.3.0, the 'Produced with token-diet (v1.3.0)' mark is present, and no stale assets/rules.md or current-version 1.2.0 remains outside CHANGELOG history and the R3.S2 example.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 18000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["t2-extend-base-block"],
+      "R1.S1": ["t2-extend-base-block"],
+      "R1.S2": ["t2-extend-base-block"],
+      "R2": ["t3-add-detail-section"],
+      "R2.S1": ["t3-add-detail-section"],
+      "R2.S2": ["t3-add-detail-section"],
+      "R3": ["t4-version-bump"],
+      "R3.S1": ["t4-version-bump"],
+      "R3.S2": ["t4-version-bump"],
+      "R4": ["t5-update-tests"],
+      "R4.S1": ["t5-update-tests"],
+      "R4.S2": ["t5-update-tests"],
+      "R5": ["t1-rename-rules-doc"],
+      "R5.S1": ["t1-rename-rules-doc"],
+      "R5.S2": ["t1-rename-rules-doc"],
+      "R-E2E": ["t6-e2e-consistency"],
+      "R-E2E.S1": ["t6-e2e-consistency"]
+    },
+    "acs": {
+      "AC1": ["t2-extend-base-block"],
+      "AC2": ["t2-extend-base-block"],
+      "AC3": ["t3-add-detail-section"],
+      "AC4": ["t3-add-detail-section"],
+      "AC5": ["t4-version-bump"],
+      "AC6": ["t4-version-bump"],
+      "AC7": ["t5-update-tests"],
+      "AC8": ["t5-update-tests"],
+      "AC9": ["t1-rename-rules-doc"],
+      "AC10": ["t1-rename-rules-doc"],
+      "AC-E2E": ["t6-e2e-consistency"]
+    }
+  }
+}
