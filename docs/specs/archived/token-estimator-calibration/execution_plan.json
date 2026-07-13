@@ -1,0 +1,140 @@
+{
+  "plan_id": "token-estimator-calibration",
+  "project_name": "sdd-kit plan-writer",
+  "global_objective": "Give the plan author an evidence-based token-estimation calibration reference, built deterministically from archived executions, plus guidance that reframes estimation around how much prior context a task must read rather than its nominal complexity, without changing the plan format or auto-computing estimates.",
+  "source_spec": "docs/specs/token-estimator-calibration/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 138000,
+  "tasks": [
+    {
+      "task_id": "snapshot-command",
+      "source_ids": ["R1", "R1.S1", "R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation of a deterministic Node command with clear acceptance criteria (R1.S1/R1.S2); no design trade-offs beyond the home-of-command choice already delegated by OQ2.",
+      "instructions": "Implement the calibration command satisfying R1 and its scenarios R1.S1 and R1.S2. Decide the command's home per the spec's Technical Requirements and OQ2 (a new subcommand of scripts/plan-tools.mjs or a standalone .mjs consistent with it). The command must scan docs/specs/archived/<slug>/ for directories holding both execution_state.json and execution_plan.json, join each executed task by state task-key to plan task_id (actual_tokens from the state, structural fields from the plan), and render a Markdown snapshot with one row per executed task carrying the nine columns named in R1. Handle the exclusion and N/A rules exactly as R1.S2 requires (excluded tasks counted on an `excluded: <K>` line; null/0 estimated_tokens keeps its row with deviation% as N/A). deviation% follows the signed integer formula in R1 (and assumption A2). This task has no prior plan-task dependencies.",
+      "expected_output_schema": "A Node .mjs calibration command (new plan-tools.mjs subcommand or standalone script) that, run against docs/specs/archived/, produces a Markdown snapshot: a per-task table with the nine R1 columns and an `excluded: <K>` line, deviation% as a signed integer or N/A per R1.S2.",
+      "satisfies_acs": ["AC1", "AC2"],
+      "estimated_tokens": 45000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R1.S1", "assertion": "For an archived pair whose recorded consumption is present for every task, the snapshot emits exactly one row per plan task, each carrying the nine specified columns." },
+        { "ref": "R1.S1", "assertion": "Each row's deviation% is positive when the recorded actual exceeds the estimate and negative when it is below, matching the sign of actual versus estimated." },
+        { "ref": "R1.S2", "assertion": "A task whose recorded actual consumption is absent contributes no row and is counted on the excluded line, with no silent drop." },
+        { "ref": "R1.S2", "assertion": "A task whose estimated value is null or zero still produces a row, with its deviation% shown as N/A instead of a computed number." }
+      ]
+    },
+    {
+      "task_id": "bias-summary",
+      "source_ids": ["R2", "R2.S1"],
+      "dependencies": ["snapshot-command"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded extension of an existing command with a clear, auto-testable acceptance criterion (R2.S1); no design judgment required.",
+      "instructions": "Extend the calibration command authored in task `snapshot-command` to add the per-plan bias summary section required by R2 and R2.S1: within the same snapshot, list each plan with the signed mean of its tasks' deviation% plus one overall line, so the sign-flip-between-plans pattern is visible without reading every row. Consume the per-task row data produced by `snapshot-command`.",
+      "expected_output_schema": "The same command's Markdown output additionally containing a per-plan summary section: one line per plan with its signed mean deviation%, plus one overall line.",
+      "satisfies_acs": ["AC3"],
+      "estimated_tokens": 28000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R2.S1", "assertion": "The summary section lists each plan with the signed mean of its tasks' deviation% plus one overall line." },
+        { "ref": "R2.S1", "assertion": "The plan fix-commit-state-ordering appears with a negative mean deviation% and the plan verify appears with a positive mean deviation%." }
+      ]
+    },
+    {
+      "task_id": "deterministic-output",
+      "source_ids": ["R3", "R3.S1"],
+      "dependencies": ["snapshot-command"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation guarantee plus a regeneration test against a clear acceptance criterion (R3.S1); mechanical determinism concerns, no trade-off decision.",
+      "instructions": "Guarantee the deterministic and regenerable behavior of R3 and R3.S1 for the command authored in task `snapshot-command`: stable ordering and no timestamps or other run-dependent output, so identical inputs yield byte-identical output. Add a test that regenerates the snapshot over unchanged archived inputs and asserts the result is byte-identical. Builds directly on `snapshot-command`.",
+      "expected_output_schema": "Deterministic command output (stable ordering, no timestamps) plus a test asserting byte-identical regeneration over unchanged inputs.",
+      "satisfies_acs": ["AC4"],
+      "estimated_tokens": 22000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R3.S1", "assertion": "Running the command twice back-to-back over unchanged archived inputs yields a byte-identical snapshot, with no run-dependent ordering or timestamps." },
+        { "ref": "AC4", "assertion": "After a second regeneration over unchanged inputs, a version-control diff of the snapshot file reports no change." }
+      ]
+    },
+    {
+      "task_id": "generate-snapshot-artifact",
+      "source_ids": ["R1"],
+      "dependencies": ["snapshot-command", "bias-summary", "deterministic-output"],
+      "agent_type": "terminal_operator",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "Mechanical, low-judgment step: run the finished command and commit its output; no logic to author.",
+      "instructions": "Run the completed calibration command (the R1 command built by `snapshot-command`, extended by `bias-summary`, and made deterministic by `deterministic-output`) to generate the committed Markdown snapshot artifact under plugins/sdd-kit/skills/plan-writer/assets/ that R4.S1/AC5 requires to exist, and stage it for commit. Do not modify command logic; only run the command and capture its output as the committed artifact.",
+      "expected_output_schema": "The committed Markdown snapshot file at plugins/sdd-kit/skills/plan-writer/assets/, generated by running the finished command.",
+      "satisfies_acs": ["AC5"],
+      "estimated_tokens": 8000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "estimation-guidance",
+      "source_ids": ["R4", "R4.S1"],
+      "dependencies": ["generate-snapshot-artifact"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Documentation edit following a clear schema (R4.S1): reframe the estimation guidance and link the snapshot; no code or design decision.",
+      "instructions": "Update plan-writer's estimation guidance per R4 and R4.S1 where estimated_tokens is described (the SKILL.md 'Output contract, test contract, and token budget per task' section and/or assets/task-fields-detail.md): (a) instruct the plan author to weight how much prior context a task must read before writing anything over the task's nominal complexity, and (b) add a working relative-path link to the snapshot artifact committed by task `generate-snapshot-artifact`. Consume the committed snapshot path from `generate-snapshot-artifact`.",
+      "expected_output_schema": "Edited plan-writer estimation guidance containing the prior-context-over-nominal-complexity instruction and a working relative-path link to the committed snapshot.",
+      "satisfies_acs": ["AC5"],
+      "estimated_tokens": 20000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "e2e-calibration-loop",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["snapshot-command", "bias-summary", "deterministic-output", "generate-snapshot-artifact", "estimation-guidance"],
+      "agent_type": "verifier",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "AC-E2E is covered by composition of the per-task tests (regeneration no-diff, rows/summary, resolvable link); no new integration test to author, so a verifier confirms the existing suite is green.",
+      "instructions": "Verify R-E2E and R-E2E.S1 end-to-end without writing new code: from a clean checkout, run the calibration command and confirm regeneration produces no diff (as `deterministic-output` asserts), the snapshot's rows and per-plan summary match the archived data (as `snapshot-command` and `bias-summary` assert), and the estimation guidance's relative-path link (from `estimation-guidance`) resolves to the snapshot committed by `generate-snapshot-artifact`. Run the existing suite/validate and confirm it is green.",
+      "expected_output_schema": "A verification report confirming clean regeneration (no diff), snapshot rows and summary matching the archived data, a resolvable guidance link to the existing snapshot file, and a green suite.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 15000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["snapshot-command"],
+      "R1.S1": ["snapshot-command"],
+      "R1.S2": ["snapshot-command"],
+      "R2": ["bias-summary"],
+      "R2.S1": ["bias-summary"],
+      "R3": ["deterministic-output"],
+      "R3.S1": ["deterministic-output"],
+      "R4": ["generate-snapshot-artifact", "estimation-guidance"],
+      "R4.S1": ["estimation-guidance"],
+      "R-E2E": ["e2e-calibration-loop"],
+      "R-E2E.S1": ["e2e-calibration-loop"]
+    },
+    "acs": {
+      "AC1": ["snapshot-command"],
+      "AC2": ["snapshot-command"],
+      "AC3": ["bias-summary"],
+      "AC4": ["deterministic-output"],
+      "AC5": ["generate-snapshot-artifact", "estimation-guidance"],
+      "AC-E2E": ["e2e-calibration-loop"]
+    }
+  }
+}
