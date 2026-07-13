@@ -32,7 +32,7 @@
       "actual_tokens": 65000,
       "deviation": -30000,
       "test_cmd": "python3 -m pytest plugins/markvault/tests/test_cli_extract.py -q",
-      "commit": null,
+      "commit": "0816191",
       "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
       "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
@@ -49,15 +49,15 @@
       "sessionId": null
     },
     "barrier-privacy-wiring": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 55000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 35000,
+      "deviation": -20000,
+      "test_cmd": "python3 -m pytest plugins/markvault/tests/ -q",
       "commit": null,
-      "incidencia": null,
+      "incidencia": "agentId no obtenido para esta tarea",
       "agentId": null,
-      "sessionId": null
+      "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
     },
     "skill-file": {
       "status": "pending",

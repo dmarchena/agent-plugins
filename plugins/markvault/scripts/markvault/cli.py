@@ -8,11 +8,13 @@ pinned, greppable `key=value` format so a driving skill can read metadata
 without ever loading the extracted content into its own context (see R5 in
 docs/specs/markvault/spec.md).
 
+`main()` activates the anti-network-leak barrier (`red_guard.activate()`)
+before importing any extractor-related module, so no strategy or its
+backend library can ever attempt an outbound connection.
+
 Scope note: this module does NOT select a strategy automatically
-(`--strategy auto` is a separate sibling task, R3/fallback-chain) and does
-NOT activate the anti-network barrier (a separate sibling task,
-barrier-privacy-wiring, wires `red_guard.activate()` in front of this
-entrypoint) -- both are out of scope here by design.
+(`--strategy auto` is a separate sibling task, R3/fallback-chain) -- out
+of scope here by design.
 
 Usage:
     python3 -m markvault.cli document.pdf --strategy pymupdf4llm
@@ -25,8 +27,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-from .registry import UnknownStrategyError, default_registry
-from .strategies.base import ExtractionError
+from . import red_guard
 
 #: Magic bytes every valid PDF starts with; used for a real structural
 #: readability check independent of file extension (R2.S3: "missing,
@@ -78,6 +79,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[List[str]] = None) -> int:
     """Run the extraction CLI; returns the process exit code (0 = success)."""
+    # Activate the anti-network-leak barrier before importing anything that
+    # could open a connection (extraction strategies and their backend
+    # libraries) -- see docs/specs/markvault/spec.md R4.
+    red_guard.activate()
+
+    from .registry import UnknownStrategyError, default_registry
+    from .strategies.base import ExtractionError
+
     parser = build_parser()
     args = parser.parse_args(argv)
 
