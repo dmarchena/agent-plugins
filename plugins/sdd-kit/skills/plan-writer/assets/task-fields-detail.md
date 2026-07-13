@@ -45,3 +45,13 @@ there: the plan is immutable once the exec stage starts, so these fields
 never get filled in on the plan itself. Real token consumption and
 deviation are recorded separately, in the exec stage's
 `execution_state.json` — not in this plan.
+
+When sizing `estimated_tokens`, weigh how much **prior context** a task's
+executor must read before writing anything — prior code, prior spec
+sections, prior task outputs it depends on — over the task's **nominal complexity**
+(how simple or hard the deliverable sounds in isolation). A task that reads
+little but "sounds complex" is often cheaper than a task that reads a lot
+of accumulated prior context but "sounds simple"; estimate from the former,
+not the latter. See [`calibration-snapshot.md`](calibration-snapshot.md)
+for real `estimated_tokens` vs. `actual_tokens` deviation data from prior
+plans to calibrate against.

@@ -43,21 +43,21 @@
       "actual_tokens": 2000,
       "deviation": -6000,
       "test_cmd": "node plugins/sdd-kit/scripts/plan-tools.mjs calibration-snapshot docs/specs/archived --out /tmp/claude-1001/-home-marchena-Documentos-dmarchena-agent-plugins/ecc4e14b-8aac-4a28-9930-d2335c5c7f5e/scratchpad/regen-verify.md >/dev/null && diff plugins/sdd-kit/skills/plan-writer/assets/calibration-snapshot.md /tmp/claude-1001/-home-marchena-Documentos-dmarchena-agent-plugins/ecc4e14b-8aac-4a28-9930-d2335c5c7f5e/scratchpad/regen-verify.md",
-      "commit": null,
+      "commit": "29628e0",
       "incidencia": null,
       "agentId": "a9c0a3f360293f967",
       "sessionId": "ecc4e14b-8aac-4a28-9930-d2335c5c7f5e"
     },
     "estimation-guidance": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 20000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 15000,
+      "deviation": -5000,
+      "test_cmd": "node --test plugins/sdd-kit/test/estimation-guidance-calibration-link.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a424c6b31182ad07c",
+      "sessionId": "ecc4e14b-8aac-4a28-9930-d2335c5c7f5e"
     },
     "e2e-calibration-loop": {
       "status": "pending",
