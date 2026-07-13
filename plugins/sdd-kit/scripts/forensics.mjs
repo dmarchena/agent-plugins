@@ -314,6 +314,23 @@ export function runForensics(specDir, opts) {
 
 // --- CLI -------------------------------------------------------------------
 
+// T4-trim-cli-data: `resolved`/`estimated_tokens` inside each `tasks` entry
+// are unused ON STDOUT (spec-forensics/SKILL.md explicitly reads them from
+// the written SPECDIR/forensics.json file instead — "The full detail is also
+// written to SPECDIR/forensics.json ... read that file to relay the complete
+// report"). This trims ONLY the CLI's printed copy; runForensics()'s return
+// value (and the forensics.json it writes to disk, consumed by
+// forensics-analysis-validate.mjs's `t.resolved === false` check) keep both
+// fields untouched.
+function trimTasksForStdout(tasks) {
+  const trimmed = {};
+  for (const [taskId, t] of Object.entries(tasks)) {
+    const { resolved, estimated_tokens, ...rest } = t;
+    trimmed[taskId] = rest;
+  }
+  return trimmed;
+}
+
 function main() {
   const specDir = process.argv[2];
   if (!specDir) {
@@ -329,7 +346,7 @@ function main() {
     return;
   }
 
-  emitSuccess(outcome);
+  emitSuccess({ ...outcome, tasks: trimTasksForStdout(outcome.tasks) });
 }
 
 const isMainModule = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;

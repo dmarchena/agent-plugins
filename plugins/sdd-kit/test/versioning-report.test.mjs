@@ -70,7 +70,7 @@ function runCli(repo) {
   return spawnSync('node', [CLI, repo], { cwd: repo, encoding: 'utf8' });
 }
 
-test('AC6: versioning-report emite {ok:true,data:{warnings:[...]}} con warnings y {ok:true,data:{warnings:[]}} sin ellos, sin lineas de prosa de aviso', () => {
+test('AC6: versioning-report emite {ok:true,data:{}} sin lineas de prosa de aviso, para un gap real y para un repo compliant (warnings trimmed by T4-trim-cli-data — scripts/validate.sh, the only real caller, discards this script\'s stdout entirely)', () => {
   const gapRepo = makeRepo({ compliant: false });
   const compliantRepo = makeRepo({ compliant: true });
   try {
@@ -82,8 +82,7 @@ test('AC6: versioning-report emite {ok:true,data:{warnings:[...]}} con warnings 
     assert.doesNotMatch(gapResult.stdout, /⚠/, 'stdout must not contain the old prose warning marker');
     const gapParsed = JSON.parse(gapLines[0]);
     assert.equal(gapParsed.ok, true);
-    assert.ok(Array.isArray(gapParsed.data.warnings), 'data.warnings must be an array');
-    assert.ok(gapParsed.data.warnings.length > 0, 'a real bump/changelog gap must produce at least one warning');
+    assert.deepEqual(gapParsed.data, {}, 'data.warnings is trimmed — data is now an empty object regardless of whether a gap exists');
 
     const compliantResult = runCli(compliantRepo);
     assert.equal(compliantResult.status, 0, `expected exit 0, got ${compliantResult.status}; stderr: ${compliantResult.stderr}`);
@@ -92,8 +91,7 @@ test('AC6: versioning-report emite {ok:true,data:{warnings:[...]}} con warnings 
     assert.doesNotMatch(compliantResult.stdout, /⚠/, 'stdout must not contain the old prose warning marker');
     const compliantParsed = JSON.parse(compliantLines[0]);
     assert.equal(compliantParsed.ok, true);
-    assert.ok(Array.isArray(compliantParsed.data.warnings), 'data.warnings must be an array');
-    assert.equal(compliantParsed.data.warnings.length, 0, 'a fully compliant bump+changelog must produce zero warnings');
+    assert.deepEqual(compliantParsed.data, {}, 'data.warnings is trimmed — data is now an empty object regardless of compliance');
   } finally {
     fs.rmSync(gapRepo, { recursive: true, force: true });
     fs.rmSync(compliantRepo, { recursive: true, force: true });

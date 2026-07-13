@@ -112,6 +112,10 @@ if (isEntryPoint) {
   const { results } = runGuard(options);
   const withinBudget = results.every((r) => r.withinBudget);
 
-  emitSuccess({ results, withinBudget });
+  // T4-trim-cli-data: top-level `withinBudget` is unused (only the test
+  // suite ever read it — see docs/specs/trim-cli-data/cli-data-contract.md);
+  // the per-skill `withinBudget` inside each `results` entry stays, and the
+  // gate's own exit code (below) still reflects the same computation.
+  emitSuccess({ results });
   process.exit(withinBudget ? 0 : 1);
 }

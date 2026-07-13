@@ -1051,8 +1051,13 @@ function cmdGroundCheck(specDir) {
     if (e instanceof VerifyInputError) return emitError(`VerifyInputError: ${e.message}`, 1);
     throw e;
   }
-  const result = groundCheck(checklist, coverageAcs, taskState, { rerun });
-  emitSuccess({ status: 'ground-check', ...result });
+  // T4-trim-cli-data: status/green/drift are all unused here (only the test
+  // suite ever read them — the real workflow's `report`/`archive` re-derive
+  // their own groundCheck() call internally rather than consuming this
+  // standalone subcommand's stdout). groundCheck() is still called for its
+  // real side effect (re-running each [auto] AC's stored test command).
+  groundCheck(checklist, coverageAcs, taskState, { rerun });
+  emitSuccess({});
 }
 
 // report <specDir> [--verdicts <path>]: full deterministic verify pipeline,
@@ -1085,7 +1090,12 @@ function cmdArchive(specDir, flags) {
   const cwd = process.cwd();
   const config = readConfig(cwd);
   const result = archiveIfGreen(specDir, report, { cwd, versioning: { config } });
-  emitSuccess({ status: result.archived ? 'archived' : 'not-archived', ...result });
+  // T4-trim-cli-data: `notGreenAcs` is unused on stdout (only the test suite
+  // ever read it there) — archiveIfGreen()'s own return value (used directly
+  // by in-process tests) is untouched; only this CLI's emitted payload is
+  // trimmed.
+  const { notGreenAcs, ...trimmedResult } = result;
+  emitSuccess({ status: result.archived ? 'archived' : 'not-archived', ...trimmedResult });
 }
 
 function main() {

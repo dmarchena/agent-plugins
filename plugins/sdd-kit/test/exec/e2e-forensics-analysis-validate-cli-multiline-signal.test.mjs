@@ -71,13 +71,13 @@ function runCli(specDir) {
   return spawnSync('node', [CLI, specDir], { encoding: 'utf8' });
 }
 
-test('R-E2E.S1: node forensics-analysis-validate.mjs sobre un SPECDIR cuyo forensics-analysis.md cita un signal real de forensics.json solo en una linea de continuacion (2a/3a linea, indentada, del mismo item) de un judgment finding -- y en lo demas reconcilia sin violar ningun otro invariante -- imprime exactamente {"ok":true,"data":{"ok":true,"errors":[]}} y el proceso sale con codigo 0', () => {
+test('R-E2E.S1: node forensics-analysis-validate.mjs sobre un SPECDIR cuyo forensics-analysis.md cita un signal real de forensics.json solo en una linea de continuacion (2a/3a linea, indentada, del mismo item) de un judgment finding -- y en lo demas reconcilia sin violar ningun otro invariante -- imprime exactamente {"ok":true,"data":{"ok":true}} y el proceso sale con codigo 0', () => {
   const specDir = makeSpecDir();
 
   try {
     const result = runCli(specDir);
     assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
-    assert.equal(result.stdout, '{"ok":true,"data":{"ok":true,"errors":[]}}\n');
+    assert.equal(result.stdout, '{"ok":true,"data":{"ok":true}}\n');
   } finally {
     fs.rmSync(specDir, { recursive: true, force: true });
   }

@@ -89,13 +89,14 @@ function cmdInit(specDir) {
   const { branch, created } = ensureBranch(p.slug, process.cwd(), prefix);
   setBranch(state, branch);
   persist(p.state, state);
-  const batch = readyBatch(plan, [], { max: 3 });
-  const result = { ok: true, plan_id: plan.plan_id, branch, branch_created: created, first_batch: batch, total_tasks: plan.tasks.length };
-  if (!changeType) {
-    result.note = 'spec.md has no "Change type:" line; defaulting the branch prefix to "feat". '
-      + 'Consider adding an explicit Change type (feat/fix/chore/refactor/docs) near the top of the spec.';
-  }
-  emitSuccess(result);
+  // T4-trim-cli-data: plan_id/branch_created/first_batch/total_tasks/note are
+  // unused (only the test suite ever read them) — only `branch` has a real
+  // consumer (plan-executor/SKILL.md). first_batch's readyBatch() call is
+  // dropped too since nothing else in this subcommand needs its result.
+  // `ok` (redundant with the envelope's own top-level ok) is untouched — it
+  // was never in the contract doc's field table, so it's out of this trim's
+  // scope either way.
+  emitSuccess({ ok: true, branch });
 }
 
 // next <specDir>: next runnable batch (<=3), or done, or stalled.
@@ -111,8 +112,9 @@ function cmdNext(specDir) {
   const batch = readyBatch(plan, done, { max: 3, excluded });
   const c = counts(state);
   if (batch.length === 0) {
+    // T4-trim-cli-data: `note` is unused (only the test suite ever read it).
     if (c.pending === 0 && c.running === 0) emitSuccess({ status: 'complete', counts: c });
-    else emitSuccess({ status: 'stalled', counts: c, note: 'no runnable tasks (dependencies blocked/skipped)' });
+    else emitSuccess({ status: 'stalled', counts: c });
     return;
   }
   emitSuccess({ status: 'run', batch, counts: c });
@@ -217,7 +219,13 @@ function cmdComplete(specDir, taskId, flags) {
   const result = completeOne(plan, state, p.state, {
     taskId, tokens, testCmd, rojo: flags.rojo, verde: flags.verde, message, files, agentId, sessionId,
   });
-  emitSuccess(result);
+  // T4-trim-cli-data: task_id/error are unused on the single-task `complete`
+  // path (only the test suite ever read them) — trimmed here, at the CLI
+  // boundary, rather than in completeOne() itself, since completeOne()'s
+  // return shape is also reused verbatim by cmdCompleteBatch below (left
+  // untouched — see that function's own note).
+  const { task_id, error, ...trimmedResult } = result;
+  emitSuccess(trimmedResult);
 }
 
 // complete <specDir> --batch <path/to/batch.json>
@@ -289,6 +297,16 @@ function cmdCompleteBatch(specDir, batchPath) {
     });
     results.push(result);
   }
+  // T4-trim-cli-data AMBIGUITY (not trimmed — see task report): the contract
+  // doc marks this call's top-level `status`/`results` as unused, but
+  // `results` is the ONLY place a batch entry's `reason`/`incidencia`/
+  // `rerun_output` (per-task diagnostics for a `not-done` entry) surface —
+  // none of that is persisted to execution_state.json (state.mjs#recordResult
+  // never stores rerun_output), and skills/plan-executor/assets/
+  // task-brief-detail.md documents this exact `{status:"batch",results:[...]}`
+  // shape as the batch counterpart of the single-task return. Deleting it
+  // would be a real regression, not a no-op trim, so this call is left as-is
+  // pending a human decision on the contract doc.
   emitSuccess({ status: 'batch', results });
 }
 
@@ -299,7 +317,9 @@ function cmdBlock(specDir, taskId) {
   const state = read(p.state);
   const r = blockAndSkip(plan, state, taskId);
   persist(p.state, state);
-  emitSuccess({ status: 'blocked', ...r });
+  // T4-trim-cli-data: `status` is unused here (only the test suite ever read
+  // it) — failures-and-resume.md documents the side effect, not this field.
+  emitSuccess(r);
 }
 
 // resume <specDir>: verifies the ground (re-run of done tests) before continuing (R7).
@@ -320,7 +340,9 @@ function cmdResume(specDir) {
   }
   const { done, excluded } = doneAndExcluded(state);
   const batch = readyBatch(plan, done, { max: 3, excluded });
-  emitSuccess({ status: 'resumed', next_batch: batch, counts: counts(state) });
+  // T4-trim-cli-data: `counts` is unused here (only the test suite ever read
+  // it) — failures-and-resume.md documents `status`/`next_batch`, not this.
+  emitSuccess({ status: 'resumed', next_batch: batch });
 }
 
 // report <specDir>: final report (done/blocked/skipped, actual vs estimated tokens, ACs).
@@ -330,13 +352,11 @@ function cmdReport(specDir) {
   const state = read(p.state);
   const per = [];
   let realTotal = 0; let estTotal = 0;
-  const acs = new Set();
   for (const task of plan.tasks) {
     const st = state.tasks[task.task_id];
     per.push({ task_id: task.task_id, status: st.status, actual_tokens: st.actual_tokens, estimated_tokens: st.estimated_tokens, deviation: st.deviation, incidencia: st.incidencia, commit: st.commit });
     if (st.actual_tokens != null) realTotal += st.actual_tokens;
     estTotal += st.estimated_tokens;
-    if (st.status === 'done') for (const ac of (task.satisfies_acs || [])) acs.add(ac);
   }
   // real_cost / real_cost_over_budget: T5-exec-report-signal. Purely
   // additive, report-only fields — computeRealCost() never throws (worst
@@ -344,10 +364,12 @@ function cmdReport(specDir) {
   // function that cannot pause or halt the run; see exec/budget.mjs.
   const realCost = computeRealCost({ boundary: state.branch });
   const realCostOverBudgetIndicator = realCostOverBudget(realCost, plan.estimated_tokens_total);
+  // T4-trim-cli-data: status/branch/counts/acs_satisfechos/pause are unused
+  // (only the test suite ever read them) — tokens/per_task/real_cost stay
+  // (plan-executor/SKILL.md), and real_cost_over_budget stays too (see this
+  // doc's correction note: consumed by failures-and-resume.md).
   emitSuccess({
-    status: 'report', branch: state.branch, counts: counts(state),
     tokens: { real: realTotal, estimated: estTotal }, per_task: per,
-    acs_satisfechos: [...acs].sort(), pause: state.pause,
     real_cost: realCost, real_cost_over_budget: realCostOverBudgetIndicator,
   });
 }
@@ -360,6 +382,14 @@ function cmdReport(specDir) {
 // envelope (R1.S1/R1.S3), not ad hoc prose on stdout. If ANY requested ID
 // isn't found, nothing is returned for it (no partial/invented block) and
 // the process exits non-zero naming the missing ID(s) in error.reason.
+//
+// T4-trim-cli-data AMBIGUITY (not trimmed — see task report): the contract
+// doc marks BOTH `ids` and `blocks` unused, but
+// skills/plan-executor/assets/task-brief-detail.md documents this exact
+// command as the mechanism a task-executing agent runs itself to fetch
+// verbatim scenario/AC text ("The executor runs the command itself to get
+// the verbatim text and derives the contract from it") — a real, non-test
+// consumer of the whole payload. Left untouched pending a human decision.
 function cmdExtract(specDir, ids) {
   if (!ids || ids.length === 0) {
     emitError('Usage: exec-tools.mjs extract <specDir> <ID> [ID...]', 1);

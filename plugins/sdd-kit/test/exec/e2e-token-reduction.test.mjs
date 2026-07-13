@@ -133,7 +133,6 @@ test('AC-E2E: --batch closes the fixture with strictly fewer invocations than ta
 
     const init = baseCli.invoke(['init', base.specDir]);
     assert.strictEqual(init.ok, true);
-    assert.deepStrictEqual([...init.first_batch].sort(), ['task-a', 'task-b', 'task-c']);
 
     const batch1 = baseCli.invoke(['next', base.specDir]);
     assert.strictEqual(batch1.status, 'run');
@@ -174,12 +173,11 @@ test('AC-E2E: --batch closes the fixture with strictly fewer invocations than ta
     assert.strictEqual(end.status, 'complete');
     assert.strictEqual(end.counts.done, 4);
 
+    // report: status/counts/acs_satisfechos are trimmed from stdout as of
+    // T4-trim-cli-data (only the test suite ever read them there); tokens
+    // stays and is exercised elsewhere (test/exec/e2e.test.mjs).
     const report = baseCli.invoke(['report', base.specDir]);
-    assert.strictEqual(report.status, 'report');
-    assert.strictEqual(report.counts.done, 4);
-    assert.strictEqual(report.counts.blocked, 0);
-    assert.strictEqual(report.counts.skipped, 0);
-    assert.deepStrictEqual(report.acs_satisfechos, ['AC1', 'AC2', 'AC3', 'AC4']);
+    assert.ok(report.tokens, 'report.tokens must still be present');
 
     // 4 task commits on top of main (one per DONE task; task-b's failed
     // attempt produced no commit).
@@ -258,11 +256,7 @@ test('AC-E2E: --batch closes the fixture with strictly fewer invocations than ta
     assert.strictEqual(end.counts.done, 4);
 
     const report = bCli.invoke(['report', batchRun.specDir]);
-    assert.strictEqual(report.status, 'report');
-    assert.strictEqual(report.counts.done, 4);
-    assert.strictEqual(report.counts.blocked, 0);
-    assert.strictEqual(report.counts.skipped, 0);
-    assert.deepStrictEqual(report.acs_satisfechos, ['AC1', 'AC2', 'AC3', 'AC4']);
+    assert.ok(report.tokens, 'report.tokens must still be present');
 
     // 4 task commits on top of main, each atomic (one per done task).
     const taskCommits = git(batchRun.repo, ['rev-list', '--count', 'HEAD', '^main']);

@@ -16,7 +16,7 @@ const FIXTURES_ROOT = path.join(__dirname, 'fixtures', 'budget-guard-exceeded');
 const SKILLS_FIXTURE_DIR = path.join(FIXTURES_ROOT, 'skills');
 const HWM_FIXTURE_DIR = path.join(FIXTURES_ROOT, 'hwm');
 
-test('ref AC7: budget-guard con un skill que excede su techo emite {ok:true,data:{results:[...],withinBudget:false}} y termina con codigo distinto de cero como gate', () => {
+test('ref AC7: budget-guard con un skill que excede su techo emite {ok:true,data:{results:[...]}} (con results[i].withinBudget:false) y termina con codigo distinto de cero como gate', () => {
   const result = spawnSync(
     process.execPath,
     [
@@ -36,7 +36,6 @@ test('ref AC7: budget-guard con un skill que excede su techo emite {ok:true,data
 
   assert.equal(parsed.ok, true, 'exceder el techo sigue siendo ok:true (resultado de dominio, no un fallo de I/O)');
   assert.ok(Array.isArray(parsed.data.results), 'data.results debe ser un array');
-  assert.equal(parsed.data.withinBudget, false, 'data.withinBudget debe ser false cuando algun skill excede su techo');
 
   const exceededEntry = parsed.data.results.find((r) => r.skill === 'verify');
   assert.ok(exceededEntry, 'debe reportar una entrada para el skill que excede su techo');

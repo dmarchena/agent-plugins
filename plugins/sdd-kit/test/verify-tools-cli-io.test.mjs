@@ -118,9 +118,12 @@ test("AC1: un comando de exito de verify emite un envelope {ok:true,data:...} co
     const parsed = JSON.parse(stdout);
     assert.equal(parsed.ok, true);
     assert.ok(parsed.data && typeof parsed.data === 'object', 'must carry a data payload');
-    assert.equal(parsed.data.status, 'ground-check');
-    assert.ok(Array.isArray(parsed.data.green));
-    assert.ok(parsed.data.green.includes('AC1'));
+    // status/green/drift are trimmed from ground-check's stdout as of
+    // T4-trim-cli-data (only the test suite ever read them there) — its
+    // data payload is now an empty object; this test's own point (envelope
+    // shape: compact single line, ok:true, data is an object) is still
+    // checked above.
+    assert.deepEqual(parsed.data, {});
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }

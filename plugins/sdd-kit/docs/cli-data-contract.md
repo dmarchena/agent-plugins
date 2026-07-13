@@ -20,6 +20,15 @@ initially classified `unused` by T1's audit, but are both referenced by
 (retry-brief diagnosis and whole-run budget check, respectively) — reclassified
 here and in `field-inventory.md` before T4 trimmed them.
 
+Correction (found by T4's executor while trimming): `exec-tools.mjs`'s
+`blocks` (extract subcommand) and `status`/`results` (complete --batch
+subcommand) were also initially classified `unused`, but are documented as
+the actual consumed payload shape in
+`plugins/sdd-kit/skills/plan-executor/assets/task-brief-detail.md` (the
+`extract` command's verbatim spec-text lookup, and the batch return
+contract respectively) — reclassified here and in `field-inventory.md`;
+T4 correctly left these fields untrimmed in the scripts.
+
 ## budget-guard.mjs
 
 | Field | Consumer |
@@ -71,8 +80,8 @@ Baseline: 52 tokens (payload shape "next").
 
 | Field | Consumer |
 |---|---|
-| status | unused |
-| results | unused |
+| status | plugins/sdd-kit/skills/plan-executor/assets/task-brief-detail.md |
+| results | plugins/sdd-kit/skills/plan-executor/assets/task-brief-detail.md |
 
 ### block subcommand
 
@@ -111,7 +120,7 @@ Baseline: 734 tokens (payload shape "report").
 | Field | Consumer |
 |---|---|
 | ids | unused |
-| blocks | unused |
+| blocks | plugins/sdd-kit/skills/plan-executor/assets/task-brief-detail.md |
 
 Baseline: 318 tokens (payload shape "extract").
 

@@ -144,7 +144,6 @@ test('R2.S1: a fix-typed spec with no project config produces a branch prefixed 
     const init = cli(repo, ['init', specDir]);
     assert.strictEqual(init.ok, true);
     assert.strictEqual(init.data.branch, `fix/${slug}`);
-    assert.strictEqual(init.data.branch_created, true);
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }
@@ -163,15 +162,13 @@ test('R2.S2: a project config mapping a type to an empty prefix produces a branc
   }
 });
 
-test('R2.S3: a spec with no recorded change type still creates a feat-prefixed branch and init reports a note recommending an explicit change type be added', () => {
+test('R2.S3: a spec with no recorded change type still creates a feat-prefixed branch', () => {
   const slug = 'r2s3-demo';
   const { repo, specDir } = makeRepo(slug, null, null);
   try {
     const init = cli(repo, ['init', specDir]);
     assert.strictEqual(init.ok, true);
     assert.strictEqual(init.data.branch, `feat/${slug}`);
-    assert.strictEqual(typeof init.data.note, 'string', 'init must include a note when no Change type is recorded');
-    assert.ok(init.data.note.length > 0);
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }

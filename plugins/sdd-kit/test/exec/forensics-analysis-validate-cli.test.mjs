@@ -3,11 +3,15 @@
 //
 // AC1: a SPECDIR whose forensics-analysis.md and forensics.json reconcile
 // (no violated invariant) -> stdout is exactly
-// {"ok":true,"data":{"ok":true,"errors":[]}} and exit code 0.
+// {"ok":true,"data":{"ok":true}} and exit code 0.
 // AC2: a SPECDIR whose forensics-analysis.md violates an invariant ->
-// stdout is {"ok":true,"data":{"ok":false,"errors":[...]}} with a
-// non-empty errors array, and the process STILL exits with code 0 (a
-// validator-reported failure is data, not a process failure).
+// stdout is {"ok":true,"data":{"ok":false}}, and the process STILL exits
+// with code 0 (a validator-reported failure is data, not a process
+// failure). `errors` is trimmed from stdout as of T4-trim-cli-data (it was
+// only ever read by this test suite there); validateForensicsAnalysis()'s
+// own return value still carries it in full, as
+// test/exec/forensics-analysis-validate.test.mjs (which calls that function
+// directly, not the CLI) verifies.
 //
 // Fixtures reused verbatim from test/exec/fixtures/forensics-analysis/
 // (the same complete-* pair test/exec/forensics-analysis-validate.test.mjs
@@ -45,20 +49,20 @@ function runCli(specDir) {
   return spawnSync('node', [CLI, specDir], { encoding: 'utf8' });
 }
 
-test('AC1: SPECDIR cuyo forensics-analysis.md y forensics.json reconcilian (sin invariante violado) imprime exactamente {"ok":true,"data":{"ok":true,"errors":[]}} y el proceso sale con codigo 0', () => {
+test('AC1: SPECDIR cuyo forensics-analysis.md y forensics.json reconcilian (sin invariante violado) imprime exactamente {"ok":true,"data":{"ok":true}} y el proceso sale con codigo 0', () => {
   const { json, md } = loadPair('complete');
   const specDir = makeSpecDir(md, json);
 
   try {
     const result = runCli(specDir);
     assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
-    assert.equal(result.stdout, '{"ok":true,"data":{"ok":true,"errors":[]}}\n');
+    assert.equal(result.stdout, '{"ok":true,"data":{"ok":true}}\n');
   } finally {
     fs.rmSync(specDir, { recursive: true, force: true });
   }
 });
 
-test('AC2: SPECDIR cuyo forensics-analysis.md viola un invariante imprime {"ok":true,"data":{"ok":false,"errors":[...]}} con errors no vacio, y el proceso sigue saliendo con codigo 0', () => {
+test('AC2: SPECDIR cuyo forensics-analysis.md viola un invariante imprime {"ok":true,"data":{"ok":false}}, y el proceso sigue saliendo con codigo 0', () => {
   const { json, md } = loadPair('complete');
   const mutatedMd = md.replace('Total USD: $12.00', 'Total USD: $999.00');
   assert.notEqual(mutatedMd, md, 'fixture text to mutate was not found -- fixture drifted');
@@ -70,7 +74,6 @@ test('AC2: SPECDIR cuyo forensics-analysis.md viola un invariante imprime {"ok":
     const parsed = JSON.parse(result.stdout);
     assert.equal(parsed.ok, true);
     assert.equal(parsed.data.ok, false);
-    assert.ok(Array.isArray(parsed.data.errors) && parsed.data.errors.length > 0, `expected a non-empty errors array, got: ${JSON.stringify(parsed.data.errors)}`);
   } finally {
     fs.rmSync(specDir, { recursive: true, force: true });
   }

@@ -125,18 +125,22 @@ function main(argv) {
   const cwd = argv[2] ? path.resolve(argv[2]) : process.cwd();
   const explicitBaseRef = argv[3] || null;
 
+  // T4-trim-cli-data: `warnings` is unused (scripts/validate.sh, the only
+  // real caller, shells out with `|| true` and never parses this script's
+  // stdout — only the test suite ever read `data.warnings`), so every branch
+  // below now emits an empty payload instead.
   let config;
   try {
     config = readConfig(cwd);
   } catch {
-    emitSuccess({ warnings: [] }); // never let a config-read error surface as a warning or exit != 0
+    emitSuccess({}); // never let a config-read error surface as a warning or exit != 0
     return;
   }
 
   // R4.S1: disabled (or absent, which readConfig already defaults to
   // 'disabled') skips the check entirely — no warning, ever.
   if (!config.versioningPolicy || config.versioningPolicy === 'disabled') {
-    emitSuccess({ warnings: [] });
+    emitSuccess({});
     return;
   }
 
@@ -147,15 +151,18 @@ function main(argv) {
     const branchPrefix = branchPrefixFromBranchName(branch);
     const before = buildBefore(cwd, baseRef, config, touchedFiles);
 
-    const warnings = checkVersioning({
+    // checkVersioning() still runs for its real side effect potential
+    // (none today — it's pure — but kept so a future non-stdout consumer,
+    // e.g. stderr diagnostics, could still be added without restructuring).
+    checkVersioning({
       cwd, touchedFiles, config, branchPrefix, before,
     });
-    emitSuccess({ warnings });
+    emitSuccess({});
   } catch {
     // Any git/parsing failure degrades to "no warning" rather than risking
     // a false positive or a crash that could ever change validate.sh's exit
     // code — see this file's header.
-    emitSuccess({ warnings: [] });
+    emitSuccess({});
   }
 }
 

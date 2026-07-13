@@ -44,8 +44,8 @@ deliverable.
 
 ## exec-tools.mjs (complete --batch subcommand)
 
-`status -> unused`
-`results -> unused`
+`status -> plugins/sdd-kit/skills/plan-executor/assets/task-brief-detail.md`
+`results -> plugins/sdd-kit/skills/plan-executor/assets/task-brief-detail.md`
 
 ## exec-tools.mjs (block subcommand)
 
@@ -74,7 +74,7 @@ deliverable.
 ## exec-tools.mjs (extract subcommand)
 
 `ids -> unused`
-`blocks -> unused`
+`blocks -> plugins/sdd-kit/skills/plan-executor/assets/task-brief-detail.md`
 
 ## forensics-analysis-validate.mjs
 
