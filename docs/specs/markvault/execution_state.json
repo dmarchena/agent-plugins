@@ -1,0 +1,97 @@
+{
+  "plan_id": "markvault-v1",
+  "source_spec": "docs/specs/markvault/spec.md",
+  "branch": "feat/markvault",
+  "started_at": "2026-07-13T16:03:31.817Z",
+  "tasks": {
+    "barrier-red-guard": {
+      "status": "done",
+      "estimated_tokens": 60000,
+      "actual_tokens": 50000,
+      "deviation": -10000,
+      "test_cmd": "python3 -m pytest plugins/markvault/tests/test_red_guard.py -q",
+      "commit": null,
+      "incidencia": "agentId no obtenido para esta tarea",
+      "agentId": null,
+      "sessionId": "b5fe9cee-8b47-47d3-ba1d-fbd7fa068e3a"
+    },
+    "strategy-interface": {
+      "status": "pending",
+      "estimated_tokens": 90000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "cli-extract": {
+      "status": "pending",
+      "estimated_tokens": 95000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "fallback-chain": {
+      "status": "pending",
+      "estimated_tokens": 70000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "barrier-privacy-wiring": {
+      "status": "pending",
+      "estimated_tokens": 55000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "skill-file": {
+      "status": "pending",
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "benchmark-harness": {
+      "status": "pending",
+      "estimated_tokens": 100000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "e2e-integration": {
+      "status": "pending",
+      "estimated_tokens": 70000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    }
+  },
+  "pause": null
+}
