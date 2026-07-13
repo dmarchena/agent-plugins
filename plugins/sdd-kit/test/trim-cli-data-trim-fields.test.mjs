@@ -269,6 +269,7 @@ function runTask(repo, specDir, taskId, tokens) {
   return execCli(repo, [
     'complete', specDir, taskId,
     '--tokens', String(tokens),
+    '--agent-id', `agent-${taskId}`,
     '--test-cmd', 'true',
     '--rojo', 'fail',
     '--verde', 'pass',
