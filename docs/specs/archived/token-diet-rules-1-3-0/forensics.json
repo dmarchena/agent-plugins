@@ -1,0 +1,109 @@
+{
+  "tasks": {
+    "t1-rename-rules-doc": {
+      "resolved": true,
+      "real_tokens": 4497827,
+      "real_cost_usd": 0.5635145599999998,
+      "estimated_tokens": 15000,
+      "deviation_real": 4482827
+    },
+    "t2-extend-base-block": {
+      "resolved": true,
+      "real_tokens": 1415860,
+      "real_cost_usd": 1.2041062500000002,
+      "estimated_tokens": 25000,
+      "deviation_real": 1390860
+    },
+    "t3-add-detail-section": {
+      "resolved": true,
+      "real_tokens": 1004080,
+      "real_cost_usd": 0.7106260499999999,
+      "estimated_tokens": 28000,
+      "deviation_real": 976080
+    },
+    "t4-version-bump": {
+      "resolved": true,
+      "real_tokens": 1830433,
+      "real_cost_usd": 0.31958148000000003,
+      "estimated_tokens": 20000,
+      "deviation_real": 1810433
+    },
+    "t5-update-tests": {
+      "resolved": true,
+      "real_tokens": 6685248,
+      "real_cost_usd": 5.581220699999994,
+      "estimated_tokens": 45000,
+      "deviation_real": 6640248
+    },
+    "t6-e2e-consistency": {
+      "resolved": true,
+      "real_tokens": 949746,
+      "real_cost_usd": 0.17769596,
+      "estimated_tokens": 18000,
+      "deviation_real": 931746
+    }
+  },
+  "orchestrator": {
+    "real_tokens": 40618298,
+    "real_cost_usd": 16.361803350000002
+  },
+  "subagents_total": {
+    "real_tokens": 16383194,
+    "real_cost_usd": 8.556744999999994
+  },
+  "pause_timeline": [],
+  "signals": {
+    "per_model": {
+      "claude-haiku-4-5-20251001": {
+        "tokens": 7278006,
+        "cost": 1.0607919999999997
+      },
+      "claude-sonnet-5": {
+        "tokens": 9105188,
+        "cost": 7.495952999999994
+      }
+    },
+    "orchestrator_share": 0.6566114173340281,
+    "orchestrator_token_ratio": 0.7125830671239272,
+    "deviations": [
+      {
+        "task_id": "t1-rename-rules-doc",
+        "real_tokens": 4497827,
+        "estimated_tokens": 15000,
+        "ratio": 299.85513333333336
+      },
+      {
+        "task_id": "t5-update-tests",
+        "real_tokens": 6685248,
+        "estimated_tokens": 45000,
+        "ratio": 148.56106666666668
+      },
+      {
+        "task_id": "t4-version-bump",
+        "real_tokens": 1830433,
+        "estimated_tokens": 20000,
+        "ratio": 91.52165
+      },
+      {
+        "task_id": "t2-extend-base-block",
+        "real_tokens": 1415860,
+        "estimated_tokens": 25000,
+        "ratio": 56.6344
+      },
+      {
+        "task_id": "t6-e2e-consistency",
+        "real_tokens": 949746,
+        "estimated_tokens": 18000,
+        "ratio": 52.763666666666666
+      },
+      {
+        "task_id": "t3-add-detail-section",
+        "real_tokens": 1004080,
+        "estimated_tokens": 28000,
+        "ratio": 35.86
+      }
+    ],
+    "incidences": [],
+    "session_count": 1
+  }
+}

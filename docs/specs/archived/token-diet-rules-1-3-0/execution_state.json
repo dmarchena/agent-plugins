@@ -1,0 +1,75 @@
+{
+  "plan_id": "token-diet-rules-1-3-0",
+  "source_spec": "docs/specs/token-diet-rules-1-3-0/spec.md",
+  "branch": "feat/token-diet-rules-1-3-0",
+  "started_at": "2026-07-13T22:07:25.648Z",
+  "tasks": {
+    "t1-rename-rules-doc": {
+      "status": "done",
+      "estimated_tokens": 15000,
+      "actual_tokens": 22000,
+      "deviation": 7000,
+      "test_cmd": "node --test plugins/token-diet/test/rules-doc.test.mjs",
+      "commit": "349b410",
+      "incidencia": null,
+      "agentId": "a39d74535463a01af",
+      "sessionId": "40c24ad5-9b5e-419c-978f-052e054b4301"
+    },
+    "t2-extend-base-block": {
+      "status": "done",
+      "estimated_tokens": 25000,
+      "actual_tokens": 35000,
+      "deviation": 10000,
+      "test_cmd": "node --test plugins/token-diet/test/rules-doc-base-block.test.mjs",
+      "commit": "6274841",
+      "incidencia": null,
+      "agentId": "a2b8e840a74eac0c2",
+      "sessionId": "40c24ad5-9b5e-419c-978f-052e054b4301"
+    },
+    "t3-add-detail-section": {
+      "status": "done",
+      "estimated_tokens": 28000,
+      "actual_tokens": 28000,
+      "deviation": 0,
+      "test_cmd": "node --test plugins/token-diet/test/rules-doc-detail-section.test.mjs",
+      "commit": "183cf88",
+      "incidencia": null,
+      "agentId": "a9c45a700a37de960",
+      "sessionId": "40c24ad5-9b5e-419c-978f-052e054b4301"
+    },
+    "t4-version-bump": {
+      "status": "done",
+      "estimated_tokens": 20000,
+      "actual_tokens": 18000,
+      "deviation": -2000,
+      "test_cmd": "node --test plugins/token-diet/test/version-bump.test.mjs",
+      "commit": "f405ae9",
+      "incidencia": null,
+      "agentId": "a22d7c4571084d4b4",
+      "sessionId": "40c24ad5-9b5e-419c-978f-052e054b4301"
+    },
+    "t5-update-tests": {
+      "status": "done",
+      "estimated_tokens": 45000,
+      "actual_tokens": 95000,
+      "deviation": 50000,
+      "test_cmd": "node --test plugins/token-diet/test/*.test.mjs",
+      "commit": "26bee9c",
+      "incidencia": null,
+      "agentId": "aa4f96d2eb7382484",
+      "sessionId": "40c24ad5-9b5e-419c-978f-052e054b4301"
+    },
+    "t6-e2e-consistency": {
+      "status": "done",
+      "estimated_tokens": 18000,
+      "actual_tokens": 20000,
+      "deviation": 2000,
+      "test_cmd": "node --test plugins/token-diet/test/*.test.mjs",
+      "commit": "9d83f2e",
+      "incidencia": null,
+      "agentId": "a4d48b0232709e35a",
+      "sessionId": "40c24ad5-9b5e-419c-978f-052e054b4301"
+    }
+  },
+  "pause": null
+}

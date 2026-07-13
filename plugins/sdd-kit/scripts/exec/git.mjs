@@ -10,6 +10,20 @@ function run(args, cwd) {
   return spawnSync('git', args, { cwd, encoding: 'utf8' });
 }
 
+// Staging/committing must never fail silently: a stale pathspec (e.g. a
+// rename's old path, already fully staged by `git mv` and no longer present
+// under either the working tree or the index) makes `git add`/`git commit`
+// exit non-zero while leaving HEAD untouched — without this check that
+// looked, to the caller, exactly like a genuine no-op success, and got
+// recorded as a real commit.
+function must(res, label) {
+  if (res.status !== 0) {
+    const detail = (res.stderr || res.stdout || '').trim();
+    throw new Error(`${label} failed (exit ${res.status}): ${detail}`);
+  }
+  return res;
+}
+
 export function currentBranch(cwd = process.cwd()) {
   const res = run(['rev-parse', '--abbrev-ref', 'HEAD'], cwd);
   return res.stdout.trim();
@@ -65,8 +79,8 @@ function pathspecList(files, statePath) {
 }
 
 function stage(cwd, list) {
-  if (list) run(['add', '--', ...list], cwd);
-  else run(['add', '-A'], cwd);
+  if (list) must(run(['add', '--', ...list], cwd), `git add -- ${list.join(' ')}`);
+  else must(run(['add', '-A'], cwd), 'git add -A');
 }
 
 export function commitTask(taskId, message, cwd = process.cwd(), files = null, statePath = null) {
@@ -84,8 +98,8 @@ export function commitTask(taskId, message, cwd = process.cwd(), files = null, s
   // first hasn't committed yet. `git commit -- <pathspec>` only commits the
   // pathspec-matched staged changes, leaving anything else staged untouched
   // for its own commit.
-  if (list) run(['commit', '-m', message, '--', ...list], cwd);
-  else run(['commit', '-m', message], cwd);
+  if (list) must(run(['commit', '-m', message, '--', ...list], cwd), `git commit -- ${list.join(' ')}`);
+  else must(run(['commit', '-m', message], cwd), 'git commit');
   const hash = run(['rev-parse', '--short', 'HEAD'], cwd);
   return hash.stdout.trim();
 }

@@ -75,28 +75,28 @@ derived from the analysis. Apply this logic, in this order:
 3. **Own but incomplete policy** (fact (a) = yes and it is token-diet's,
    but parts of the ruleset are missing) → recommend `extend`. Reason: an
    own base exists, it needs completing.
-4. **Mark present with a version older than the current one (1.2.0)** →
+4. **Mark present with a version older than the current one (1.3.0)** →
    recommend `update`, explicitly naming the detected version jump (for
-   example, v1.0.0 → v1.2.0).
-5. **Mark present with a version equal to the current one (1.2.0)** →
-   recommend `none` with the reason "already covered by token-diet v1.2.0"
+   example, v1.2.0 → v1.3.0).
+5. **Mark present with a version equal to the current one (1.3.0)** →
+   recommend `none` with the reason "already covered by token-diet v1.3.0"
    and **propose no change**.
 
 ### R2.S1 — Mark present at the current version (do not re-analyze in a loop)
-If the target file contains the mark `Produced with token-diet (v1.2.0)`
-and the installed plugin is also at v1.2.0: recommend `none` with the exact
-reason "already covered by token-diet v1.2.0" and propose no change — there
+If the target file contains the mark `Produced with token-diet (v1.3.0)`
+and the installed plugin is also at v1.3.0: recommend `none` with the exact
+reason "already covered by token-diet v1.3.0" and propose no change — there
 is no need to continue with phases 3-4.
 
 ### R2.S2 — Mark present with an older version
-If the target file contains the mark `Produced with token-diet (v1.0.0)`
-and the installed plugin is at v1.2.0: recommend `update`, naming the
-version jump v1.0.0 → v1.2.0.
+If the target file contains the mark `Produced with token-diet (v1.2.0)`
+and the installed plugin is at v1.3.0: recommend `update`, naming the
+version jump v1.2.0 → v1.3.0.
 
 ## Phase 3 — Copy the full rules document (R3)
 
-The rules document lives at `${CLAUDE_PLUGIN_ROOT}/assets/rules.md` (path
-inside the plugin: `plugins/token-diet/assets/rules.md`). This phase only
+The rules document lives at `${CLAUDE_PLUGIN_ROOT}/assets/token-diet-rules.md` (path
+inside the plugin: `plugins/token-diet/assets/token-diet-rules.md`). This phase only
 references that path — it does not depend on its content existing yet.
 
 1. **Choose the destination.** By default:
@@ -108,7 +108,7 @@ references that path — it does not depend on its content existing yet.
    - Ask the user whether to confirm that default destination or pick a
      different one before copying.
 
-2. **Copy.** Copy `assets/rules.md` (the whole file, unmodified) to the
+2. **Copy.** Copy `assets/token-diet-rules.md` (the whole file, unmodified) to the
    chosen destination, keeping the same file name unless the user asks for
    another.
 
@@ -145,7 +145,7 @@ that explicit confirmation.
 If the user **rejects** the proposed action, or never gives explicit
 confirmation: the command **modifies nothing**. Neither the target file nor
 the copy destination changes — not a single line is written to the target
-file and `assets/rules.md` is not copied anywhere; nothing changes. Report
+file and `assets/token-diet-rules.md` is not copied anywhere; nothing changes. Report
 that no change was applied and end the flow here.
 
 ### Apply (only with explicit confirmation)
@@ -153,12 +153,12 @@ that no change was applied and end the flow here.
 1. **Build the block to insert**, made of three parts, in this order:
    - The **inline base decalogue** ("caveman", the 10-line list): exactly
      the lines of the "Base decalogue (caveman)" section of
-     `${CLAUDE_PLUGIN_ROOT}/assets/rules.md`, copied verbatim (do not
+     `${CLAUDE_PLUGIN_ROOT}/assets/token-diet-rules.md`, copied verbatim (do not
      paraphrase them).
    - The **pointer** to the full document copied in phase 3: relative path
      (R3.S1) or absolute path (R3.S2), as resolved then.
    - The **versioned attribution mark**, with the exact literal
-     `Produced with token-diet (v1.2.0)` (the plugin's pinned version, see
+     `Produced with token-diet (v1.3.0)` (the plugin's pinned version, see
      `plugins/token-diet/.claude-plugin/plugin.json`).
 
 2. **R4.S1 — Idempotency by mark: replace, do not duplicate.** Before
@@ -181,8 +181,8 @@ that no change was applied and end the flow here.
 - GIVEN a file without a policy and the user confirms the recommended `add`
 - WHEN the command applies the change
 - THEN the target file contains the base decalogue, the pointer to the doc
-  and the mark `Produced with token-diet (v1.2.0)`
-- AND a **second invocation** with the same plugin version (1.2.0)
+  and the mark `Produced with token-diet (v1.3.0)`
+- AND a **second invocation** with the same plugin version (1.3.0)
   re-analyzes the file (phase 1), finds the mark at a version equal to the
   current one, and per R2.S1 recommends `none` — that second pass does
   **not add a second block**: the file keeps a single token-diet block.
@@ -208,7 +208,7 @@ have communicated to the user, in this order:
    `no token-diet mark` when applicable.
 4. The single recommendation (phase 2) from `{add, replace, extend, update,
    none}` with its one-line reason.
-5. Where `assets/rules.md` was (or would be) copied and whether the pointer
+5. Where `assets/token-diet-rules.md` was (or would be) copied and whether the pointer
    is relative (R3.S1, destination inside the repo) or absolute with the
    not-versioned warning (R3.S2, destination outside the repo).
 6. The outcome of phase 4: if the user confirmed, which file was modified

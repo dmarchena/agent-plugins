@@ -18,14 +18,14 @@ It is never auto-invoked by an LLM or a hook — only explicit invocation.
 The command asks which target to analyze when both a project `./CLAUDE.md`
 and a user `~/.claude/CLAUDE.md` exist, reports whether a token-saving
 policy and this plugin's attribution mark are already present, and — for
-now — copies `assets/rules.md` to the chosen destination. Recommending an
+now — copies `assets/token-diet-rules.md` to the chosen destination. Recommending an
 action and applying it with confirmation are covered by later work on this
 same command (see `AGENTS.md`).
 
 ## Layout
 
 - `commands/install.md` — the command's prompt (single entry point).
-- `assets/rules.md` — the rules document copied to the target's destination.
+- `assets/token-diet-rules.md` — the rules document copied to the target's destination.
 - `AGENTS.md` — the full analyze → recommend → copy → apply flow.
 - `CHANGELOG.md` — version history.
 

@@ -19,7 +19,7 @@ an LLM or a hook; the user must run the command explicitly.
    is reported, not treated as an error — the command offers to create it.
 2. **Recommend (R2)** — from that analysis, emit exactly one recommendation
    (`add` / `replace` / `extend` / `update` / `none`) with a one-line reason.
-3. **Copy the rules doc (R3)** — copy `assets/rules.md` (base "caveman"
+3. **Copy the rules doc (R3)** — copy `assets/token-diet-rules.md` (base "caveman"
    decalogue + a more restrictive overspend profile) to the chosen destination (default:
    project → `docs/`, user → `~/.claude/`), warning when the destination
    falls outside the current repo (won't be versioned, pointer becomes an

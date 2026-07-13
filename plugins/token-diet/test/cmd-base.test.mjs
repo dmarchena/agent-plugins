@@ -28,7 +28,7 @@ test('AC1/AC2/AC5/AC6 scaffold — plugin.json exists, parses, and pins the curr
   assert.equal(parsed.name, 'token-diet');
   assert.equal(
     parsed.version,
-    '1.2.0',
+    '1.3.0',
     'plugin.json version must match the attribution mark version used in commands/install.md'
   );
 });
@@ -101,10 +101,10 @@ test('R1.S2 — non-existent target: informs and offers to create it, without ab
   );
 });
 
-test('R3 — command copies plugins/token-diet/assets/rules.md to the chosen destination, with project/user defaults', () => {
+test('R3 — command copies plugins/token-diet/assets/token-diet-rules.md to the chosen destination, with project/user defaults', () => {
   const cmdPath = findCommandFile();
   const content = readFileSync(cmdPath, 'utf8');
-  assert.ok(content.includes('assets/rules.md'), 'expected a reference to the rules doc path assets/rules.md');
+  assert.ok(content.includes('assets/token-diet-rules.md'), 'expected a reference to the rules doc path assets/token-diet-rules.md');
   assert.ok(content.includes('docs/'), 'expected the project default destination docs/');
   assert.ok(content.includes('~/.claude/'), 'expected the user default destination ~/.claude/');
 });
