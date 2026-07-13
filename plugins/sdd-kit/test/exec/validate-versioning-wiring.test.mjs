@@ -76,7 +76,7 @@ test('R4.S1: versioningPolicy absent — validate.sh\'s versioning step prints n
     assert.doesNotMatch(result.stdout, /version|changelog|bump|demo-plugin/i);
     const parsed = JSON.parse(result.stdout);
     assert.equal(parsed.ok, true, 'envelope must report ok:true');
-    assert.deepEqual(parsed.data.warnings, [], 'no version/changelog warning must be reported');
+    assert.deepEqual(parsed.data, {}, 'data.warnings is trimmed (T4-trim-cli-data) — data is now an empty object');
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }
@@ -90,7 +90,7 @@ test('R4.S1: versioningPolicy explicitly "disabled" — validate.sh\'s versionin
     assert.doesNotMatch(result.stdout, /version|changelog|bump|demo-plugin/i);
     const parsed = JSON.parse(result.stdout);
     assert.equal(parsed.ok, true, 'envelope must report ok:true');
-    assert.deepEqual(parsed.data.warnings, [], 'no version/changelog warning must be reported');
+    assert.deepEqual(parsed.data, {}, 'data.warnings is trimmed (T4-trim-cli-data) — data is now an empty object');
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }

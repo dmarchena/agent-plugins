@@ -296,7 +296,11 @@ function main() {
   }
 
   const outcome = validateForensicsAnalysis(mdText, forensicsJson);
-  emitSuccess(outcome);
+  // T4-trim-cli-data: `errors` is unused on stdout (only the test suite ever
+  // read it there) — validateForensicsAnalysis()'s own return value (used
+  // directly by in-process tests) is untouched; only this CLI's emitted
+  // payload is trimmed.
+  emitSuccess({ ok: outcome.ok });
 }
 
 const isMainModule = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;

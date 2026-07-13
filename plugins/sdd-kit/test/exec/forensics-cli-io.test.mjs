@@ -116,7 +116,19 @@ test('AC8: forensics escribe forensics.json y emite {ok:true,data:...} en stdout
 
     const parsed = JSON.parse(result.stdout);
     assert.equal(parsed.ok, true);
-    assert.deepEqual(parsed.data, forensics, 'stdout data must match the written forensics.json content');
+    // T4-trim-cli-data: stdout no longer mirrors forensics.json byte-for-byte
+    // — `resolved`/`estimated_tokens` are trimmed from each stdout task entry
+    // (only the test suite ever read them there; spec-forensics/SKILL.md
+    // explicitly reads them from the written forensics.json file instead).
+    // The written file itself keeps both fields in full.
+    const { tasks: stdoutTasks, ...stdoutRest } = parsed.data;
+    const { tasks: fileTasks, ...fileRest } = forensics;
+    assert.deepEqual(stdoutRest, fileRest, 'stdout data (minus tasks) must match the written forensics.json content');
+    assert.deepEqual(Object.keys(stdoutTasks), Object.keys(fileTasks), 'stdout must report the same task ids as the file');
+    for (const [taskId, fileEntry] of Object.entries(fileTasks)) {
+      const { resolved, estimated_tokens, ...restOfFileEntry } = fileEntry;
+      assert.deepEqual(stdoutTasks[taskId], restOfFileEntry, `stdout data.tasks["${taskId}"] must match the file entry minus resolved/estimated_tokens`);
+    }
   } finally {
     fs.rmSync(specDir, { recursive: true, force: true });
     fs.rmSync(projectsRoot, { recursive: true, force: true });

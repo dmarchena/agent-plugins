@@ -258,8 +258,11 @@ test('AC5: removing the budget pause does not resurrect an already-blocked/skipp
     // real `block` subcommand, same as the orchestrator would call after
     // exhausting its retry). task-c depends on task-a (and task-b), so it
     // cascades to 'skipped'. task-b is independent and stays pending.
+    // `status` is trimmed from this subcommand's stdout as of
+    // T4-trim-cli-data (only the test suite ever read it there);
+    // `blocked`/`skipped` stay.
     const blockResult = cli(repo, ['block', specDir, 'task-a']);
-    assert.strictEqual(blockResult.status, 'blocked');
+    assert.strictEqual(blockResult.blocked, 'task-a');
     assert.deepStrictEqual(blockResult.skipped.sort(), ['task-c']);
 
     const next = cli(repo, ['next', specDir]);

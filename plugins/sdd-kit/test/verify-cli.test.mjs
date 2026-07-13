@@ -88,10 +88,11 @@ test('R1.S1: ground-check, report and archive each print a JSON status object an
     const groundOut = cli(repo, ['ground-check', specDir]);
     const groundParsed = JSON.parse(groundOut);
     assert.equal(groundParsed.ok, true);
-    const ground = groundParsed.data;
-    assert.equal(ground.status, 'ground-check');
-    assert.ok(Array.isArray(ground.green));
-    assert.ok(ground.green.includes('AC1'));
+    // status/green/drift are trimmed from ground-check's stdout as of
+    // T4-trim-cli-data (only the test suite ever read them there) — a green
+    // re-run is instead confirmed below via `report`'s allGreen, which
+    // internally re-derives the same groundCheck() result.
+    assert.deepEqual(groundParsed.data, {});
 
     const reportOut = cli(repo, ['report', specDir]);
     const reportParsed = JSON.parse(reportOut);

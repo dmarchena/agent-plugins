@@ -446,7 +446,8 @@ function cmdCheckPlan(specPath, planPath) {
     if (error) emitError(error);
   }
 
-  emitSuccess({ tasks: tasks.length, message: 'all requirements and ACs covered' });
+  // T4-trim-cli-data: `message` is unused (only the test suite ever read it).
+  emitSuccess({ tasks: tasks.length });
   process.exit(0);
 }
 

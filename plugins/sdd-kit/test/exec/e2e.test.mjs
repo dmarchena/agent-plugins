@@ -231,10 +231,6 @@ test('AC-E2E: integration walkthrough of 3 tasks (2 parallel + 1 dependent)', ()
     const init = cli(repo, ['init', specDir]);
     assert.strictEqual(init.ok, true, 'init must validate the plan');
     assert.strictEqual(init.branch, `feat/${SLUG}`);
-    assert.strictEqual(init.branch_created, true);
-    assert.strictEqual(init.total_tasks, 3);
-    assert.deepStrictEqual([...init.first_batch].sort(), ['task-a', 'task-b'],
-      'the first batch is the 2 independent tasks (2 in parallel)');
 
     // 2. next: confirms the runnable batch.
     const batch1 = cli(repo, ['next', specDir]);
@@ -298,13 +294,11 @@ test('AC-E2E: integration walkthrough of 3 tasks (2 parallel + 1 dependent)', ()
       );
     }
 
-    // 10. Final report: actual vs estimated (total and per task) and covered ACs.
+    // 10. Final report: actual vs estimated (total and per task).
+    // status/branch/counts/acs_satisfechos/pause are trimmed from this
+    // subcommand's stdout as of T4-trim-cli-data (only the test suite ever
+    // read them there); tokens/per_task stay.
     const report = cli(repo, ['report', specDir]);
-    assert.strictEqual(report.status, 'report');
-    assert.strictEqual(report.branch, `feat/${SLUG}`);
-    assert.strictEqual(report.counts.done, 3);
-    assert.strictEqual(report.counts.blocked, 0);
-    assert.strictEqual(report.counts.skipped, 0);
     assert.strictEqual(report.tokens.real, 3600); // 3 × 1200
     assert.strictEqual(report.tokens.estimated, 3000); // 3 × 1000
     assert.strictEqual(report.per_task.length, 3);
@@ -312,8 +306,6 @@ test('AC-E2E: integration walkthrough of 3 tasks (2 parallel + 1 dependent)', ()
       assert.strictEqual(pt.actual_tokens, 1200);
       assert.strictEqual(pt.deviation, 200);
     }
-    assert.deepStrictEqual(report.acs_satisfechos, ['AC1', 'AC2', 'AC3']);
-    assert.strictEqual(report.pause, null, 'no budget pause');
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }

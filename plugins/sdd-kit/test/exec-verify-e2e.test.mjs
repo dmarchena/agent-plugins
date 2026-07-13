@@ -206,7 +206,6 @@ test('R-E2E.S1/AC-E2E: exec reaches complete (never paused) despite a healthy ta
     const init = execCli(repo, ['init', specDir]);
     assert.equal(init.ok, true, 'init must validate the plan');
     assert.equal(init.data.branch, `feat/${SLUG}`);
-    assert.deepEqual([...init.data.first_batch].sort(), ['task-a', 'task-b']);
 
     // 2. next: confirms the runnable batch (both independent tasks).
     const batch1 = execCli(repo, ['next', specDir]);
@@ -249,10 +248,12 @@ test('R-E2E.S1/AC-E2E: exec reaches complete (never paused) despite a healthy ta
 
     // 6. ground-check: both [auto] ACs re-run green against the real
     //    execution_state.json produced above (test_cmd "true" for both).
+    // status/green/drift are trimmed from stdout (T4-trim-cli-data; only the
+    // test suite ever read them there) — a green re-run is asserted instead
+    // via `report`'s allGreen below, which internally re-derives the same
+    // groundCheck() result.
     const ground = verifyCli(repo, ['ground-check', specDir]);
-    assert.equal(ground.data.status, 'ground-check');
-    assert.deepEqual([...ground.data.green].sort(), ['AC1', 'AC2']);
-    assert.deepEqual(ground.data.drift, []);
+    assert.deepEqual(ground.data, {}, 'ground-check data is now trimmed to an empty object');
 
     // 7. report: the whole checklist is green, and the over-budget task-a
     //    rides along informationally as a deviated task (never blocking).

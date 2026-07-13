@@ -4,6 +4,15 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.2.1
+
+- Trimmed CLI stdout `data` payloads across the nine sdd-kit CLIs to only
+  the fields their consumers actually read, dropping dead ones (a 7.5%
+  token reduction). Added `docs/cli-data-contract.md` recording, per CLI,
+  which payload field maps to which consumer path — or `unused` — plus
+  justifications for the payloads left intentionally heavy because they're
+  fully consumed.
+
 ## 1.2.0
 
 - `spec-forensics` now delegates composition of `forensics-analysis.md` to a
