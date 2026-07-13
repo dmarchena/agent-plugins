@@ -4,7 +4,7 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## 1.3.2
+## 1.4.0
 
 - Fixed a silent commit failure in `exec/git.mjs`: staging or committing a
   task's `--files` pathspec (e.g. a rename's stale old path, already fully
