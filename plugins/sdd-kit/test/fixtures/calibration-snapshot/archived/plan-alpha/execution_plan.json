@@ -1,0 +1,46 @@
+{
+  "plan_id": "plan-alpha-v1",
+  "project_name": "fixture",
+  "global_objective": "fixture plan for calibration-snapshot R1.S1 (fully executed plan)",
+  "source_spec": "docs/specs/plan-alpha/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 300,
+  "tasks": [
+    {
+      "task_id": "T1",
+      "source_ids": ["R1.S1"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "fixture",
+      "instructions": "fixture instructions referencing R1.S1",
+      "expected_output_schema": "fixture",
+      "satisfies_acs": ["AC1"],
+      "estimated_tokens": 100,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [{ "ref": "AC1", "assertion": "fixture" }]
+    },
+    {
+      "task_id": "T2",
+      "source_ids": ["R1.S1"],
+      "dependencies": ["T1"],
+      "agent_type": "reviewer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "fixture",
+      "instructions": "fixture instructions referencing T1",
+      "expected_output_schema": "fixture",
+      "satisfies_acs": ["AC1"],
+      "estimated_tokens": 200,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": { "R1": ["T1", "T2"], "R1.S1": ["T1", "T2"] },
+    "acs": { "AC1": ["T1", "T2"] }
+  }
+}

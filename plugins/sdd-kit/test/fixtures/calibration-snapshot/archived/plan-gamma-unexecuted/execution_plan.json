@@ -1,0 +1,46 @@
+{
+  "plan_id": "plan-gamma-unexecuted-v1",
+  "project_name": "fixture",
+  "global_objective": "fixture plan for calibration-snapshot R1.S2 (never-executed plan, no actual_tokens anywhere)",
+  "source_spec": "docs/specs/plan-gamma-unexecuted/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 300,
+  "tasks": [
+    {
+      "task_id": "V1",
+      "source_ids": ["R1.S2"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "fixture",
+      "instructions": "fixture instructions referencing R1.S2",
+      "expected_output_schema": "fixture",
+      "satisfies_acs": ["AC2"],
+      "estimated_tokens": 100,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [{ "ref": "AC2", "assertion": "fixture" }]
+    },
+    {
+      "task_id": "V2",
+      "source_ids": ["R1.S2"],
+      "dependencies": ["V1"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "fixture",
+      "instructions": "fixture instructions referencing V1",
+      "expected_output_schema": "fixture",
+      "satisfies_acs": ["AC2"],
+      "estimated_tokens": 200,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [{ "ref": "AC2", "assertion": "fixture" }]
+    }
+  ],
+  "coverage": {
+    "requirements": { "R1": ["V1", "V2"], "R1.S2": ["V1", "V2"] },
+    "acs": { "AC2": ["V1", "V2"] }
+  }
+}

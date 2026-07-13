@@ -1,0 +1,46 @@
+{
+  "plan_id": "plan-beta-v1",
+  "project_name": "fixture",
+  "global_objective": "fixture plan for calibration-snapshot R1.S2 (excluded task + null/0 estimated_tokens)",
+  "source_spec": "docs/specs/plan-beta/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 300,
+  "tasks": [
+    {
+      "task_id": "U1",
+      "source_ids": ["R1.S2"],
+      "dependencies": [],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "fixture",
+      "instructions": "fixture instructions referencing R1.S2",
+      "expected_output_schema": "fixture",
+      "satisfies_acs": ["AC2"],
+      "estimated_tokens": 0,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "U2",
+      "source_ids": ["R1.S2"],
+      "dependencies": ["U1"],
+      "agent_type": "verifier",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "fixture",
+      "instructions": "fixture instructions referencing U1",
+      "expected_output_schema": "fixture",
+      "satisfies_acs": ["AC2"],
+      "estimated_tokens": 300,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": { "R1": ["U1", "U2"], "R1.S2": ["U1", "U2"] },
+    "acs": { "AC2": ["U1", "U2"] }
+  }
+}

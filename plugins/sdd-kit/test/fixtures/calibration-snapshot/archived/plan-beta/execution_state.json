@@ -1,0 +1,27 @@
+{
+  "plan_id": "plan-beta-v1",
+  "source_spec": "docs/specs/plan-beta/spec.md",
+  "branch": "feat/plan-beta",
+  "started_at": "2026-01-02T00:00:00.000Z",
+  "tasks": {
+    "U1": {
+      "status": "done",
+      "estimated_tokens": 0,
+      "actual_tokens": 500,
+      "deviation": 500,
+      "test_cmd": "node --test fixture.test.mjs",
+      "commit": "ccccccc",
+      "incidencia": null
+    },
+    "U2": {
+      "status": "done",
+      "estimated_tokens": 300,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": "node --test fixture.test.mjs",
+      "commit": "ddddddd",
+      "incidencia": "actual_tokens never recorded"
+    }
+  },
+  "pause": null
+}
