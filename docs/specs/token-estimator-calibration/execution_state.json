@@ -32,21 +32,21 @@
       "actual_tokens": 35000,
       "deviation": 13000,
       "test_cmd": "node --test plugins/sdd-kit/test/calibration-snapshot-cli.test.mjs",
-      "commit": null,
+      "commit": "d82febd",
       "incidencia": null,
       "agentId": "a25893b496a3967f0",
       "sessionId": "ecc4e14b-8aac-4a28-9930-d2335c5c7f5e"
     },
     "generate-snapshot-artifact": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 8000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 2000,
+      "deviation": -6000,
+      "test_cmd": "node plugins/sdd-kit/scripts/plan-tools.mjs calibration-snapshot docs/specs/archived --out /tmp/claude-1001/-home-marchena-Documentos-dmarchena-agent-plugins/ecc4e14b-8aac-4a28-9930-d2335c5c7f5e/scratchpad/regen-verify.md >/dev/null && diff plugins/sdd-kit/skills/plan-writer/assets/calibration-snapshot.md /tmp/claude-1001/-home-marchena-Documentos-dmarchena-agent-plugins/ecc4e14b-8aac-4a28-9930-d2335c5c7f5e/scratchpad/regen-verify.md",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a9c0a3f360293f967",
+      "sessionId": "ecc4e14b-8aac-4a28-9930-d2335c5c7f5e"
     },
     "estimation-guidance": {
       "status": "pending",
