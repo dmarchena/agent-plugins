@@ -43,7 +43,7 @@
       "actual_tokens": 28000,
       "deviation": -15000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-reject-then-record.test.mjs",
-      "commit": null,
+      "commit": "5544b27",
       "incidencia": null,
       "agentId": "aa908d19cd3a76ee9",
       "sessionId": "6a359d9b-2082-42e7-a36c-c956442fbef4"
