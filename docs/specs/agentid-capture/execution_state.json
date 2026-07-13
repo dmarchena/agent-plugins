@@ -21,21 +21,21 @@
       "actual_tokens": 55000,
       "deviation": 13000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/batch-agentid-guard.test.mjs",
-      "commit": null,
+      "commit": "9a6a881",
       "incidencia": null,
       "agentId": "a7edbaa4dfcabcd37",
       "sessionId": "6a359d9b-2082-42e7-a36c-c956442fbef4"
     },
     "T3-skill-contract-doc": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 22000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 55000,
+      "deviation": 33000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/agentid-capture-skill-doc.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "afe102955aa895ab4",
+      "sessionId": "6a359d9b-2082-42e7-a36c-c956442fbef4"
     },
     "T4-e2e-reject-then-record": {
       "status": "pending",

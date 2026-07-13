@@ -72,6 +72,10 @@ Once a `Task` call returns, capture its `agentId` from the **`Task`
 tool result itself** (`toolUseResult.agentId`, the hash naming
 `subagents/agent-<agentId>.jsonl`) — never from the subagent's
 returned text. Retain it per `task_id` for `--agent-id` in **§3**.
+This id is now REQUIRED at `complete` time — you cannot skip passing it.
+The only sanctioned exception is the explicit `--no-agent-id "<reason>"` /
+`no_agent_id: "<reason>"` acknowledgment (**§3**), reserved for the rare
+case the id genuinely couldn't be recovered from the `Task` tool result.
 
 The brief is self-contained (no memory of this conversation) and
 MUST require the strict TDD cycle **test → red → implementation →
@@ -101,7 +105,14 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs complete SPECDIR <task_id> \
   --rojo pass|fail --verde pass|fail [--message "<commit subject>"]
 ```
 
-`--agent-id` is the id captured per **§2**. `--files` is REQUIRED (comma-separated touched paths) — `complete` commits only those plus its own state file, refusing to commit at all without it (R1). `--rojo`/`--verde` report the exit status of the test in each TDD phase.
+`--agent-id` is the id captured per **§2** and is now REQUIRED — `complete`
+refuses to record state or commit a delegated task without it, exiting
+non-zero with `error.reason` starting `MISSING_AGENT_ID: <task_id>` and
+leaving the state file and git log unchanged. The only exception is
+`--no-agent-id "<reason>"`, for the rare case the id genuinely couldn't be
+recovered from the `Task` tool result — it proceeds as the pre-existing
+graceful degrade: the state entry's `agentId` is `null` and `incidencia`
+contains `<reason>`. `--files` is REQUIRED (comma-separated touched paths) — `complete` commits only those plus its own state file, refusing to commit at all without it (R1). `--rojo`/`--verde` report the exit status of the test in each TDD phase.
 Genuine evidence is `--rojo fail` **and** `--verde pass`; `--rojo pass`
 means the test passed with nothing implemented — the "sin evidencia de
 rojo" incidence, not success. `complete` re-runs `--test-cmd` itself and
@@ -115,8 +126,11 @@ to do for each.
 When the batch has more than one task, close all of them in a SINGLE
 `complete --batch` invocation instead of one `complete` per task, cutting
 orchestrator round-trips (R2.S1) — same fields as the single-task flags,
-one entry per task, including `agent_id` (per **§2**); a task
-that doesn't reach green is `not-done` in its own entry and does NOT
+one entry per task, each requiring `agent_id` (per **§2**) or, for the rare
+unrecoverable case, `no_agent_id: "<reason>"`; an entry with neither
+rejects the WHOLE batch — nothing recorded, nothing committed, matching
+the batch's `--files` guard (all-or-nothing) — before any entry lands. A
+task that doesn't reach green is `not-done` in its own entry and does NOT
 block or revert its siblings (R2.S2/AC5). Full command shape:
 `assets/task-brief-detail.md`.
 
