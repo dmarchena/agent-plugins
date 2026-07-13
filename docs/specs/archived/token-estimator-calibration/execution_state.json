@@ -65,7 +65,7 @@
       "actual_tokens": 12000,
       "deviation": -3000,
       "test_cmd": "node --test plugins/sdd-kit/test/calibration-snapshot-cli.test.mjs plugins/sdd-kit/test/estimation-guidance-calibration-link.test.mjs",
-      "commit": null,
+      "commit": "0012d8d",
       "incidencia": null,
       "agentId": "abeb3f04e6b0de702",
       "sessionId": "ecc4e14b-8aac-4a28-9930-d2335c5c7f5e"
