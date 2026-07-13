@@ -10,7 +10,7 @@
       "actual_tokens": 22000,
       "deviation": 7000,
       "test_cmd": "node --test plugins/token-diet/test/rules-doc.test.mjs",
-      "commit": "7dece75",
+      "commit": "349b410",
       "incidencia": null,
       "agentId": "a39d74535463a01af",
       "sessionId": "40c24ad5-9b5e-419c-978f-052e054b4301"
