@@ -4,6 +4,21 @@ All notable changes to the `sdd-kit` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.3.2
+
+- Fixed a silent commit failure in `exec/git.mjs`: staging or committing a
+  task's `--files` pathspec (e.g. a rename's stale old path, already fully
+  staged by `git mv` and no longer present in the working tree or index)
+  could make `git add`/`git commit` exit non-zero while `rev-parse` still
+  returned the unchanged previous HEAD — `complete` then reported the task
+  as `done` with that stale hash, even though nothing had actually been
+  committed. `stage()`/`commitTask()` now check the underlying git exit
+  status and throw; `exec-tools.mjs#completeOne` catches that throw and
+  reports the task `not-done` (`reason: "commit-failed"`), reverting its
+  state to `pending` instead of leaving a false `done` entry with
+  `commit: null` or crashing the CLI outright. Found while executing an
+  unrelated plan whose first task was a file rename.
+
 ## 1.3.1
 
 - `exec-tools.mjs complete` and `complete --batch` now refuse to record

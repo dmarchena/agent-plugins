@@ -68,6 +68,18 @@ test('commitTask throws an Error if the current branch is master', () => {
   assert.throws(() => commitTask('T1', 'should not commit', repo));
 });
 
+test('commitTask throws instead of silently no-op-ing when a --files pathspec matches nothing (R-git-silent-failure)', () => {
+  git(['checkout', '-B', 'feat/silent-failure'], repo);
+  const before = git(['rev-parse', 'HEAD'], repo);
+  fs.writeFileSync(path.join(repo, 'real.txt'), 'real change\n');
+  assert.throws(
+    () => commitTask('T-silent', 'should not silently no-op', repo, ['real.txt', 'does-not-exist.txt']),
+    /git add/,
+  );
+  const after = git(['rev-parse', 'HEAD'], repo);
+  assert.equal(after, before, 'HEAD must not move when git add could not stage the full pathspec');
+});
+
 test('cleanup: removes the temporary repo', () => {
   fs.rmSync(repo, { recursive: true, force: true });
   assert.equal(fs.existsSync(repo), false);

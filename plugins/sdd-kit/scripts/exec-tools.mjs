@@ -162,7 +162,28 @@ function completeOne(plan, state, statePath, entry) {
       incidencia: doneIncidencia, agentId, sessionId,
     });
     persist(statePath, state);
-    const hash = commitTask(taskId, msg, process.cwd(), files, statePath);
+    // git.mjs#commitTask now throws rather than silently no-op-ing when a
+    // --files pathspec can't be fully staged/committed (e.g. a rename's
+    // stale old path). Without this catch that throw would crash the CLI
+    // AND leave the state entry stuck at the 'done'/commit:null write just
+    // above — a false-done with no real commit behind it. On this failure
+    // the task is treated exactly like any other failed attempt
+    // (rerun-failed/not-green): status reverts to 'pending' so it's
+    // retried, not silently accepted, and not-done blocks/reverts nothing.
+    let hash;
+    try {
+      hash = commitTask(taskId, msg, process.cwd(), files, statePath);
+    } catch (err) {
+      const commitIncidencia = 'git commit failed: ' + err.message;
+      recordResult(state, taskId, {
+        status: 'pending', actual_tokens: tokens, test_cmd: testCmd,
+        incidencia: commitIncidencia, agentId, sessionId,
+      });
+      persist(statePath, state);
+      return {
+        status: 'not-done', task_id: taskId, reason: 'commit-failed', incidencia: commitIncidencia, rerun_output: null,
+      };
+    }
     recordResult(state, taskId, {
       status: 'done', actual_tokens: tokens, test_cmd: testCmd, commit: hash,
       incidencia: doneIncidencia, agentId, sessionId,
