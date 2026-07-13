@@ -43,6 +43,14 @@ Change type: feat
   files over a test corpus.
 
 **Out of scope (non-goals):**
+- **Official Windows support:** v1 officially targets **Linux and macOS** only
+  (both CI-verified, per AC-E2E). Code SHALL remain Windows-compatible where
+  that costs no extra complexity (e.g. use `pathlib`/`shutil.which` instead of
+  hardcoded POSIX paths), but Windows is not tested, not covered by any AC, and
+  not guaranteed to work.
+- Automating or documenting the installation of native binary dependencies
+  (Poppler's `pdftotext`/`pdftoppm`, `tesseract`) per operating system: assumed
+  already present on `PATH`; left to each user's own setup, not a v1 deliverable.
 - PII anonymization / sanitization (Presidio, spaCy, `identidad.local.json`):
   left as a future plugin/phase.
 - Batch or folder processing (beyond the benchmark's internal corpus).
@@ -241,6 +249,12 @@ the model.
 
 ## Technical Requirements
 
+- **Supported platforms:** Linux and macOS, officially required and CI-verified
+  (see AC-E2E, whose OS-level no-egress check already only names these two:
+  `unshare -n` on Linux, `sandbox-exec -n 'deny network*'` on macOS). Windows
+  is not officially supported: the code should stay Windows-compatible where
+  it's cheap to do so, but nothing in v1 tests, verifies, or guarantees
+  Windows behavior.
 - **Stack / framework:** Python 3 + CLI. Claude Code plugin (thin skill +
   command/script). Extraction dependencies: `pymupdf4llm` (PyMuPDF, pure local),
   `pdftotext`/`pdftoppm` (Poppler), `tesseract` (OCR, configurable language,
