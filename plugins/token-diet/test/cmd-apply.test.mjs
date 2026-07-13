@@ -45,7 +45,7 @@ test('R4.S1 / AC7 — confirmed add writes base summary + pointer + exact versio
     content.includes('Produced with token-diet (v1.2.0)'),
     'expected the exact attribution mark literal "Produced with token-diet (v1.2.0)"'
   );
-  // inline base summary insertion (the 10-line caveman decalogue from rules.md base section)
+  // inline base summary insertion (the 10-line caveman decalogue from token-diet-rules.md base section)
   assert.ok(
     lower.includes('base decalogue') && (lower.includes('inline') || lower.includes('insert')),
     'expected the command to insert the inline base decalogue into the target file'
@@ -53,7 +53,7 @@ test('R4.S1 / AC7 — confirmed add writes base summary + pointer + exact versio
   // pointer to the copied doc
   assert.ok(
     lower.includes('pointer'),
-    'expected the command to insert a pointer to the copied rules.md doc'
+    'expected the command to insert a pointer to the copied token-diet-rules.md doc'
   );
 });
 

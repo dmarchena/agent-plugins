@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const RULES_PATH = join(__dirname, '..', 'assets', 'rules.md');
+const RULES_PATH = join(__dirname, '..', 'assets', 'token-diet-rules.md');
 
-test('R3/AC5 — the rules document plugins/token-diet/assets/rules.md exists', () => {
+test('R3/AC5 — the rules document plugins/token-diet/assets/token-diet-rules.md exists', () => {
   assert.ok(existsSync(RULES_PATH), `expected to find ${RULES_PATH}`);
 });
 
@@ -50,4 +50,40 @@ test('R3/AC5 — the document has at least one more-restrictive "profile" headin
     profileHeadingMatch,
     'expected at least one clearly separated "profile" section heading after the base section'
   );
+});
+
+test('AC9 (R5.S1) — the new file plugins/token-diet/assets/token-diet-rules.md exists', () => {
+  const newPath = join(__dirname, '..', 'assets', 'token-diet-rules.md');
+  assert.ok(existsSync(newPath), `expected to find ${newPath}`);
+});
+
+test('AC9 (R5.S1) — the old file no longer exists', () => {
+  const oldPath = join(__dirname, '..', 'assets', 'rules.md');
+  assert.ok(!existsSync(oldPath), `expected ${oldPath} to be removed, but it still exists`);
+});
+
+test('AC10 (R5.S2) — no stale references to the old filename remain outside pre-1.3.0 CHANGELOG', async () => {
+  const { execSync } = await import('node:child_process');
+  const pluginDir = join(__dirname, '..');
+
+  // Construct the search pattern from parts to avoid literal string appearing in source
+  const pat = String.fromCharCode(97, 115, 115, 101, 116, 115) + '/' +  // 'assets/'
+              String.fromCharCode(114, 117, 108, 101, 115) + '.md';  // 'rules' + '.md'
+
+  try {
+    // Grep for the old filename in the plugin directory, excluding CHANGELOG
+    const result = execSync(
+      `grep -r "${pat}" "${pluginDir}" --exclude-dir=.git --exclude="CHANGELOG.md" 2>/dev/null || true`,
+      { encoding: 'utf8' }
+    );
+
+    assert.equal(
+      result.trim(),
+      '',
+      `expected no references to the old path outside pre-1.3.0 CHANGELOG, but found:\n${result}`
+    );
+  } catch (err) {
+    // grep returning no matches is expected and indicates success
+    assert.ok(err.code === 1 || err.status === 1 || !err.code, 'grep should find no matches');
+  }
 });

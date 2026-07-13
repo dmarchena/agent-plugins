@@ -95,8 +95,8 @@ version jump v1.0.0 → v1.2.0.
 
 ## Phase 3 — Copy the full rules document (R3)
 
-The rules document lives at `${CLAUDE_PLUGIN_ROOT}/assets/rules.md` (path
-inside the plugin: `plugins/token-diet/assets/rules.md`). This phase only
+The rules document lives at `${CLAUDE_PLUGIN_ROOT}/assets/token-diet-rules.md` (path
+inside the plugin: `plugins/token-diet/assets/token-diet-rules.md`). This phase only
 references that path — it does not depend on its content existing yet.
 
 1. **Choose the destination.** By default:
@@ -108,7 +108,7 @@ references that path — it does not depend on its content existing yet.
    - Ask the user whether to confirm that default destination or pick a
      different one before copying.
 
-2. **Copy.** Copy `assets/rules.md` (the whole file, unmodified) to the
+2. **Copy.** Copy `assets/token-diet-rules.md` (the whole file, unmodified) to the
    chosen destination, keeping the same file name unless the user asks for
    another.
 
@@ -145,7 +145,7 @@ that explicit confirmation.
 If the user **rejects** the proposed action, or never gives explicit
 confirmation: the command **modifies nothing**. Neither the target file nor
 the copy destination changes — not a single line is written to the target
-file and `assets/rules.md` is not copied anywhere; nothing changes. Report
+file and `assets/token-diet-rules.md` is not copied anywhere; nothing changes. Report
 that no change was applied and end the flow here.
 
 ### Apply (only with explicit confirmation)
@@ -153,7 +153,7 @@ that no change was applied and end the flow here.
 1. **Build the block to insert**, made of three parts, in this order:
    - The **inline base decalogue** ("caveman", the 10-line list): exactly
      the lines of the "Base decalogue (caveman)" section of
-     `${CLAUDE_PLUGIN_ROOT}/assets/rules.md`, copied verbatim (do not
+     `${CLAUDE_PLUGIN_ROOT}/assets/token-diet-rules.md`, copied verbatim (do not
      paraphrase them).
    - The **pointer** to the full document copied in phase 3: relative path
      (R3.S1) or absolute path (R3.S2), as resolved then.
@@ -208,7 +208,7 @@ have communicated to the user, in this order:
    `no token-diet mark` when applicable.
 4. The single recommendation (phase 2) from `{add, replace, extend, update,
    none}` with its one-line reason.
-5. Where `assets/rules.md` was (or would be) copied and whether the pointer
+5. Where `assets/token-diet-rules.md` was (or would be) copied and whether the pointer
    is relative (R3.S1, destination inside the repo) or absolute with the
    not-versioned warning (R3.S2, destination outside the repo).
 6. The outcome of phase 4: if the user confirmed, which file was modified
