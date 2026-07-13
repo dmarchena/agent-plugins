@@ -75,23 +75,23 @@ derived from the analysis. Apply this logic, in this order:
 3. **Own but incomplete policy** (fact (a) = yes and it is token-diet's,
    but parts of the ruleset are missing) → recommend `extend`. Reason: an
    own base exists, it needs completing.
-4. **Mark present with a version older than the current one (1.2.0)** →
+4. **Mark present with a version older than the current one (1.3.0)** →
    recommend `update`, explicitly naming the detected version jump (for
-   example, v1.0.0 → v1.2.0).
-5. **Mark present with a version equal to the current one (1.2.0)** →
-   recommend `none` with the reason "already covered by token-diet v1.2.0"
+   example, v1.2.0 → v1.3.0).
+5. **Mark present with a version equal to the current one (1.3.0)** →
+   recommend `none` with the reason "already covered by token-diet v1.3.0"
    and **propose no change**.
 
 ### R2.S1 — Mark present at the current version (do not re-analyze in a loop)
-If the target file contains the mark `Produced with token-diet (v1.2.0)`
-and the installed plugin is also at v1.2.0: recommend `none` with the exact
-reason "already covered by token-diet v1.2.0" and propose no change — there
+If the target file contains the mark `Produced with token-diet (v1.3.0)`
+and the installed plugin is also at v1.3.0: recommend `none` with the exact
+reason "already covered by token-diet v1.3.0" and propose no change — there
 is no need to continue with phases 3-4.
 
 ### R2.S2 — Mark present with an older version
-If the target file contains the mark `Produced with token-diet (v1.0.0)`
-and the installed plugin is at v1.2.0: recommend `update`, naming the
-version jump v1.0.0 → v1.2.0.
+If the target file contains the mark `Produced with token-diet (v1.2.0)`
+and the installed plugin is at v1.3.0: recommend `update`, naming the
+version jump v1.2.0 → v1.3.0.
 
 ## Phase 3 — Copy the full rules document (R3)
 
@@ -158,7 +158,7 @@ that no change was applied and end the flow here.
    - The **pointer** to the full document copied in phase 3: relative path
      (R3.S1) or absolute path (R3.S2), as resolved then.
    - The **versioned attribution mark**, with the exact literal
-     `Produced with token-diet (v1.2.0)` (the plugin's pinned version, see
+     `Produced with token-diet (v1.3.0)` (the plugin's pinned version, see
      `plugins/token-diet/.claude-plugin/plugin.json`).
 
 2. **R4.S1 — Idempotency by mark: replace, do not duplicate.** Before
@@ -181,8 +181,8 @@ that no change was applied and end the flow here.
 - GIVEN a file without a policy and the user confirms the recommended `add`
 - WHEN the command applies the change
 - THEN the target file contains the base decalogue, the pointer to the doc
-  and the mark `Produced with token-diet (v1.2.0)`
-- AND a **second invocation** with the same plugin version (1.2.0)
+  and the mark `Produced with token-diet (v1.3.0)`
+- AND a **second invocation** with the same plugin version (1.3.0)
   re-analyzes the file (phase 1), finds the mark at a version equal to the
   current one, and per R2.S1 recommends `none` — that second pass does
   **not add a second block**: the file keeps a single token-diet block.

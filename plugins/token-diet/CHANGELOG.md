@@ -4,6 +4,21 @@ All notable changes to the `token-diet` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.3.0
+
+- Extended the base "caveman" decalogue from 10 to 11 lines: folded in six
+  validated decision nuances (cheap-explorer guardrail, delegation cost +
+  model pinning, the ≥2-independent-operations batching threshold,
+  resume-from-disk figures, extending the "keep instructions minimal"
+  principle to plans/docs, and a new rule to grep all readers of a shared
+  datum before reshaping it) without dropping any of the original 10 points.
+- Added an on-demand "detail" section (loaded only when needed, never
+  inline) giving the rationale and figures behind each of the six nuances.
+- Renamed the shipped rules document from `assets/rules.md` to
+  `assets/token-diet-rules.md`, so a copy installed into a target
+  self-identifies its origin; updated every in-repo reference
+  (`commands/install.md`, `README.md`, `AGENTS.md`, tests).
+
 ## 1.2.0
 
 - Replaced the rules document (`assets/rules.md`) with an agent-friendly
