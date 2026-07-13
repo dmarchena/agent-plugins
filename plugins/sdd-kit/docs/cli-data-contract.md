@@ -13,6 +13,13 @@ if they change):
 - `docs/specs/trim-cli-data/field-inventory.md` — field → consumer audit (T1).
 - `docs/specs/trim-cli-data/measurements.md` — baseline token weights (T2).
 
+Correction (found while scoping T4): `exec-tools.mjs`'s `rerun_output`
+(complete subcommand) and `real_cost_over_budget` (report subcommand) were
+initially classified `unused` by T1's audit, but are both referenced by
+`plugins/sdd-kit/skills/plan-executor/assets/failures-and-resume.md`
+(retry-brief diagnosis and whole-run budget check, respectively) — reclassified
+here and in `field-inventory.md` before T4 trimmed them.
+
 ## budget-guard.mjs
 
 | Field | Consumer |
@@ -57,7 +64,7 @@ Baseline: 52 tokens (payload shape "next").
 | deviation | plugins/sdd-kit/skills/plan-executor/SKILL.md |
 | reason | plugins/sdd-kit/skills/plan-executor/SKILL.md |
 | incidencia | plugins/sdd-kit/skills/plan-executor/SKILL.md |
-| rerun_output | unused |
+| rerun_output | plugins/sdd-kit/skills/plan-executor/assets/failures-and-resume.md |
 | error | unused |
 
 ### complete subcommand (--batch)
@@ -95,7 +102,7 @@ Baseline: 52 tokens (payload shape "next").
 | acs_satisfechos | unused |
 | pause | unused |
 | real_cost | plugins/sdd-kit/skills/plan-executor/assets/failures-and-resume.md |
-| real_cost_over_budget | unused |
+| real_cost_over_budget | plugins/sdd-kit/skills/plan-executor/assets/failures-and-resume.md |
 
 Baseline: 734 tokens (payload shape "report").
 

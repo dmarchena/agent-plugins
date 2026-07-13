@@ -39,7 +39,7 @@ deliverable.
 `deviation -> plugins/sdd-kit/skills/plan-executor/SKILL.md`
 `reason -> plugins/sdd-kit/skills/plan-executor/SKILL.md`
 `incidencia -> plugins/sdd-kit/skills/plan-executor/SKILL.md`
-`rerun_output -> unused`
+`rerun_output -> plugins/sdd-kit/skills/plan-executor/assets/failures-and-resume.md`
 `error -> unused`
 
 ## exec-tools.mjs (complete --batch subcommand)
@@ -69,7 +69,7 @@ deliverable.
 `acs_satisfechos -> unused`
 `pause -> unused`
 `real_cost -> plugins/sdd-kit/skills/plan-executor/assets/failures-and-resume.md`
-`real_cost_over_budget -> unused`
+`real_cost_over_budget -> plugins/sdd-kit/skills/plan-executor/assets/failures-and-resume.md`
 
 ## exec-tools.mjs (extract subcommand)
 
