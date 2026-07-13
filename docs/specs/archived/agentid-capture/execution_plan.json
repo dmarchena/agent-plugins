@@ -1,0 +1,102 @@
+{
+  "plan_id": "agentid-capture-2026-07-13",
+  "project_name": "sdd-kit",
+  "global_objective": "Make the exec CLI refuse to record state or commit a delegated task without a captured agentId (single and --batch), unless the gap is explicitly acknowledged, and document the contract in plan-executor SKILL.md.",
+  "source_spec": "docs/specs/agentid-capture/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 155000,
+  "tasks": [
+    {
+      "task_id": "T1-single-complete-guard",
+      "source_ids": ["R1", "R1.S1", "R1.S2", "R1.S3"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation of one guard on an existing CLI code path with clear pass/fail ACs (R1.S1/S2/S3) — sonnet fits.",
+      "instructions": "Implement R1 in the single-task complete command of the exec CLI. Before any state write or git commit, guard as R1.S2 requires: a delegated task (plan entry declaring an agent_type) closed with neither an agent id nor the acknowledgment flag must be refused via the canonical {ok:false,error:{reason}} envelope whose reason begins 'MISSING_AGENT_ID:' and names the task_id, non-zero exit, leaving execution_state.json and git log unchanged. Keep R1.S1 (id supplied → records agentId, exit 0, existing verification outcome unchanged) and R1.S3 (the acknowledgment flag from the spec's fixed naming → pre-existing graceful degrade: agentId null, incidencia contains the reason, exit 0). Honor the Technical Requirements: stdout carries only the {ok,...} envelope, the guard runs before any state write or commit, no new dependencies. Follow the exact flag naming fixed in the spec's Assumptions.",
+      "expected_output_schema": "Modified exec CLI single-task complete command enforcing R1, plus its tests, passing.",
+      "satisfies_acs": ["AC1", "AC2", "AC3"],
+      "estimated_tokens": 48000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC1", "assertion": "Completing a delegated task with an agent id supplied exits 0 and its state entry records that id as agentId." },
+        { "ref": "AC2", "assertion": "Completing a delegated task with neither an agent id nor the acknowledgment flag exits non-zero, error.reason begins 'MISSING_AGENT_ID:' and names the task_id, and both the state file and git log are unchanged from before the call." },
+        { "ref": "AC3", "assertion": "Completing a delegated task with the acknowledgment flag carrying a reason exits 0, records agentId null and an incidencia containing that reason." }
+      ]
+    },
+    {
+      "task_id": "T2-batch-complete-guard",
+      "source_ids": ["R2", "R2.S1", "R2.S2", "R2.S3"],
+      "dependencies": ["T1-single-complete-guard"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded implementation extending the same guard to the batch path with clear all-or-nothing ACs (R2.S1/S2/S3) — sonnet fits.",
+      "instructions": "Implement R2 in the complete --batch command, reusing the guard added in T1-single-complete-guard. Apply R1's rule per entry up front, all-or-nothing, matching the batch's existing pre-commit guards: R2.S2 — any entry with neither an agent id nor its per-entry acknowledgment field rejects the whole batch via {ok:false,error:{reason}} with reason beginning 'MISSING_AGENT_ID:' naming the offending task_id, non-zero exit, nothing recorded or committed. R2.S1 — every entry carrying an id succeeds ({ok:true,data:{status:'batch',...}}, exit 0, each entry records its id). R2.S3 — an entry carrying the per-entry acknowledgment field (snake_case, per the spec's fixed naming) records agentId null with incidencia containing the reason while the rest record their ids. Honor the same Technical Requirements as T1 (envelope-only stdout, guard before any write/commit, no new deps).",
+      "expected_output_schema": "Modified exec CLI complete --batch command enforcing R2 all-or-nothing, plus its tests, passing.",
+      "satisfies_acs": ["AC4", "AC5", "AC6"],
+      "estimated_tokens": 42000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC4", "assertion": "A batch where every entry carries an agent id exits 0 and each entry's state records its id." },
+        { "ref": "AC5", "assertion": "A batch with one entry lacking both an agent id and the acknowledgment field exits non-zero with reason beginning 'MISSING_AGENT_ID:' naming that task_id, and nothing in the batch is recorded or committed." },
+        { "ref": "AC6", "assertion": "A batch mixing one acknowledged entry (reason supplied) with id-carrying entries exits 0; the acknowledged entry records agentId null plus an incidencia containing the reason, and the rest record their ids." }
+      ]
+    },
+    {
+      "task_id": "T3-skill-contract-doc",
+      "source_ids": ["R3", "R3.S1"],
+      "dependencies": ["T1-single-complete-guard"],
+      "agent_type": "doc_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Prose update of the plan-executor SKILL.md contract following a fixed schema (R3.S1); doc_writer/sonnet fits, no code.",
+      "instructions": "Update the plan-executor SKILL.md §2/§3 contract per R3.S1: state that complete and complete --batch reject a delegated task with no captured agent id, and document the explicit acknowledgment escape hatch (the single-task and batch acknowledgment forms fixed in the spec's Assumptions), instead of presenting the agent-id flag as advisory. Keep it consistent with the behavior implemented in T1-single-complete-guard and T2-batch-complete-guard. AC7 is verified by human judgment that the prose is accurate and coherent.",
+      "expected_output_schema": "Updated plan-executor SKILL.md §2/§3 documenting the block and the acknowledgment escape hatch.",
+      "satisfies_acs": ["AC7"],
+      "estimated_tokens": 22000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    },
+    {
+      "task_id": "T4-e2e-reject-then-record",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["T1-single-complete-guard", "T2-batch-complete-guard"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "R-E2E.S1 is a reject-then-record sequence on one task that no per-task test chains end-to-end, so the integration test must be authored (code_writer per e2e-task-assignment guidance).",
+      "instructions": "Author the integration test for R-E2E.S1 exercising the guards from T1-single-complete-guard and T2-batch-complete-guard as one sequence against a validated plan with a delegated task on a fresh execution_state.json: complete once with green evidence but no agent id (must exit non-zero, reason beginning 'MISSING_AGENT_ID:', leaving no state entry and no commit), then re-complete with an agent id and the same green evidence (state entry becomes status 'done' with the supplied agentId and a commit exists). Assert the commit-presence transition across the two calls, not just the isolated per-task behaviors.",
+      "expected_output_schema": "New integration test covering the R-E2E.S1 reject-then-record sequence, passing.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 43000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "AC-E2E", "assertion": "The reject-then-record sequence leaves no commit on the first (blocked) call and yields a done state entry carrying the supplied agentId plus a commit after the second call." }
+      ]
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T1-single-complete-guard"],
+      "R2": ["T2-batch-complete-guard"],
+      "R3": ["T3-skill-contract-doc"],
+      "R-E2E": ["T4-e2e-reject-then-record"]
+    },
+    "acs": {
+      "AC1": ["T1-single-complete-guard"],
+      "AC2": ["T1-single-complete-guard"],
+      "AC3": ["T1-single-complete-guard"],
+      "AC4": ["T2-batch-complete-guard"],
+      "AC5": ["T2-batch-complete-guard"],
+      "AC6": ["T2-batch-complete-guard"],
+      "AC7": ["T3-skill-contract-doc"],
+      "AC-E2E": ["T4-e2e-reject-then-record"]
+    }
+  }
+}
