@@ -83,6 +83,9 @@ Baseline: 52 tokens (payload shape "next").
 | status | plugins/sdd-kit/skills/plan-executor/assets/task-brief-detail.md |
 | results | plugins/sdd-kit/skills/plan-executor/assets/task-brief-detail.md |
 
+**Status:** no change — no `unused` fields to trim, structurally small
+(batches capped at 3 tasks).
+
 ### block subcommand
 
 | Field | Consumer |
@@ -115,6 +118,13 @@ Baseline: 52 tokens (payload shape "next").
 
 Baseline: 734 tokens (payload shape "report").
 
+**Status:** R4.S2 — `plan-executor/SKILL.md` §7 requires relaying
+real-vs-estimated tokens per task on every invocation; even the barest
+per-task subset plus the required `tokens`/`real_cost` aggregates exceeds
+200 tokens, so this payload cannot shrink under threshold without dropping
+data SKILL.md requires every time. Stays on stdout (see
+`docs/specs/trim-cli-data/restructure-findings.md`).
+
 ### extract subcommand
 
 | Field | Consumer |
@@ -123,6 +133,12 @@ Baseline: 734 tokens (payload shape "report").
 | blocks | plugins/sdd-kit/skills/plan-executor/assets/task-brief-detail.md |
 
 Baseline: 318 tokens (payload shape "extract").
+
+**Status:** R4.S2 — `assets/task-brief-detail.md`: the executor runs this
+command itself to fetch the verbatim spec text and derive its test contract
+from it, so the `blocks` payload IS the deliverable, not detail to defer to
+a file. Stays on stdout (see
+`docs/specs/trim-cli-data/restructure-findings.md`).
 
 Note: `init`, `complete`, `complete --batch`, `block` and `resume` were not
 baseline-measured (see measurements.md's "Notes on shape selection") — they
@@ -174,6 +190,14 @@ Baseline: 15 tokens (payload shape "validate", default).
 Baseline: 767 tokens (payload shape "report", default; measured against a
 temp-directory copy of the `docs/specs/archived/forensics-analysis` fixture).
 
+**Status:** R4.S2 — the archived `spec-forensics` spec's AC4 (still enforced
+by `plugins/sdd-kit/test/exec/forensics.test.mjs`) requires stdout to print
+the same per-task figures as `forensics.json`; the `tasks` field alone
+already exceeds 200 tokens, making R4.S1's target and archived AC4 mutually
+incompatible for any realistically sized run. Human decision recorded to
+treat as an R4.S2 exception rather than reopening the archived feature.
+Stays on stdout (see `docs/specs/trim-cli-data/restructure-findings.md`).
+
 ## plan-tools.mjs
 
 ### inspect-spec subcommand
@@ -184,6 +208,8 @@ temp-directory copy of the `docs/specs/archived/forensics-analysis` fixture).
 | acs | plugins/sdd-kit/skills/plan-writer/SKILL.md |
 
 Baseline: 15 tokens (payload shape "inspect-spec").
+
+**Status:** no change — no `unused` fields to trim, well under threshold.
 
 ### check-plan subcommand
 
@@ -205,6 +231,14 @@ Baseline: 24 tokens (payload shape "check-plan").
 | orchAll | plugins/claude-token-debug/skills/token-cost-debug/SKILL.md |
 
 Baseline: 441 tokens (payload shape "session report").
+
+**Status:** R4.S2 — the already-shipped, archived `token-cost-cli` spec's
+R3.S1/AC5 hard-requires stdout to carry `session`/`subs`/`orchestrator`/
+`subTotal`/`orchAll` in full, still enforced today by
+`shared/test/token-cost.test.mjs`'s AC5 test; also has no SPECDIR-like
+directory to anchor a detail file to (it analyzes an arbitrary out-of-repo
+session transcript). Stays on stdout (see
+`docs/specs/trim-cli-data/restructure-findings.md`).
 
 ## tokenizer.mjs
 
@@ -238,6 +272,12 @@ audit.
 | real_cost | plugins/sdd-kit/skills/verify/SKILL.md |
 
 Baseline: 726 tokens (payload shape "report", default).
+
+**Status:** R4.S2 — `verify/SKILL.md` always evaluates the whole AC
+checklist, never stopping at the first not-green AC; even the minimal
+per-AC shape (dropping all `reason`/`details` drift text) measures over 200
+tokens from checklist size alone. Stays on stdout (see
+`docs/specs/trim-cli-data/restructure-findings.md`).
 
 ### archive subcommand
 
