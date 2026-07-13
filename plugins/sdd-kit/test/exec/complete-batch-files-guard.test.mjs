@@ -192,8 +192,12 @@ test('R1.S1: a batch entry for a non-verifier task with no files refuses the who
     const batchFile = path.join(repo, 'batch.json');
     fs.writeFileSync(batchFile, JSON.stringify([
       // task-a: code_writer, NO files list — must refuse the whole batch.
-      { task_id: 'task-a', tokens: 1000, test_cmd: testCmdA, rojo: 'fail', verde: 'pass' },
-      { task_id: 'task-verify', tokens: 800, test_cmd: testCmdVerify, rojo: 'pass', verde: 'pass' },
+      {
+        task_id: 'task-a', tokens: 1000, test_cmd: testCmdA, rojo: 'fail', verde: 'pass', agent_id: 'agent-fixture',
+      },
+      {
+        task_id: 'task-verify', tokens: 800, test_cmd: testCmdVerify, rojo: 'pass', verde: 'pass', agent_id: 'agent-fixture',
+      },
     ], null, 2));
 
     const res = cliExpectFail(repo, ['complete', specDir, '--batch', batchFile]);
@@ -230,10 +234,12 @@ test('R1.S2: a batch entry for a verifier task with no files closes done, stagin
     fs.writeFileSync(batchFile, JSON.stringify([
       {
         task_id: 'task-a', tokens: 1000, test_cmd: testCmdA, rojo: 'fail', verde: 'pass',
-        files: ['impl/task-a.mjs'],
+        files: ['impl/task-a.mjs'], agent_id: 'agent-fixture',
       },
-      // task-verify: verifier, no `files` key at all — must NOT hit the guard.
-      { task_id: 'task-verify', tokens: 800, test_cmd: testCmdVerify, rojo: 'pass', verde: 'pass' },
+      // task-verify: verifier, no `files` key at all — must NOT hit the files guard.
+      {
+        task_id: 'task-verify', tokens: 800, test_cmd: testCmdVerify, rojo: 'pass', verde: 'pass', agent_id: 'agent-fixture',
+      },
     ], null, 2));
     fs.mkdirSync(path.join(repo, 'impl'), { recursive: true });
     fs.writeFileSync(path.join(repo, 'impl', 'task-a.mjs'), 'export const done = true;\n');

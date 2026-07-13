@@ -300,6 +300,25 @@ function cmdCompleteBatch(specDir, batchPath) {
     }
   }
 
+  // agentid-capture spec R2: mirrors cmdComplete's R1.S2 guard, but per
+  // batch entry — a delegated task closed with neither an agent id nor its
+  // explicit acknowledgment (`no_agent_id`, the batch-file spelling of the
+  // single-task `--no-agent-id` flag) must refuse the WHOLE batch up front,
+  // same all-or-nothing shape as the files-guard loop just above. Unlike
+  // that guard, this one applies to EVERY entry regardless of agent_type —
+  // verifier tasks are only exempt from the FILES requirement, not this one,
+  // since a verifier is still a delegated subagent run whose agent id must
+  // be captured. Reuses agentIdGuardReason() verbatim rather than
+  // duplicating its logic.
+  for (const e of entries) {
+    const guardReason = agentIdGuardReason(
+      e.agent_id != null ? String(e.agent_id) : null,
+      e.no_agent_id != null ? String(e.no_agent_id) : null,
+      e.task_id,
+    );
+    if (guardReason) emitError(guardReason, 1);
+  }
+
   const results = [];
   for (const e of entries) {
     // completeOne persists internally (before AND after its commit) so each
@@ -314,6 +333,7 @@ function cmdCompleteBatch(specDir, batchPath) {
       message: e.message || null,
       agentId: e.agent_id != null ? String(e.agent_id) : null,
       sessionId: e.session_id != null ? String(e.session_id) : (process.env.CLAUDE_CODE_SESSION_ID ?? null),
+      noAgentIdReason: e.no_agent_id != null ? String(e.no_agent_id) : null,
       // `[]` (not `null`) when omitted: pathspecList treats `[]` as "stage
       // only the state file" (safe default for a verifier entry), while
       // `null` means "no restriction" (`git add -A`) — never the right

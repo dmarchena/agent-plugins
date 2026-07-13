@@ -248,13 +248,14 @@ test('R1.S3: batch entry with no session_id inherits the env value; an entry wit
         task_id: 't1-auto-default-sessionid',
         tokens: 1000, test_cmd: testCmd1, rojo: 'fail', verde: 'pass',
         files: ['impl/t1-auto-default-sessionid.mjs', 't/t1-auto-default-sessionid.check.mjs'],
+        agent_id: 'agent-fixture',
         // no session_id: must inherit env.
       },
       {
         task_id: 't2-auto-default-sessionid',
         tokens: 1000, test_cmd: testCmd2, rojo: 'fail', verde: 'pass',
         files: ['impl/t2-auto-default-sessionid.mjs', 't/t2-auto-default-sessionid.check.mjs'],
-        session_id: 'sess-own-value',
+        session_id: 'sess-own-value', agent_id: 'agent-fixture',
       },
     ];
     const batchPath = path.join(repo, 'batch.json');

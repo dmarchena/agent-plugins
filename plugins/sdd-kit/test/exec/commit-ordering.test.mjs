@@ -291,11 +291,11 @@ test('AC1/AC2 (batch complete): each task commits its own state; last task leave
     fs.writeFileSync(batchFile, JSON.stringify([
       {
         task_id: 'task-a', tokens: 1200, test_cmd: testCmdA, rojo: 'fail', verde: 'pass',
-        files: ['impl/task-a.mjs', 't/task-a.check.mjs'],
+        files: ['impl/task-a.mjs', 't/task-a.check.mjs'], agent_id: 'agent-fixture',
       },
       {
         task_id: 'task-b', tokens: 1100, test_cmd: testCmdB, rojo: 'fail', verde: 'pass',
-        files: ['impl/task-b.mjs', 't/task-b.check.mjs'],
+        files: ['impl/task-b.mjs', 't/task-b.check.mjs'], agent_id: 'agent-fixture',
       },
     ], null, 2));
 

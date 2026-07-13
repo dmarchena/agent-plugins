@@ -328,6 +328,7 @@ test('AC-E2E (batch complete): full 3-task plan closes with every commit reflect
         rojo: 'fail',
         verde: 'pass',
         files: [`impl/${taskId}.mjs`, `t/${taskId}.check.mjs`],
+        agent_id: 'agent-fixture',
       })),
       null,
       2,
