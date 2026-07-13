@@ -43,21 +43,21 @@
       "actual_tokens": 260000,
       "deviation": 140000,
       "test_cmd": "node --test plugins/sdd-kit/test/trim-cli-data-trim-fields.test.mjs && node --test plugins/sdd-kit/test/**/*.test.mjs && bash scripts/validate.sh",
-      "commit": null,
+      "commit": "479c33f",
       "incidencia": null,
       "agentId": "aa041f25d9ae7c9f9",
       "sessionId": "c5b1fc56-1d6a-47ce-80e6-fcf4c7746b26"
     },
     "T5_restructure_heavy_payloads": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 130000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 220000,
+      "deviation": 90000,
+      "test_cmd": "node --test plugins/sdd-kit/test/trim-cli-data-restructure-findings.test.mjs && node --test plugins/sdd-kit/test/**/*.test.mjs && bash scripts/validate.sh",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a5d7aa6b4af4c0d24",
+      "sessionId": "c5b1fc56-1d6a-47ce-80e6-fcf4c7746b26"
     },
     "T6_contract_annotations": {
       "status": "pending",
