@@ -32,21 +32,21 @@
       "actual_tokens": 55000,
       "deviation": 33000,
       "test_cmd": "node --test plugins/sdd-kit/test/exec/agentid-capture-skill-doc.test.mjs",
-      "commit": null,
+      "commit": "4807149",
       "incidencia": null,
       "agentId": "afe102955aa895ab4",
       "sessionId": "6a359d9b-2082-42e7-a36c-c956442fbef4"
     },
     "T4-e2e-reject-then-record": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 43000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 28000,
+      "deviation": -15000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-reject-then-record.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "aa908d19cd3a76ee9",
+      "sessionId": "6a359d9b-2082-42e7-a36c-c956442fbef4"
     }
   },
   "pause": null
