@@ -184,6 +184,7 @@ test('R3.S1: verifier task complete with unrelated dirty tree produces one commi
     const result = cli(repo, [
       'complete', specDir, 'task-verify',
       '--tokens', '500', '--test-cmd', testCmd, '--rojo', 'pass', '--verde', 'pass',
+      '--agent-id', 'agent-fixture',
     ]);
 
     assert.strictEqual(result.data.status, 'done', 'R3.S1: a passing verifier re-run must close done');
@@ -225,6 +226,7 @@ test('R3.S2: complete on a verifier task with no --files list does not hit the i
       result = cli(repo, [
         'complete', specDir, 'task-verify',
         '--tokens', '500', '--test-cmd', testCmd, '--rojo', 'pass', '--verde', 'pass',
+        '--agent-id', 'agent-fixture',
       ]);
     } catch (e) {
       assert.fail(`R3.S2: complete must not abort without --files for a verifier task; stderr: ${e.stderr}`);
@@ -253,6 +255,7 @@ test('control: complete on a non-verifier (code_writer) task with no --files sti
     const res = cliExpectFail(repo, [
       'complete', specDir, 'task-code',
       '--tokens', '500', '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
+      '--agent-id', 'agent-fixture',
     ]);
 
     assert.notStrictEqual(res.status, 0, 'control: must exit non-zero');

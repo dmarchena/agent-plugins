@@ -111,7 +111,7 @@ function writeTaskFiles(repo, taskId, ref, shouldPass) {
 function completeArgs(specDir, taskId, tokens, testCmd) {
   return [
     'complete', specDir, taskId, '--tokens', String(tokens), '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
-    '--files', `impl/${taskId}.mjs,t/${taskId}.check.mjs`,
+    '--files', `impl/${taskId}.mjs,t/${taskId}.check.mjs`, '--agent-id', 'agent-fixture',
   ];
 }
 
@@ -216,15 +216,15 @@ test('AC-E2E: --batch closes the fixture with strictly fewer invocations than ta
     fs.writeFileSync(batchFile, JSON.stringify([
       {
         task_id: 'task-a', tokens: 1000, test_cmd: testCmdA, rojo: 'fail', verde: 'pass',
-        files: ['impl/task-a.mjs', 't/task-a.check.mjs'],
+        files: ['impl/task-a.mjs', 't/task-a.check.mjs'], agent_id: 'agent-fixture',
       },
       {
         task_id: 'task-b', tokens: 900, test_cmd: testCmdBFail, rojo: 'fail', verde: 'pass',
-        files: ['impl/task-b.mjs', 't/task-b.check.mjs'],
+        files: ['impl/task-b.mjs', 't/task-b.check.mjs'], agent_id: 'agent-fixture',
       },
       {
         task_id: 'task-c', tokens: 1000, test_cmd: testCmdC, rojo: 'fail', verde: 'pass',
-        files: ['impl/task-c.mjs', 't/task-c.check.mjs'],
+        files: ['impl/task-c.mjs', 't/task-c.check.mjs'], agent_id: 'agent-fixture',
       },
     ], null, 2));
 

@@ -153,6 +153,7 @@ test('AC-E2E: scoped commit with explicit --files, unrelated file not swept', ()
       '--rojo', 'fail',
       '--verde', 'pass',
       '--files', 'impl/task-x.mjs,t/task-x.test.mjs',
+      '--agent-id', 'agent-fixture',
     ]);
     assert.strictEqual(done.data.status, 'done', 'task must be completed');
     assert.ok(done.data.commit, 'task must have a commit');

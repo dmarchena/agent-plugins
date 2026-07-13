@@ -1,0 +1,53 @@
+{
+  "plan_id": "agentid-capture-2026-07-13",
+  "source_spec": "docs/specs/agentid-capture/spec.md",
+  "branch": "fix/agentid-capture",
+  "started_at": "2026-07-13T17:56:36.268Z",
+  "tasks": {
+    "T1-single-complete-guard": {
+      "status": "done",
+      "estimated_tokens": 48000,
+      "actual_tokens": 45000,
+      "deviation": -3000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/agentid-persist.test.mjs",
+      "commit": "36726ae",
+      "incidencia": null,
+      "agentId": "ac4f669010d411264",
+      "sessionId": "6a359d9b-2082-42e7-a36c-c956442fbef4"
+    },
+    "T2-batch-complete-guard": {
+      "status": "done",
+      "estimated_tokens": 42000,
+      "actual_tokens": 55000,
+      "deviation": 13000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/batch-agentid-guard.test.mjs",
+      "commit": "9a6a881",
+      "incidencia": null,
+      "agentId": "a7edbaa4dfcabcd37",
+      "sessionId": "6a359d9b-2082-42e7-a36c-c956442fbef4"
+    },
+    "T3-skill-contract-doc": {
+      "status": "done",
+      "estimated_tokens": 22000,
+      "actual_tokens": 55000,
+      "deviation": 33000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/agentid-capture-skill-doc.test.mjs",
+      "commit": "4807149",
+      "incidencia": null,
+      "agentId": "afe102955aa895ab4",
+      "sessionId": "6a359d9b-2082-42e7-a36c-c956442fbef4"
+    },
+    "T4-e2e-reject-then-record": {
+      "status": "done",
+      "estimated_tokens": 43000,
+      "actual_tokens": 28000,
+      "deviation": -15000,
+      "test_cmd": "node --test plugins/sdd-kit/test/exec/e2e-reject-then-record.test.mjs",
+      "commit": "5544b27",
+      "incidencia": null,
+      "agentId": "aa908d19cd3a76ee9",
+      "sessionId": "6a359d9b-2082-42e7-a36c-c956442fbef4"
+    }
+  },
+  "pause": null
+}

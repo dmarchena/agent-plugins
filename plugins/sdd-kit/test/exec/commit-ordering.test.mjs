@@ -244,7 +244,7 @@ test('AC1/AC2 (single-task complete): each task commits its own state; last task
     const doneA = cli(repo, [
       'complete', specDir, 'task-a',
       '--tokens', '1200', '--test-cmd', testCmdA, '--rojo', 'fail', '--verde', 'pass',
-      '--files', 'impl/task-a.mjs,t/task-a.check.mjs',
+      '--files', 'impl/task-a.mjs,t/task-a.check.mjs', '--agent-id', 'agent-fixture',
     ]);
     assert.strictEqual(doneA.data.status, 'done');
     assert.ok(doneA.data.commit, 'task-a must have a commit hash');
@@ -258,7 +258,7 @@ test('AC1/AC2 (single-task complete): each task commits its own state; last task
     const doneB = cli(repo, [
       'complete', specDir, 'task-b',
       '--tokens', '1100', '--test-cmd', testCmdB, '--rojo', 'fail', '--verde', 'pass',
-      '--files', 'impl/task-b.mjs,t/task-b.check.mjs',
+      '--files', 'impl/task-b.mjs,t/task-b.check.mjs', '--agent-id', 'agent-fixture',
     ]);
     assert.strictEqual(doneB.data.status, 'done');
     assert.ok(doneB.data.commit, 'task-b must have a commit hash');
@@ -291,11 +291,11 @@ test('AC1/AC2 (batch complete): each task commits its own state; last task leave
     fs.writeFileSync(batchFile, JSON.stringify([
       {
         task_id: 'task-a', tokens: 1200, test_cmd: testCmdA, rojo: 'fail', verde: 'pass',
-        files: ['impl/task-a.mjs', 't/task-a.check.mjs'],
+        files: ['impl/task-a.mjs', 't/task-a.check.mjs'], agent_id: 'agent-fixture',
       },
       {
         task_id: 'task-b', tokens: 1100, test_cmd: testCmdB, rojo: 'fail', verde: 'pass',
-        files: ['impl/task-b.mjs', 't/task-b.check.mjs'],
+        files: ['impl/task-b.mjs', 't/task-b.check.mjs'], agent_id: 'agent-fixture',
       },
     ], null, 2));
 

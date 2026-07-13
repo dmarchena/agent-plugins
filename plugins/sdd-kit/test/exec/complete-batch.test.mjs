@@ -201,14 +201,14 @@ test('AC4: closing a batch in 1 invocation yields the same per-task commit+state
     const doneA = cli(ref.repo, [
       'complete', ref.specDir, 'task-a',
       '--tokens', '1200', '--test-cmd', testCmdA, '--rojo', 'fail', '--verde', 'pass',
-      '--files', 'impl/task-a.mjs,t/task-a.check.mjs',
+      '--files', 'impl/task-a.mjs,t/task-a.check.mjs', '--agent-id', 'agent-fixture',
     ]);
     const testCmdB = writeTaskFiles(ref.repo, 'task-b', 'R2.S1', true);
     refInvocations++;
     const doneB = cli(ref.repo, [
       'complete', ref.specDir, 'task-b',
       '--tokens', '1100', '--test-cmd', testCmdB, '--rojo', 'fail', '--verde', 'pass',
-      '--files', 'impl/task-b.mjs,t/task-b.check.mjs',
+      '--files', 'impl/task-b.mjs,t/task-b.check.mjs', '--agent-id', 'agent-fixture',
     ]);
     assert.strictEqual(doneA.data.status, 'done');
     assert.strictEqual(doneB.data.status, 'done');
@@ -226,11 +226,11 @@ test('AC4: closing a batch in 1 invocation yields the same per-task commit+state
       fs.writeFileSync(batchFile, JSON.stringify([
         {
           task_id: 'task-a', tokens: 1200, test_cmd: testCmdA2, rojo: 'fail', verde: 'pass',
-          files: ['impl/task-a.mjs', 't/task-a.check.mjs'],
+          files: ['impl/task-a.mjs', 't/task-a.check.mjs'], agent_id: 'agent-fixture',
         },
         {
           task_id: 'task-b', tokens: 1100, test_cmd: testCmdB2, rojo: 'fail', verde: 'pass',
-          files: ['impl/task-b.mjs', 't/task-b.check.mjs'],
+          files: ['impl/task-b.mjs', 't/task-b.check.mjs'], agent_id: 'agent-fixture',
         },
       ], null, 2));
 
@@ -298,13 +298,13 @@ test('AC5: a task that fails its re-run in the batch is reported not-done withou
     fs.writeFileSync(batchFile, JSON.stringify([
       {
         task_id: 'task-a', tokens: 1200, test_cmd: testCmdA, rojo: 'fail', verde: 'pass',
-        files: ['impl/task-a.mjs', 't/task-a.check.mjs'],
+        files: ['impl/task-a.mjs', 't/task-a.check.mjs'], agent_id: 'agent-fixture',
       },
       {
         // The subagent claimed green, but the deterministic re-run will fail
         // because the implementation is broken (rerun-failed, R6).
         task_id: 'task-b', tokens: 1100, test_cmd: testCmdB, rojo: 'fail', verde: 'pass',
-        files: ['impl/task-b.mjs', 't/task-b.check.mjs'],
+        files: ['impl/task-b.mjs', 't/task-b.check.mjs'], agent_id: 'agent-fixture',
       },
     ], null, 2));
 

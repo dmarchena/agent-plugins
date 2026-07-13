@@ -268,7 +268,7 @@ test('AC-E2E (single-task complete): full 3-task plan closes with every commit r
       const result = cli(repo, [
         'complete', specDir, taskId,
         '--tokens', String(TOKENS[taskId]), '--test-cmd', testCmd, '--rojo', 'fail', '--verde', 'pass',
-        '--files', `impl/${taskId}.mjs,t/${taskId}.check.mjs`,
+        '--files', `impl/${taskId}.mjs,t/${taskId}.check.mjs`, '--agent-id', 'agent-fixture',
       ]);
       assert.strictEqual(result.data.status, 'done', `${taskId} must close done`);
       assert.ok(result.data.commit, `${taskId} must have a commit hash`);
@@ -328,6 +328,7 @@ test('AC-E2E (batch complete): full 3-task plan closes with every commit reflect
         rojo: 'fail',
         verde: 'pass',
         files: [`impl/${taskId}.mjs`, `t/${taskId}.check.mjs`],
+        agent_id: 'agent-fixture',
       })),
       null,
       2,

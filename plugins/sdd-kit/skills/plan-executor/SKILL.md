@@ -71,7 +71,9 @@ than 3 at once (R4.S1 / AC7).
 Once a `Task` call returns, capture its `agentId` from the **`Task`
 tool result itself** (`toolUseResult.agentId`, the hash naming
 `subagents/agent-<agentId>.jsonl`) — never from the subagent's
-returned text. Retain it per `task_id` for `--agent-id` in **§3**.
+returned text. Retain it per `task_id`: `complete` in **§3** requires
+either this id or an explicit `--no-agent-id "<reason>"` acknowledgment —
+there is no other way to skip it.
 
 The brief is self-contained (no memory of this conversation) and
 MUST require the strict TDD cycle **test → red → implementation →
@@ -101,23 +103,38 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/exec-tools.mjs complete SPECDIR <task_id> \
   --rojo pass|fail --verde pass|fail [--message "<commit subject>"]
 ```
 
-`--agent-id` is the id captured per **§2**. `--files` is REQUIRED (comma-separated touched paths) — `complete` commits only those plus its own state file, refusing to commit at all without it (R1). `--rojo`/`--verde` report the exit status of the test in each TDD phase.
-Genuine evidence is `--rojo fail` **and** `--verde pass`; `--rojo pass`
-means the test passed with nothing implemented — the "sin evidencia de
-rojo" incidence, not success. `complete` re-runs `--test-cmd` itself and
-only trusts a green it can reproduce (R3). `data.status: "done"` (with
-commit, deviation) means verified green, already committed on the plan
-branch (R3.S1 / AC5). `data.status: "not-done"` (with reason, incidencia)
-breaks into three cases — see `assets/task-brief-detail.md` for the full
-`reason: "no-red"` / `"rerun-failed"` / `"not-green"` breakdown and what
-to do for each.
+One rule per flag:
+
+- `--agent-id <id>` (from **§2**) OR `--no-agent-id "<reason>"` —
+  exactly one is required for a delegated task. Neither → `complete`
+  rejects up front: exit non-zero, `error.reason` starting
+  `MISSING_AGENT_ID: <task_id>`, nothing written. `--no-agent-id` is for
+  the rare case the id truly couldn't be recovered — `complete` then
+  proceeds, recording `agentId: null` and `incidencia: "<reason>"`.
+- `--files "<a.mjs,b.mjs,...>"` — comma-separated touched paths.
+  Required (R1); `complete` commits only these plus its own state file,
+  refusing to commit at all without this flag.
+- `--rojo pass|fail` / `--verde pass|fail` — the test's exit status per
+  TDD phase. Genuine evidence is `--rojo fail` **and** `--verde pass`;
+  `--rojo pass` means the test passed with nothing implemented yet — the
+  "sin evidencia de rojo" incidence, not success.
+
+`complete` re-runs `--test-cmd` itself and only trusts a green it can reproduce
+(R3). `data.status: "done"` (with commit, deviation) means
+verified green, already committed on the plan branch (R3.S1 / AC5).
+`data.status: "not-done"` (with reason, incidencia) breaks into three
+cases — see `assets/task-brief-detail.md` for the full `reason:
+"no-red"` / `"rerun-failed"` / `"not-green"` breakdown and what to do
+for each.
 
 When the batch has more than one task, close all of them in a SINGLE
 `complete --batch` invocation instead of one `complete` per task, cutting
-orchestrator round-trips (R2.S1) — same fields as the single-task flags,
-one entry per task, including `agent_id` (per **§2**); a task
-that doesn't reach green is `not-done` in its own entry and does NOT
-block or revert its siblings (R2.S2/AC5). Full command shape:
+orchestrator round-trips (R2.S1) — same fields as above, one entry per
+task: each needs `agent_id` OR `no_agent_id: "<reason>"` (same rule as
+above); an entry with neither rejects the WHOLE batch before anything
+lands, matching the `--files` guard (all-or-nothing); a task that
+doesn't reach green is `not-done` in its own entry and does NOT block or
+revert its siblings (R2.S2/AC5). Full command shape:
 `assets/task-brief-detail.md`.
 
 Never mark a task done yourself or with git directly; only a `done` from
