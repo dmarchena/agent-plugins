@@ -16,15 +16,15 @@
       "sessionId": "40c24ad5-9b5e-419c-978f-052e054b4301"
     },
     "t2-extend-base-block": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 25000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 35000,
+      "deviation": 10000,
+      "test_cmd": "node --test plugins/token-diet/test/rules-doc-base-block.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a2b8e840a74eac0c2",
+      "sessionId": "40c24ad5-9b5e-419c-978f-052e054b4301"
     },
     "t3-add-detail-section": {
       "status": "pending",
