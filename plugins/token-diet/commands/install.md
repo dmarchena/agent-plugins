@@ -16,15 +16,47 @@ four (R1, R2, R3, R4).
 ## Phase 1 — Analyze the target file (R1)
 
 1. **Resolve the target.** The two possible candidates are the project
-   `CLAUDE.md` (`./CLAUDE.md`, relative to the current working directory)
-   and the user `CLAUDE.md` (`~/.claude/CLAUDE.md`). If an explicit path was
-   passed in `$ARGUMENTS`, use it as the target without asking. Otherwise:
+   source (see below) and the user `CLAUDE.md` (`~/.claude/CLAUDE.md`). If
+   an explicit path was passed in `$ARGUMENTS`, use it as the target without
+   asking. Otherwise:
    - If only one of the two exists, use it directly.
-   - If **both** exist, **ask the user** (project `./CLAUDE.md` vs user
+   - If **both** exist, **ask the user** (project source vs user
      `~/.claude/CLAUDE.md`) before continuing — do not assume which one
      they want.
-   - If neither exists yet, treat the project one (`./CLAUDE.md`) as the
+   - If neither exists yet, treat the project source (`./CLAUDE.md`) as the
      default target for the rest of the flow.
+
+   **Resolving the project source between `./CLAUDE.md` and `./AGENTS.md`
+   (pointer-redirect spec requirement R1).** The project candidate above is
+   not simply `./CLAUDE.md`: this project's own instructions may instead (or
+   also) live in `./AGENTS.md` (a common convention, this repo included).
+   Resolve a single **effective project source** among `./CLAUDE.md` and
+   `./AGENTS.md` before applying the project-vs-user ask above, per these
+   three cases — this is independent from, and resolved before, the
+   project-vs-user ask two paragraphs above (which then treats whatever this
+   step resolved as "the project source"):
+   - **R1.S1 / AC1 — Only one of the two exists.** If exactly one of
+     `./CLAUDE.md` and `./AGENTS.md` exists, use that existing file as the
+     project source directly, without asking which and without reporting a
+     missing target.
+   - **R1.S2 / AC2 — Both exist, one points to the other.** If **both**
+     `./CLAUDE.md` and `./AGENTS.md` exist and one of them is a pointer
+     (filesystem symlink or pure `@`-import, per the pointer-detection
+     primitive in step 3 below) to the other, apply that same
+     pointer-detection primitive from step 3 between these two candidates
+     before proceeding: identify the file holding the real text, and, after
+     the primitive's warn-and-confirm, use that file holding the real text
+     as the project source — without asking the user to choose between the
+     two files.
+   - **R1.S3 / AC3 — Both exist with independent content.** If **both**
+     `./CLAUDE.md` and `./AGENTS.md` exist, each with independent own content
+     of its own, and neither points to the other, ask the user which of the
+     two to use as the project source — pick neither on its own.
+
+   This project-source resolution is additive to (and runs before) the
+   pointer-detection primitive of step 3 below when that primitive is later
+   applied to whichever single file this step resolved as the project
+   candidate for the project-vs-user ask.
 
 2. **R1.S2 — The target file does not exist.** If the resolved file does
    not exist on disk: clearly report that the target file does not exist

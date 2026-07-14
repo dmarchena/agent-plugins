@@ -10,21 +10,21 @@
       "actual_tokens": 35000,
       "deviation": -25000,
       "test_cmd": "node --test plugins/token-diet/test/pointer-resolution.test.mjs",
-      "commit": null,
+      "commit": "d59e867",
       "incidencia": null,
       "agentId": "a509eff3fe098ca1f",
       "sessionId": "b2b5da19-506b-4709-8a9b-7f9a60649910"
     },
     "T2-effective-source-selection": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 45000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 35000,
+      "deviation": -10000,
+      "test_cmd": "node --test plugins/token-diet/test/effective-source-selection.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a7f1d18b9e4600a2e",
+      "sessionId": "b2b5da19-506b-4709-8a9b-7f9a60649910"
     },
     "T3-ambiguous-and-mixed": {
       "status": "pending",
