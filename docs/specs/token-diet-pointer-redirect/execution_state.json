@@ -21,21 +21,21 @@
       "actual_tokens": 35000,
       "deviation": -10000,
       "test_cmd": "node --test plugins/token-diet/test/effective-source-selection.test.mjs",
-      "commit": null,
+      "commit": "9190de2",
       "incidencia": null,
       "agentId": "a7f1d18b9e4600a2e",
       "sessionId": "b2b5da19-506b-4709-8a9b-7f9a60649910"
     },
     "T3-ambiguous-and-mixed": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 40000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 25000,
+      "deviation": -15000,
+      "test_cmd": "node --test plugins/token-diet/test/ambiguous-and-mixed-pointers.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a01b08f81ee5c8afe",
+      "sessionId": "b2b5da19-506b-4709-8a9b-7f9a60649910"
     },
     "T4-unresolvable-fallback": {
       "status": "pending",

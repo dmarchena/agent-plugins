@@ -102,12 +102,22 @@ four (R1, R2, R3, R4).
      the rest of the flow (this analysis, and later the Phase 4 write) on
      the **literal file** — the original resolved target path from step 1,
      unchanged.
+   - **Multiple imports, ambiguous (spec R3.S1 / AC8).** If a pure-pointer
+     file's content is two or more `@path` import lines (for example
+     `@AGENTS.md` and `@extra.md`) with no single obvious source, list the
+     candidate import destinations and ask the user which one to use as the
+     effective source — pick none on its own (do not redirect automatically
+     to either).
+   - **Mixed content stays on the file (spec R3.S2 / AC9).** If a file
+     contains its own policy/instruction text alongside an `@import` line,
+     treat it as a **non-pure pointer** (not a pointer at all, for redirect
+     purposes): use that file itself as the effective source, with no
+     redirect, and note in the report that an import is present
+     (informational only, not followed).
 
    This pointer-detection step is additive to phase 1's own analysis and is
    independent from the CLAUDE.md-vs-AGENTS.md source-selection logic in
-   step 1 above, and from ambiguous/mixed-content pointers (a file with
-   multiple imports, or one with both its own text and an import), which
-   are out of scope for this step.
+   step 1 above.
 
 4. **R1.S1 — Analyze the content.** If the file does exist, read it in full
    and determine, using your own semantic judgment over free text, two
