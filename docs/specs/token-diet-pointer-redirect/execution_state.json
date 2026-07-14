@@ -54,7 +54,7 @@
       "actual_tokens": 25000,
       "deviation": 0,
       "test_cmd": "node --test plugins/token-diet/test/*.mjs",
-      "commit": null,
+      "commit": "4c9bf24",
       "incidencia": null,
       "agentId": "a91e31cf4ce7b5a97",
       "sessionId": "b2b5da19-506b-4709-8a9b-7f9a60649910"
