@@ -1,0 +1,64 @@
+{
+  "plan_id": "token-diet-pointer-redirect",
+  "source_spec": "docs/specs/token-diet-pointer-redirect/spec.md",
+  "branch": "feat/token-diet-pointer-redirect",
+  "started_at": "2026-07-14T07:20:25.539Z",
+  "tasks": {
+    "T1-pointer-resolution": {
+      "status": "done",
+      "estimated_tokens": 60000,
+      "actual_tokens": 35000,
+      "deviation": -25000,
+      "test_cmd": "node --test plugins/token-diet/test/pointer-resolution.test.mjs",
+      "commit": null,
+      "incidencia": null,
+      "agentId": "a509eff3fe098ca1f",
+      "sessionId": "b2b5da19-506b-4709-8a9b-7f9a60649910"
+    },
+    "T2-effective-source-selection": {
+      "status": "pending",
+      "estimated_tokens": 45000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T3-ambiguous-and-mixed": {
+      "status": "pending",
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T4-unresolvable-fallback": {
+      "status": "pending",
+      "estimated_tokens": 38000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    },
+    "T5-e2e-pointer-install": {
+      "status": "pending",
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_cmd": null,
+      "commit": null,
+      "incidencia": null,
+      "agentId": null,
+      "sessionId": null
+    }
+  },
+  "pause": null
+}
