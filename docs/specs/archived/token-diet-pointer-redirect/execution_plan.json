@@ -1,0 +1,140 @@
+{
+  "plan_id": "token-diet-pointer-redirect",
+  "project_name": "token-diet",
+  "global_objective": "Make token-diet:install Phase 1 pick a single effective source between the project's ./CLAUDE.md and ./AGENTS.md: use whichever exists, and when both exist follow pointers (filesystem symlink or pure @-import) so the file holding the real text — not the pointer — is analyzed and written, with warn-and-confirm, bounded chain resolution, ambiguity/unresolvable handling, and idempotent-by-mark install onto the resolved source.",
+  "source_spec": "docs/specs/token-diet-pointer-redirect/spec.md",
+  "confidence": "low",
+  "estimated_tokens_total": 208000,
+  "tasks": [
+    {
+      "task_id": "T1-pointer-resolution",
+      "source_ids": ["R2", "R2.S1", "R2.S2", "R2.S3", "R2.S4"],
+      "dependencies": [],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded prompt-engineering deliverable with explicit acceptance criteria (R2.S1-S4): add the pointer detect/resolve primitive to install.md and author its semantic-review test. Clear ACs, no design trade-offs, so sonnet not opus.",
+      "instructions": "Implement spec requirement R2 (pointer detection and resolution) as an ADDITIVE step inside Phase 1 of plugins/token-diet/commands/install.md, between resolving the target and analyzing it. NAMING WARNING: install.md already reuses the labels R1/R2/R3/R4 for its own four phases (analyze/recommend/copy/apply); those are unrelated to this spec's requirement IDs. Do NOT renumber the existing phases — add new prompt text that references this spec's R2 behavior. Per spec R2.S1: instruct the command to detect a filesystem symlink whose destination is an existing regular file, report it, ask for confirmation, and on confirmation use the real destination as the effective source for both the Phase-1 read and any later write. Per R2.S2: detect a pure @-import pointer (its only non-blank, non-comment content is one Claude-Code @path import line) and, on confirmation, use the imported file as the effective source. Per R2.S3: follow a chain (symlink->symlink, or a pointer whose source is itself a pointer) to the final real source, with a fixed bounded guard of 3 hops; a loop or a chain exceeding 3 hops stops and is reported as unresolvable (handled by R4, task T4). Per R2.S4: if the user rejects the redirect, read nothing from and write nothing to the source, report that no redirect was applied, and continue on the literal file. Reference spec IDs (R2.S1..R2.S4, AC4..AC7) in the prompt rather than copying their prose. Then author a new node:test spec file under plugins/token-diet/test/ that does content-level (semantic-review) assertions over install.md's text, following the existing pattern in plugins/token-diet/test/semantic-review.test.mjs (read install.md, assert it documents each required instruction). This task has no prior task dependencies. Do not touch the CLAUDE.md/AGENTS.md source-selection logic (that is R1, task T2) nor the ambiguity/mixed-content logic (R3, task T3).",
+      "expected_output_schema": "Edited plugins/token-diet/commands/install.md whose Phase-1 prompt now documents symlink detection+confirm+redirect (R2.S1), pure single-@-import detection+confirm+redirect (R2.S2), chained resolution to the final source with a 3-hop bound (R2.S3), and rejected-redirect fall-back to the literal file (R2.S4); plus a new plugins/token-diet/test/*.mjs node:test spec asserting install.md contains these instructions, passing under `node --test`.",
+      "satisfies_acs": ["AC4", "AC5", "AC6", "AC7"],
+      "estimated_tokens": 60000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R2.S1", "assertion": "install.md instructs to detect a symlink target, report it points to its real destination, confirm before continuing, and on confirmation use that real destination as the effective source for analysis and write." },
+        { "ref": "R2.S2", "assertion": "install.md instructs to detect a file whose only non-blank, non-comment content is a single @path import line and, on confirmation, use the imported file as the effective source." },
+        { "ref": "R2.S3", "assertion": "install.md instructs to follow a pointer chain to the final real source and to stop, reporting the pointer unresolvable, when the chain loops or exceeds a bound of 3 hops." },
+        { "ref": "R2.S4", "assertion": "install.md instructs that when the user rejects the redirect the command reads from and writes to nothing in the source and continues on the literal file with no redirect applied." }
+      ]
+    },
+    {
+      "task_id": "T2-effective-source-selection",
+      "source_ids": ["R1", "R1.S1", "R1.S2", "R1.S3"],
+      "dependencies": ["T1-pointer-resolution"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded prompt-engineering deliverable with explicit ACs (R1.S1-S3) built on the pointer primitive; clear criteria, no trade-off decisions, so sonnet.",
+      "instructions": "Implement spec requirement R1 (choose a single effective source between the project's ./CLAUDE.md and ./AGENTS.md) as part of Phase-1 target resolution in plugins/token-diet/commands/install.md, at PROJECT scope only (user scope stays ~/.claude/CLAUDE.md unchanged, per spec Scope/Assumptions). NAMING WARNING: install.md's own phases are also labelled R1..R4 and are unrelated to this spec's R1 — do not renumber them. This task consumes the pointer detect/resolve primitive added by task T1-pointer-resolution (R2): reuse it, do not re-specify it. Per spec R1.S1: when exactly one of ./CLAUDE.md and ./AGENTS.md exists, use that file as the source without asking which and without reporting a missing target. Per R1.S2: when both exist and one is a pointer (symlink or pure @-import, resolved via the T1 primitive) to the other, identify the file holding the real text and, after the R2 warn-and-confirm, analyze and write to that source, not the pointer, without asking the user to choose. Per R1.S3: when both exist with their own independent content and neither points to the other, ask the user which of the two to use, picking neither on its own. Reference spec IDs (R1.S1..R1.S3, AC1..AC3) rather than copying prose. Then author a node:test spec under plugins/token-diet/test/ asserting install.md documents these three behaviors, following the semantic-review.test.mjs content-assertion pattern.",
+      "expected_output_schema": "Edited plugins/token-diet/commands/install.md whose Phase-1 target resolution documents: sole-existing-file use without asking (R1.S1), redirect-to-real-source when both exist and one points to the other (R1.S2), and ask-which when both hold independent content (R1.S3); plus a new plugins/token-diet/test/*.mjs node:test spec asserting these, passing under `node --test`.",
+      "satisfies_acs": ["AC1", "AC2", "AC3"],
+      "estimated_tokens": 45000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R1.S1", "assertion": "install.md instructs to use the sole existing file of ./CLAUDE.md/./AGENTS.md as the source, without asking which and without reporting a missing target." },
+        { "ref": "R1.S2", "assertion": "install.md instructs that when both files exist and one is a pointer to the other, the file holding the real text is used as the source (redirect after confirm, do not ask which)." },
+        { "ref": "R1.S3", "assertion": "install.md instructs to ask the user which of ./CLAUDE.md/./AGENTS.md to use when both hold independent own content and neither points to the other." }
+      ]
+    },
+    {
+      "task_id": "T3-ambiguous-and-mixed",
+      "source_ids": ["R3", "R3.S1", "R3.S2"],
+      "dependencies": ["T1-pointer-resolution"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded prompt-engineering deliverable with explicit ACs (R3.S1-S2) refining the pointer primitive's non-redirect edges; clear criteria, so sonnet.",
+      "instructions": "Implement spec requirement R3 (ambiguous and non-pointer targets: never redirect silently) in plugins/token-diet/commands/install.md's Phase-1 pointer handling. NAMING WARNING: install.md's own phase labels R1..R4 are unrelated to this spec's R3 — do not renumber them. This task refines the pointer detect/resolve primitive added by task T1-pointer-resolution (R2): treat these as the primitive's non-redirect cases, do not re-specify detection. Per spec R3.S1: when a pure-pointer file's content is two or more @import lines with no single obvious source, list the candidate import destinations and ask the user which one to use as the effective source, picking none on its own. Per R3.S2: when a file contains its own policy/instruction text ALONGSIDE an @import line, treat it as a NON-pure pointer, use that file itself as the effective source (no redirect), and note that an import is present. Reference spec IDs (R3.S1, R3.S2, AC8, AC9) rather than copying prose. Then author a node:test spec under plugins/token-diet/test/ asserting install.md documents both behaviors, following the semantic-review.test.mjs content-assertion pattern.",
+      "expected_output_schema": "Edited plugins/token-diet/commands/install.md whose Phase-1 pointer handling documents: list-imports-and-ask when there is more than one import (R3.S1), and mixed-content stays on the file as a non-pure pointer with an import-present note (R3.S2); plus a new plugins/token-diet/test/*.mjs node:test spec asserting these, passing under `node --test`.",
+      "satisfies_acs": ["AC8", "AC9"],
+      "estimated_tokens": 40000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R3.S1", "assertion": "install.md instructs to list the candidate import destinations and ask the user which one to use when a pure-pointer file has more than one import line, picking none on its own." },
+        { "ref": "R3.S2", "assertion": "install.md instructs that a file with its own policy text plus an @import line is treated as a non-pure pointer, uses that file itself as the source with no redirect, and notes an import is present." }
+      ]
+    },
+    {
+      "task_id": "T4-unresolvable-fallback",
+      "source_ids": ["R4", "R4.S1", "R4.S2"],
+      "dependencies": ["T1-pointer-resolution"],
+      "agent_type": "code_writer",
+      "subagent": "general-purpose",
+      "model": "sonnet",
+      "justification": "Bounded prompt-engineering deliverable with explicit ACs (R4.S1-S2) for the primitive's unresolvable cases; clear criteria, so sonnet.",
+      "instructions": "Implement spec requirement R4 (an unresolvable pointer falls back to the literal file without aborting) in plugins/token-diet/commands/install.md's Phase-1 pointer handling. NAMING WARNING: install.md's own phase labels R1..R4 are unrelated to this spec's R4 — do not renumber them. This task consumes the pointer detect/resolve primitive added by task T1-pointer-resolution (R2): it covers the cases where that primitive cannot resolve to an existing file (including the loop/over-3-hops outcome of R2.S3). Per spec R4.S1: when the target is a symlink whose destination does not exist (dangling), report that the pointer does not resolve and continue the flow on the literal file path — which then follows the existing base 'target does not exist' / offer-to-create behavior — never aborting with an error. Per R4.S2: when a pure-pointer file's single import names a file that does not exist, report that the import target does not resolve and continue on the literal file, without aborting. Reference spec IDs (R4.S1, R4.S2, AC10, AC11) rather than copying prose. Then author a node:test spec under plugins/token-diet/test/ asserting install.md documents both behaviors, following the semantic-review.test.mjs content-assertion pattern.",
+      "expected_output_schema": "Edited plugins/token-diet/commands/install.md whose Phase-1 pointer handling documents: dangling-symlink reported and flow continues on the literal file without aborting (R4.S1), and missing-import-target reported and flow continues on the literal file without aborting (R4.S2); plus a new plugins/token-diet/test/*.mjs node:test spec asserting these, passing under `node --test`.",
+      "satisfies_acs": ["AC10", "AC11"],
+      "estimated_tokens": 38000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": [
+        { "ref": "R4.S1", "assertion": "install.md instructs to report a dangling symlink (destination does not exist) as unresolvable and continue on the literal file path without aborting." },
+        { "ref": "R4.S2", "assertion": "install.md instructs to report a missing import target as unresolvable and continue on the literal file without aborting." }
+      ]
+    },
+    {
+      "task_id": "T5-e2e-pointer-install",
+      "source_ids": ["R-E2E", "R-E2E.S1"],
+      "dependencies": ["T1-pointer-resolution", "T2-effective-source-selection", "T3-ambiguous-and-mixed", "T4-unresolvable-fallback"],
+      "agent_type": "verifier",
+      "subagent": "general-purpose",
+      "model": "haiku",
+      "justification": "AC-E2E is [manual] and LLM-driven; the per-task semantic-review tests (T1-T4) already cover install.md's instructions, so the E2E path is covered by composition plus a manual real-run confirmation — a verifier that runs the flow and confirms, no code to author (per e2e-task-assignment.md: R-E2E -> verifier, not terminal_operator).",
+      "instructions": "Verify spec requirement R-E2E (AC-E2E, marked [manual]) end to end after tasks T1-pointer-resolution, T2-effective-source-selection, T3-ambiguous-and-mixed, and T4-unresolvable-fallback have landed. First run the whole existing plugins/token-diet/test suite under `node --test` and confirm it is green (the semantic-review specs authored by T1-T4 are the automated proxy). Then perform the manual real-run per R-E2E.S1: against a project whose ./CLAUDE.md's only content is `@AGENTS.md` and whose ./AGENTS.md has its own content but no token-diet block, run the install flow, confirm the redirect to AGENTS.md, and confirm the recommended `add`; verify the base decalogue + doc pointer + mark `Produced with token-diet (v<current>)` are written into AGENTS.md while ./CLAUDE.md still contains only `@AGENTS.md`; then re-run and confirm the pointer is re-detected, the mark at the current version is found in AGENTS.md, and per the base flow the recommendation is `none` with no second block added. Reference spec IDs (R-E2E.S1, AC-E2E). Author no production code and no new test file — this is a green-gate/confirmation task.",
+      "expected_output_schema": "A verification report: `node --test` suite result for plugins/token-diet/test (green), plus the manual R-E2E.S1 walkthrough outcome confirming AGENTS.md received the block+mark, ./CLAUDE.md stayed as only `@AGENTS.md`, and the second run recommended `none` with no duplicate block.",
+      "satisfies_acs": ["AC-E2E"],
+      "estimated_tokens": 25000,
+      "actual_tokens": null,
+      "deviation": null,
+      "test_contract": null
+    }
+  ],
+  "coverage": {
+    "requirements": {
+      "R1": ["T2-effective-source-selection"],
+      "R1.S1": ["T2-effective-source-selection"],
+      "R1.S2": ["T2-effective-source-selection"],
+      "R1.S3": ["T2-effective-source-selection"],
+      "R2": ["T1-pointer-resolution"],
+      "R2.S1": ["T1-pointer-resolution"],
+      "R2.S2": ["T1-pointer-resolution"],
+      "R2.S3": ["T1-pointer-resolution"],
+      "R2.S4": ["T1-pointer-resolution"],
+      "R3": ["T3-ambiguous-and-mixed"],
+      "R3.S1": ["T3-ambiguous-and-mixed"],
+      "R3.S2": ["T3-ambiguous-and-mixed"],
+      "R4": ["T4-unresolvable-fallback"],
+      "R4.S1": ["T4-unresolvable-fallback"],
+      "R4.S2": ["T4-unresolvable-fallback"],
+      "R-E2E": ["T5-e2e-pointer-install"],
+      "R-E2E.S1": ["T5-e2e-pointer-install"]
+    },
+    "acs": {
+      "AC1": ["T2-effective-source-selection"],
+      "AC2": ["T2-effective-source-selection"],
+      "AC3": ["T2-effective-source-selection"],
+      "AC4": ["T1-pointer-resolution"],
+      "AC5": ["T1-pointer-resolution"],
+      "AC6": ["T1-pointer-resolution"],
+      "AC7": ["T1-pointer-resolution"],
+      "AC8": ["T3-ambiguous-and-mixed"],
+      "AC9": ["T3-ambiguous-and-mixed"],
+      "AC10": ["T4-unresolvable-fallback"],
+      "AC11": ["T4-unresolvable-fallback"],
+      "AC-E2E": ["T5-e2e-pointer-install"]
+    }
+  }
+}

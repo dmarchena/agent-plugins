@@ -16,15 +16,47 @@ four (R1, R2, R3, R4).
 ## Phase 1 — Analyze the target file (R1)
 
 1. **Resolve the target.** The two possible candidates are the project
-   `CLAUDE.md` (`./CLAUDE.md`, relative to the current working directory)
-   and the user `CLAUDE.md` (`~/.claude/CLAUDE.md`). If an explicit path was
-   passed in `$ARGUMENTS`, use it as the target without asking. Otherwise:
+   source (see below) and the user `CLAUDE.md` (`~/.claude/CLAUDE.md`). If
+   an explicit path was passed in `$ARGUMENTS`, use it as the target without
+   asking. Otherwise:
    - If only one of the two exists, use it directly.
-   - If **both** exist, **ask the user** (project `./CLAUDE.md` vs user
+   - If **both** exist, **ask the user** (project source vs user
      `~/.claude/CLAUDE.md`) before continuing — do not assume which one
      they want.
-   - If neither exists yet, treat the project one (`./CLAUDE.md`) as the
+   - If neither exists yet, treat the project source (`./CLAUDE.md`) as the
      default target for the rest of the flow.
+
+   **Resolving the project source between `./CLAUDE.md` and `./AGENTS.md`
+   (pointer-redirect spec requirement R1).** The project candidate above is
+   not simply `./CLAUDE.md`: this project's own instructions may instead (or
+   also) live in `./AGENTS.md` (a common convention, this repo included).
+   Resolve a single **effective project source** among `./CLAUDE.md` and
+   `./AGENTS.md` before applying the project-vs-user ask above, per these
+   three cases — this is independent from, and resolved before, the
+   project-vs-user ask two paragraphs above (which then treats whatever this
+   step resolved as "the project source"):
+   - **R1.S1 / AC1 — Only one of the two exists.** If exactly one of
+     `./CLAUDE.md` and `./AGENTS.md` exists, use that existing file as the
+     project source directly, without asking which and without reporting a
+     missing target.
+   - **R1.S2 / AC2 — Both exist, one points to the other.** If **both**
+     `./CLAUDE.md` and `./AGENTS.md` exist and one of them is a pointer
+     (filesystem symlink or pure `@`-import, per the pointer-detection
+     primitive in step 3 below) to the other, apply that same
+     pointer-detection primitive from step 3 between these two candidates
+     before proceeding: identify the file holding the real text, and, after
+     the primitive's warn-and-confirm, use that file holding the real text
+     as the project source — without asking the user to choose between the
+     two files.
+   - **R1.S3 / AC3 — Both exist with independent content.** If **both**
+     `./CLAUDE.md` and `./AGENTS.md` exist, each with independent own content
+     of its own, and neither points to the other, ask the user which of the
+     two to use as the project source — pick neither on its own.
+
+   This project-source resolution is additive to (and runs before) the
+   pointer-detection primitive of step 3 below when that primitive is later
+   applied to whichever single file this step resolved as the project
+   candidate for the project-vs-user ask.
 
 2. **R1.S2 — The target file does not exist.** If the resolved file does
    not exist on disk: clearly report that the target file does not exist
@@ -34,7 +66,74 @@ four (R1, R2, R3, R4).
    heading) and proceed with the analysis on the freshly created file; if
    they decline, stop the flow here without touching anything else.
 
-3. **R1.S1 — Analyze the content.** If the file does exist, read it in full
+3. **Detect and resolve pointers (pointer-redirect spec requirement R2 — do
+   not confuse with this phase's own R1/R2 phase labels below, which are
+   unrelated).** Before reading the resolved target's content for analysis
+   (the next step), check whether the resolved target is itself a pointer
+   to another file rather than the real content, and resolve it with the
+   user's confirmation:
+   - **Symlink to a real file (spec R2.S1 / AC4).** If the resolved target
+     is a filesystem symlink whose destination is an existing regular file,
+     report that it is a symlink and name the real destination it points
+     to, then ask the user to confirm following it before continuing. On
+     confirmation, use that real destination as the **effective source**
+     for both this Phase 1 read and any later Phase 4 write — the symlink
+     path itself is not read or written to again.
+   - **Pure `@`-import pointer (spec R2.S2 / AC5).** If the resolved
+     target's only non-blank, non-comment content is a single Claude-Code
+     `@path` import line (no other text of its own), treat the file as a
+     pointer rather than as content: report the detected import and ask the
+     user to confirm following it. On confirmation, use the imported file
+     as the effective source for both this Phase 1 read and any later
+     Phase 4 write.
+   - **Chained pointers, bounded (spec R2.S3 / AC6).** If the effective
+     source resolved by either case above is itself a symlink or another
+     pure `@`-import pointer, keep following the chain toward its final
+     real source, up to a fixed bound of **3 hops**. If the chain loops
+     back on a file already visited, or exceeds the 3-hop bound without
+     reaching a final real source, stop following it and report the
+     pointer as **unresolvable** — apply the same unresolvable-pointer
+     fallback described in the R4.S1 / R4.S2 bullets below (continue on the
+     literal file, never aborting with an error).
+   - **User rejects the redirect (spec R2.S4 / AC7).** If the user does not
+     confirm following a detected symlink or `@`-import pointer, apply no
+     redirect: the command reads nothing from and writes nothing to the
+     pointed-at source, reports that no redirect was applied, and continues
+     the rest of the flow (this analysis, and later the Phase 4 write) on
+     the **literal file** — the original resolved target path from step 1,
+     unchanged.
+   - **Multiple imports, ambiguous (spec R3.S1 / AC8).** If a pure-pointer
+     file's content is two or more `@path` import lines (for example
+     `@AGENTS.md` and `@extra.md`) with no single obvious source, list the
+     candidate import destinations and ask the user which one to use as the
+     effective source — pick none on its own (do not redirect automatically
+     to either).
+   - **Mixed content stays on the file (spec R3.S2 / AC9).** If a file
+     contains its own policy/instruction text alongside an `@import` line,
+     treat it as a **non-pure pointer** (not a pointer at all, for redirect
+     purposes): use that file itself as the effective source, with no
+     redirect, and note in the report that an import is present
+     (informational only, not followed).
+   - **Dangling symlink (spec R4.S1 / AC10).** If the resolved target is a
+     symlink whose destination does **not** exist, report that the pointer
+     is **unresolvable** (the symlink does not resolve) and continue the
+     rest of the flow on the **literal file path** — the original symlink
+     path itself, treated from here on as the literal target — which then
+     follows the base "target does not exist" / offer-to-create behavior
+     already described in step 2 (`R1.S2` in install.md's own labeling,
+     above). Never abort with an error for this case.
+   - **Missing import target (spec R4.S2 / AC11).** If a pure-pointer
+     file's single `@import` line (for example `@missing.md`) names a file
+     that does **not** exist, report that the import target is
+     **unresolvable** (the import does not resolve) and continue the rest
+     of the flow on the **literal file** — the pointer file itself, not the
+     missing import target — without aborting.
+
+   This pointer-detection step is additive to phase 1's own analysis and is
+   independent from the CLAUDE.md-vs-AGENTS.md source-selection logic in
+   step 1 above.
+
+4. **R1.S1 — Analyze the content.** If the file does exist, read it in full
    and determine, using your own semantic judgment over free text, two
    independent facts:
    - **(a) Does it already contain any token-saving policy?** — written in

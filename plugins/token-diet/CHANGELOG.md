@@ -4,6 +4,19 @@ All notable changes to the `token-diet` plugin are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.4.0
+
+- Resolved the real **effective source** between a project's `CLAUDE.md` and
+  `AGENTS.md` before analysis: use whichever exists, and when both exist,
+  follow pointers so the file holding the real content — not a symlink or
+  `@path`-import shell — is the one analyzed and written.
+- Added pointer detection (filesystem symlink, pure `@`-import) and chained
+  resolution to the final real source, with a bounded hop guard, warning and
+  confirming before any redirect.
+- Handled ambiguous pointers (multiple imports, mixed pointer + own content)
+  and unresolvable pointers (dangling symlink, missing import) by falling
+  back to the literal file instead of aborting.
+
 ## 1.3.0
 
 - Extended the base "caveman" decalogue from 10 to 11 lines: folded in six
