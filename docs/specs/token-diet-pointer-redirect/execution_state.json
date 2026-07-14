@@ -43,21 +43,21 @@
       "actual_tokens": 25000,
       "deviation": -13000,
       "test_cmd": "node --test plugins/token-diet/test/unresolvable-pointer-fallback.test.mjs",
-      "commit": null,
+      "commit": "0810d60",
       "incidencia": null,
       "agentId": "a6d8480f649f6273f",
       "sessionId": "b2b5da19-506b-4709-8a9b-7f9a60649910"
     },
     "T5-e2e-pointer-install": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 25000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 25000,
+      "deviation": 0,
+      "test_cmd": "node --test plugins/token-diet/test/*.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a91e31cf4ce7b5a97",
+      "sessionId": "b2b5da19-506b-4709-8a9b-7f9a60649910"
     }
   },
   "pause": null
