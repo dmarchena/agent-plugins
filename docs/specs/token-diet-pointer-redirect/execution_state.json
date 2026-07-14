@@ -32,21 +32,21 @@
       "actual_tokens": 25000,
       "deviation": -15000,
       "test_cmd": "node --test plugins/token-diet/test/ambiguous-and-mixed-pointers.test.mjs",
-      "commit": null,
+      "commit": "17554eb",
       "incidencia": null,
       "agentId": "a01b08f81ee5c8afe",
       "sessionId": "b2b5da19-506b-4709-8a9b-7f9a60649910"
     },
     "T4-unresolvable-fallback": {
-      "status": "pending",
+      "status": "done",
       "estimated_tokens": 38000,
-      "actual_tokens": null,
-      "deviation": null,
-      "test_cmd": null,
+      "actual_tokens": 25000,
+      "deviation": -13000,
+      "test_cmd": "node --test plugins/token-diet/test/unresolvable-pointer-fallback.test.mjs",
       "commit": null,
       "incidencia": null,
-      "agentId": null,
-      "sessionId": null
+      "agentId": "a6d8480f649f6273f",
+      "sessionId": "b2b5da19-506b-4709-8a9b-7f9a60649910"
     },
     "T5-e2e-pointer-install": {
       "status": "pending",

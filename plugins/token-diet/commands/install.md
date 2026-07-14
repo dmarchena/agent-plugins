@@ -92,9 +92,9 @@ four (R1, R2, R3, R4).
      real source, up to a fixed bound of **3 hops**. If the chain loops
      back on a file already visited, or exceeds the 3-hop bound without
      reaching a final real source, stop following it and report the
-     pointer as **unresolvable** — how the flow proceeds after an
-     unresolvable pointer is defined by a later requirement (R4) and is out
-     of scope here.
+     pointer as **unresolvable** — apply the same unresolvable-pointer
+     fallback described in the R4.S1 / R4.S2 bullets below (continue on the
+     literal file, never aborting with an error).
    - **User rejects the redirect (spec R2.S4 / AC7).** If the user does not
      confirm following a detected symlink or `@`-import pointer, apply no
      redirect: the command reads nothing from and writes nothing to the
@@ -114,6 +114,20 @@ four (R1, R2, R3, R4).
      purposes): use that file itself as the effective source, with no
      redirect, and note in the report that an import is present
      (informational only, not followed).
+   - **Dangling symlink (spec R4.S1 / AC10).** If the resolved target is a
+     symlink whose destination does **not** exist, report that the pointer
+     is **unresolvable** (the symlink does not resolve) and continue the
+     rest of the flow on the **literal file path** — the original symlink
+     path itself, treated from here on as the literal target — which then
+     follows the base "target does not exist" / offer-to-create behavior
+     already described in step 2 (`R1.S2` in install.md's own labeling,
+     above). Never abort with an error for this case.
+   - **Missing import target (spec R4.S2 / AC11).** If a pure-pointer
+     file's single `@import` line (for example `@missing.md`) names a file
+     that does **not** exist, report that the import target is
+     **unresolvable** (the import does not resolve) and continue the rest
+     of the flow on the **literal file** — the pointer file itself, not the
+     missing import target — without aborting.
 
    This pointer-detection step is additive to phase 1's own analysis and is
    independent from the CLAUDE.md-vs-AGENTS.md source-selection logic in
