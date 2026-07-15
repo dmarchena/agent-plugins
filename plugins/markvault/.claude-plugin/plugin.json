@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "markvault",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Deterministic, offline, ~0-token PDF-to-Markdown extraction: a local CLI selects an extraction strategy (pymupdf4llm, pdftotext+OCR, markitdown) and writes a .md next to the PDF or at an explicit path.",
   "author": {
     "name": "dmarchena",
