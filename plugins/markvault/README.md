@@ -31,13 +31,11 @@ Then restart your session (or `/reload-plugins`).
 markvault's Python extraction strategies are provisioned on demand by
 [`uv`](https://docs.astral.sh/uv/), which must be on your `PATH`:
 
-```
+```sh
+# macOS
 brew install uv
-```
 
-or, without Homebrew:
-
-```
+# Ubuntu (or any Linux / macOS without Homebrew)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
@@ -52,9 +50,9 @@ Both packages are provisioned together because both are links in the
 default `auto` chain, so a single cached environment serves every
 invocation.
 
-Deliberately, nothing is installed into your system Python — on macOS that
-Python is managed by Apple and marked externally-managed, so writing to it
-is both awkward and unwise.
+Deliberately, nothing is installed into your system Python — both macOS
+(Apple-managed) and Ubuntu (Debian-managed) mark it externally-managed
+(PEP 668), so writing to it is both awkward and unwise.
 
 ### 3. Optional: the `pdftotext` strategy
 
@@ -62,8 +60,12 @@ Only needed if you want the `pdftotext` strategy or the OCR recourse that
 handles scanned PDFs. These are binaries, not Python packages, so uv does
 not provide them:
 
-```
+```sh
+# macOS
 brew install poppler tesseract
+
+# Ubuntu
+sudo apt-get install poppler-utils tesseract-ocr
 ```
 
 Without them, `pdftotext` reports itself unavailable and `auto` falls back
