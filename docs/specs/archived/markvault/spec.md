@@ -152,7 +152,11 @@ finally produces the output SHALL be reported.
 >
 > - `markitdown` reads the text layer with a different engine (pdfminer.six)
 >   than `pymupdf4llm` (PyMuPDF), so it rescues PDFs the first link chokes on,
->   and it preserves Markdown structure where `pdftotext` flattens to plain text.
+>   and it reconstructs real Markdown tables (pdfplumber) where `pdftotext`
+>   yields only space-aligned columns. It does *not* infer headings from
+>   typography — only `pymupdf4llm` does, hence the order between them
+>   (verified on a PDF with typographic headings and a ruled table; see
+>   `libs.md`, which flagged the heading limitation).
 > - Any position *after* `pdftotext` would be dead code: `pdftotext` succeeds
 >   whenever a text layer exists, and when none exists `markitdown` cannot help
 >   either, since it performs no OCR. So it goes second or not at all.

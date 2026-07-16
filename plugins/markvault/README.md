@@ -86,9 +86,9 @@ strategy=…` line, everything works:
 
 | Strategy | Needs | Good for |
 |----------|-------|----------|
-| `pymupdf4llm` | uv (auto-provisioned) | Structured Markdown: headings, tables, layout. The default first choice. |
-| `pdftotext` | `poppler` binary | Fast, plain, dependable text. The fallback. |
-| `markitdown` | uv (auto-provisioned) | Second opinion via a different engine (pdfminer.six). Rescues PDFs PyMuPDF chokes on, keeping Markdown structure. |
+| `pymupdf4llm` | uv (auto-provisioned) | The only one that infers headings from typography, plus tables and layout. First choice. |
+| `markitdown` | uv (auto-provisioned) | Second opinion via a different engine (pdfminer.six): rescues PDFs PyMuPDF chokes on, and rebuilds real Markdown tables — but no headings. |
+| `pdftotext` | `poppler` binary | Fast, plain, dependable text. No headings, no tables: space-aligned columns. |
 | `auto` | — | Tries each of the above best-to-worst until one yields usable text: `pymupdf4llm` → `markitdown` → `pdftotext` → OCR. Right default for "just extract it". |
 
 ## Development

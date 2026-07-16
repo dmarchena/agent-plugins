@@ -98,13 +98,15 @@ def _run_auto_chain(pdf_path: Path, registry: "StrategyRegistry") -> Tuple[str, 
 
     Why `markitdown` sits second: it reads the text layer with a different
     engine (pdfminer.six) than `pymupdf4llm` (PyMuPDF), so it is the link
-    that rescues PDFs the first one chokes on, and unlike `pdftotext` it
-    keeps Markdown structure rather than flattening to plain text. Placing
-    it after `pdftotext` would make it dead code: `pdftotext` succeeds
-    whenever a text layer exists at all, and when none exists `markitdown`
-    cannot help either (it does no OCR). Its network-backed converters
-    (Azure, LLM-Vision) are unreachable behind `red_guard`, so it is
-    offline-deterministic here by construction.
+    that rescues PDFs the first one chokes on, and it reconstructs real
+    Markdown tables (via pdfplumber) where `pdftotext` yields only
+    space-aligned columns. It does *not* infer headings from typography --
+    only `pymupdf4llm` does that, which is why it stays first. Placing
+    `markitdown` after `pdftotext` would make it dead code: `pdftotext`
+    succeeds whenever a text layer exists at all, and when none exists
+    `markitdown` cannot help either (it does no OCR). Its network-backed
+    converters (Azure, LLM-Vision) are unreachable behind `red_guard`, so
+    it is offline-deterministic here by construction.
 
     `PdftotextStrategy.extract()` already folds its own internal OCR
     recourse into one call (see strategies/pdftotext_strategy.py), which

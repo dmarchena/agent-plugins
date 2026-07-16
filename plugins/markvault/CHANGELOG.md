@@ -12,8 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `pymupdf4llm` → `markitdown` → `pdftotext` → OCR, each tried until one
   yields text above the minimum threshold. It reads the text layer with a
   different engine (pdfminer.six) than `pymupdf4llm` (PyMuPDF), so it
-  rescues PDFs the first link chokes on while preserving Markdown structure
-  that `pdftotext` would flatten. It sits *before* `pdftotext` deliberately:
+  rescues PDFs the first link chokes on, and it reconstructs real Markdown
+  tables (pdfplumber) where `pdftotext` yields only space-aligned columns.
+  It does not infer headings from typography — only `pymupdf4llm` does,
+  which is why that one stays first. It sits *before* `pdftotext` deliberately:
   below it the link would be unreachable, since `pdftotext` succeeds
   whenever a text layer exists and, when none does, `markitdown` cannot help
   either (it performs no OCR). Supersedes the R3 exclusion in
