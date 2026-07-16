@@ -5,15 +5,19 @@ from a rough idea to an executable task graph **before** any code gets
 written, via a fixed chain — **spec → plan → exec → verify** — where each
 stage's output is the next stage's input.
 
-This plugin currently ships the first two stages:
+This plugin ships all four stages, plus a read-only audit skill:
 
 - **[`spec-writer`](skills/spec-writer/SKILL.md)** — interview → `spec.md`.
 - **[`plan-writer`](skills/plan-writer/SKILL.md)** — `spec.md` →
   `execution_plan.json`.
-
-The remaining stages (`exec-runner` executing the plan, and a `verify` step
-running the spec's acceptance criteria against the result) are future work;
-this plugin only covers the spec and plan artifacts.
+- **[`plan-executor`](skills/plan-executor/SKILL.md)** —
+  `execution_plan.json` + `spec.md` → tested, committed code (plus an
+  `execution_state.json` progress journal).
+- **[`verify`](skills/verify/SKILL.md)** — spec + plan + state → AC-by-AC
+  verdict; archives the spec directory when everything is green.
+- **[`spec-forensics`](skills/spec-forensics/SKILL.md)** —
+  `execution_state.json` → real per-task token/cost report (audit only, not
+  a pipeline stage).
 
 ## The chain: spec → plan → exec → verify
 
@@ -28,11 +32,14 @@ this plugin only covers the spec and plan artifacts.
    traceability back to the spec's requirements and acceptance criteria. A
    deterministic script validates the result — it does not execute any
    task or touch the spec.
-3. **exec** *(future)* — an orchestrator runs the plan's tasks in
-   dependency order, dispatching each to its assigned subagent/model.
-4. **verify** *(future)* — checks the executed work against the spec's
-   acceptance-criteria checklist, then archives the feature's artifacts (see
-   "Where the artifacts live" below).
+3. **exec** (`plan-executor`) — an orchestrator runs the plan's tasks in
+   dependency order, dispatching each to its assigned subagent/model via
+   TDD, verifying deterministically, and committing per task on the plan's
+   own branch; `execution_state.json` journals progress so a run can pause
+   and resume.
+4. **verify** (`verify`) — checks the executed work against the spec's
+   acceptance-criteria checklist AC by AC, then archives the feature's
+   artifacts (see "Where the artifacts live" below).
 
 ## Where the artifacts live
 
@@ -58,7 +65,7 @@ keeping for later regressions and audits; but a finished spec shouldn't sit
 in the active `docs/specs/` path, where every subsequent plan/verify session
 would reload it. Archiving preserves the history without the context cost —
 it is neither deleted nor left in place. The `verify` stage performs this
-move once it lands; until then it's a manual `git mv`.
+move.
 
 ## Shared ID format
 
@@ -82,6 +89,9 @@ least one task before writing a plan.
 |-------|-----------------|---------|
 | `spec-writer` | feature idea (interview) → `spec.md` | [skills/spec-writer/SKILL.md](skills/spec-writer/SKILL.md) |
 | `plan-writer` | `spec.md` → `execution_plan.json` | [skills/plan-writer/SKILL.md](skills/plan-writer/SKILL.md) |
+| `plan-executor` | plan + spec → tested, committed code + `execution_state.json` | [skills/plan-executor/SKILL.md](skills/plan-executor/SKILL.md) |
+| `verify` | spec + plan + state → verdict / archive | [skills/verify/SKILL.md](skills/verify/SKILL.md) |
+| `spec-forensics` | `execution_state.json` → real per-task cost report | [skills/spec-forensics/SKILL.md](skills/spec-forensics/SKILL.md) |
 
 `plan-writer` additionally ships:
 - `skills/plan-writer/assets/execution_plan.schema.json` — the published

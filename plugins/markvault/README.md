@@ -1,10 +1,19 @@
 # markvault
 
-Deterministic, offline, ~0-token PDF-to-Markdown extraction for the
-`agent-plugins` marketplace. A local CLI picks an extraction strategy,
-writes a `.md` next to the PDF (or wherever you point it), and reports only
-the path and statistics — the PDF's text never passes through the agent's
-context unless you explicitly ask to read it.
+**Deterministic, offline, ~0-token PDF-to-Markdown extraction.** A local CLI
+picks an extraction strategy, writes a `.md` next to the PDF (or wherever
+you point it), and reports only the path and statistics — the PDF's text
+never passes through the agent's context unless you explicitly ask to read
+it.
+
+[![version](https://img.shields.io/badge/dynamic/json?label=version&query=%24.version&url=https%3A%2F%2Fraw.githubusercontent.com%2Fdmarchena%2Fagent-plugins%2Fmain%2Fplugins%2Fmarkvault%2F.claude-plugin%2Fplugin.json&color=blue)](CHANGELOG.md)
+[![validate](https://github.com/dmarchena/agent-plugins/actions/workflows/ci.yml/badge.svg)](https://github.com/dmarchena/agent-plugins/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
+
+> Fully local, fail-closed: a network barrier
+> ([`red_guard.py`](scripts/markvault/red_guard.py)) wraps every extraction
+> strategy, so your documents cannot leak — and your context stays clean,
+> because the deliverable is the file, not a transcript of it.
 
 ## Install
 
