@@ -67,6 +67,13 @@ would reload it. Archiving preserves the history without the context cost —
 it is neither deleted nor left in place. The `verify` stage performs this
 move.
 
+## Design rationale
+
+The standards each artifact follows — RFC 2119 keywords and Gherkin
+scenarios in `spec.md`, JSON Schema-validated plan/state files, the DAG,
+the CLI envelope — and why each medium was chosen are documented in
+[docs/design-rationale.md](docs/design-rationale.md).
+
 ## Shared ID format
 
 Both skills key off the same requirement/scenario ID scheme so later stages

@@ -34,10 +34,16 @@ flowchart LR
 | Stage | Skill | Consumes → Produces | Guarantee |
 |-------|-------|---------------------|-----------|
 | **spec** | [`spec-writer`](skills/spec-writer/SKILL.md) | interview → `spec.md` | One-question-at-a-time interview yielding purpose, scope/non-goals, requirements with Given/When/Then scenarios, a technical section, and a flat acceptance-criteria checklist. Stops there — no plan, no code. |
-| **plan** | [`plan-writer`](skills/plan-writer/SKILL.md) | `spec.md` → `execution_plan.json` | A DAG of atomic tasks with dependencies, per-task agent/model assignment, token budgets, and full traceability — every `R<n>` and `AC<n>` covered by at least one task, enforced by a deterministic validator. |
+| **plan** | [`plan-writer`](skills/plan-writer/SKILL.md) | `spec.md` → `execution_plan.json` | A DAG¹ of atomic tasks with dependencies, per-task agent/model assignment, token budgets, and full traceability — every `R<n>` and `AC<n>` covered by at least one task, enforced by a deterministic validator. |
 | **exec** | [`plan-executor`](skills/plan-executor/SKILL.md) | plan + spec → tested, committed code | Runs the DAG in dependency order, dispatching each task to its assigned subagent/model via TDD (red → green), verifying deterministically, committing per task on the plan's own branch, and journaling progress in `execution_state.json` so a run can pause and resume. |
 | **verify** | [`verify`](skills/verify/SKILL.md) | spec + plan + state → verdict / archive | Checks the spec's acceptance criteria one by one, cross-checks coverage, gates on the repo's versioning policy, and archives the spec directory **only** when everything is green. |
 | *(audit)* | [`spec-forensics`](skills/spec-forensics/SKILL.md) | `execution_state.json` → cost report | Reports the **real** per-task token/cost figures from session transcripts — orchestrator vs subagents breakdown, deviation against the plan's estimates. Read-only. |
+
+¹ *DAG — directed acyclic graph: tasks are nodes, "depends on" arrows are
+edges, and no loops are allowed, so a valid execution order always exists
+and independent tasks can run in parallel. The [design
+rationale](docs/design-rationale.md) explains why the plan is shaped this
+way.*
 
 ## Install
 
@@ -113,6 +119,16 @@ Every CLI prints a single canonical envelope on stdout —
 [`docs/cli-data-contract.md`](docs/cli-data-contract.md), so any stage (or
 your own tooling) can consume any other stage mechanically. The scripts are
 covered by an extensive Node test suite under [`test/`](test/), run in CI.
+
+## Standards behind the artifacts
+
+None of the artifact formats is improvised — the spec borrows RFC 2119
+normative keywords, Gherkin/BDD scenarios and the spec-kit/Kiro directory
+convention; the plan and the state journal are JSON validated against
+published JSON Schemas precisely because a schema turns LLM hallucination
+into a hard, mechanical rejection instead of a silent drift. The full
+reasoning — medium-per-consumer, anti-drift IDs, why a DAG, prior art —
+is documented in [docs/design-rationale.md](docs/design-rationale.md).
 
 ## Cost-aware planning
 
