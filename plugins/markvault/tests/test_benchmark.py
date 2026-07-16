@@ -24,6 +24,11 @@ availability rather than hard-coding one machine's state:
 - `scanned.pdf` is a deliberately blank page (`pdf_fixtures.make_blank_pdf`)
   with no text to find, so no strategy extracts structure from it however
   well-equipped the environment is -- not even via OCR.
+- `typographic.pdf` and `ruled_table.pdf` are what make the corpus able to
+  rank the strategies at all: `electronic.pdf` carries literal Markdown
+  syntax inside its text, so every strategy reproduces it by extracting
+  characters and they all score alike. Headings inferred from font size and
+  a table drawn as rules cannot be faked that way.
 
 Versions are deliberately unpinned, so an upgrade can change extracted
 output and turn output-shaped assertions red with no local change to
@@ -178,6 +183,74 @@ class TestBenchmarkEmitsOneRowPerCombination(version_witness.VersionWitnessTestC
             ["--corpus-dir", str(CORPUS_DIR), "--golden-dir", str(GOLDEN_DIR)]
         )
         self.assertEqual(exit_code, 0)
+
+
+@unittest.skipUnless(PDFTOTEXT_AVAILABLE, "pdftotext binary not found on PATH")
+@unittest.skipUnless(
+    _strategy_backend_installed("pymupdf4llm")
+    and _strategy_backend_installed("markitdown"),
+    "needs both Python backends to compare them",
+)
+class TestCorpusDiscriminatesStrategies(version_witness.VersionWitnessTestCase):
+    """The corpus must be able to tell the strategies apart.
+
+    This is the evidence behind the `auto` chain's order, kept executable
+    instead of asserted in prose: `pymupdf4llm` first because it is the only
+    one that infers headings, `markitdown` second because it matches it on
+    tables but not headings, `pdftotext` after both because it reconstructs
+    neither.
+
+    It doubles as a canary. These assertions describe third-party behaviour
+    at unpinned versions, so a failure here is not necessarily a bug: it may
+    mean an upgrade changed what a strategy can do, and that the chain's
+    order should be reconsidered. `VersionWitnessTestCase` names the moved
+    version in that case.
+    """
+
+    def setUp(self) -> None:
+        self.rows = benchmark.run_benchmark(
+            benchmark.discover_corpus(CORPUS_DIR), default_registry(), GOLDEN_DIR
+        )
+
+    def _row(self, pdf: str, strategy: str):
+        return next(
+            r for r in self.rows if r.pdf == pdf and r.strategy == strategy
+        )
+
+    def test_only_pymupdf4llm_infers_typographic_headings(self) -> None:
+        """`typographic.pdf` has no literal `#`: headings must be inferred."""
+        self.assertGreater(
+            self._row("typographic.pdf", "pymupdf4llm").headings,
+            0,
+            "pymupdf4llm should infer headings from font size; if it no longer "
+            "does, it may not deserve the chain's first position",
+        )
+        for strategy in ("markitdown", "pdftotext"):
+            with self.subTest(strategy=strategy):
+                self.assertEqual(
+                    self._row("typographic.pdf", strategy).headings,
+                    0,
+                    f"{strategy} is not expected to reconstruct headings; if it "
+                    "now does, the chain's order is worth revisiting",
+                )
+
+    def test_markitdown_matches_pymupdf4llm_on_ruled_tables_and_pdftotext_does_not(
+        self,
+    ) -> None:
+        """A drawn grid: rebuilding it needs rule detection, not just text."""
+        for strategy in ("pymupdf4llm", "markitdown"):
+            with self.subTest(strategy=strategy):
+                self.assertGreater(
+                    self._row("ruled_table.pdf", strategy).tables,
+                    0,
+                    f"{strategy} should rebuild a ruled table as Markdown",
+                )
+        self.assertEqual(
+            self._row("ruled_table.pdf", "pdftotext").tables,
+            0,
+            "pdftotext yields space-aligned columns, not a Markdown table; "
+            "that gap is why markitdown sits above it in the chain",
+        )
 
 
 @unittest.skipUnless(PDFTOTEXT_AVAILABLE, "pdftotext binary not found on PATH")
