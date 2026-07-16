@@ -1,0 +1,11 @@
+{
+  "comment": "Versions this suite last passed green with. A record, not a pin: see version_witness.py. Re-record with `python -m tests.version_witness --record` after accepting an upgrade.",
+  "recorded": "2026-07-16",
+  "python": "3.13",
+  "versions": {
+    "pymupdf4llm": "1.28.0",
+    "pymupdf": "1.28.0",
+    "markitdown": "0.1.6",
+    "pdfminer.six": "20260107"
+  }
+}

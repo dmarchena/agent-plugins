@@ -134,13 +134,40 @@ Assumptions).
 
 Depende de: R1
 
-The system SHALL, in `--strategy auto` mode (the default), try the structured
-Markdown strategy and, if it fails or produces text below a minimum threshold,
-fall back to `pdftotext` and, if the result is still insufficient, to OCR; the
-strategy that finally produces the output SHALL be reported. `markitdown` is NOT
-part of the default `auto` chain (to keep it simple and deterministic): it is an
-**explicitly selectable** strategy and a benchmark participant, not a link in
-the automatic fallback.
+The system SHALL, in `--strategy auto` mode (the default), try each strategy
+best-to-worst until one produces text at or above a minimum threshold, in the
+order `pymupdf4llm` -> `markitdown` -> `pdftotext` -> OCR; the strategy that
+finally produces the output SHALL be reported.
+
+> **Revised 2026-07-16 — supersedes the original `markitdown` exclusion.**
+> As verified and archived for 0.2.0, this requirement also read: *"`markitdown`
+> is NOT part of the default `auto` chain (to keep it simple and deterministic):
+> it is an explicitly selectable strategy and a benchmark participant, not a
+> link in the automatic fallback."* That exclusion is withdrawn — `markitdown`
+> is now the second link. The sentence is quoted here rather than deleted so
+> this file still matches the `execution_state.json` beside it, which records
+> the original text as built and verified.
+>
+> Rationale for the change, and for that position specifically:
+>
+> - `markitdown` reads the text layer with a different engine (pdfminer.six)
+>   than `pymupdf4llm` (PyMuPDF), so it rescues PDFs the first link chokes on,
+>   and it reconstructs real Markdown tables (pdfplumber) where `pdftotext`
+>   yields only space-aligned columns. It does *not* infer headings from
+>   typography — only `pymupdf4llm` does, hence the order between them
+>   (verified on a PDF with typographic headings and a ruled table; see
+>   `libs.md`, which flagged the heading limitation).
+> - Any position *after* `pdftotext` would be dead code: `pdftotext` succeeds
+>   whenever a text layer exists, and when none exists `markitdown` cannot help
+>   either, since it performs no OCR. So it goes second or not at all.
+> - The original "simple and deterministic" concern is now met by R4 rather than
+>   by exclusion: the `red_guard` barrier makes `markitdown`'s network-backed
+>   converters (Azure, LLM-Vision) unreachable by construction, leaving only its
+>   deterministic offline pdfminer.six path.
+>
+> Cost accepted: the default `auto` path now needs the `markitdown[pdf]` package
+> provisioned, so the skill and `/extract` pass both `--with` flags instead of
+> only `pymupdf4llm`'s.
 
 #### R3.S1 — Structured success
 - GIVEN a readable electronic PDF in `auto` mode

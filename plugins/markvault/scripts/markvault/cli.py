@@ -13,12 +13,11 @@ before importing any extractor-related module, so no strategy or its
 backend library can ever attempt an outbound connection.
 
 `--strategy` defaults to (and can be explicitly passed as) `"auto"`: the R3
-fallback chain tries the structured strategy (pymupdf4llm) first and, if it
-fails or produces text below a minimum length threshold, falls back to
-pdftotext -- whose own internal OCR recourse (see
-`strategies/pdftotext_strategy.py`) is the deepest link in the chain.
-`markitdown` is never part of this chain; it stays an explicit-selection-only
-strategy (unaffected by any of the auto logic below).
+fallback chain tries each link best-to-worst until one produces usable text
+-- pymupdf4llm, then markitdown, then pdftotext, whose own internal OCR
+recourse (see `strategies/pdftotext_strategy.py`) is the deepest link. A
+link is tried when the one before it fails or returns text below a minimum
+length threshold.
 
 Usage:
     python3 -m markvault.cli document.pdf
@@ -89,12 +88,25 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _run_auto_chain(pdf_path: Path, registry: "StrategyRegistry") -> Tuple[str, str, bool]:
-    """Run the R3 automatic fallback chain: structured -> pdftotext -> OCR.
+    """Run the R3 automatic fallback chain, best-to-worst until one hits.
 
-    Tries the structured strategy (pymupdf4llm) first. If it raises
-    `ExtractionError`, or its output is shorter than the shared minimum
-    threshold (`pdftotext_strategy.MIN_CHARS`, ~20 chars per the spec's
-    Assumptions section), falls back to `pdftotext`.
+    Order: `pymupdf4llm` -> `markitdown` -> `pdftotext` -> OCR. A link is
+    tried when the previous one raises `ExtractionError` or returns text
+    shorter than the shared minimum threshold
+    (`pdftotext_strategy.MIN_CHARS`, ~20 chars per the spec's Assumptions
+    section).
+
+    Why `markitdown` sits second: it reads the text layer with a different
+    engine (pdfminer.six) than `pymupdf4llm` (PyMuPDF), so it is the link
+    that rescues PDFs the first one chokes on, and it reconstructs real
+    Markdown tables (via pdfplumber) where `pdftotext` yields only
+    space-aligned columns. It does *not* infer headings from typography --
+    only `pymupdf4llm` does that, which is why it stays first. Placing
+    `markitdown` after `pdftotext` would make it dead code: `pdftotext`
+    succeeds whenever a text layer exists at all, and when none exists
+    `markitdown` cannot help either (it does no OCR). Its network-backed
+    converters (Azure, LLM-Vision) are unreachable behind `red_guard`, so
+    it is offline-deterministic here by construction.
 
     `PdftotextStrategy.extract()` already folds its own internal OCR
     recourse into one call (see strategies/pdftotext_strategy.py), which
@@ -104,11 +116,9 @@ def _run_auto_chain(pdf_path: Path, registry: "StrategyRegistry") -> Tuple[str, 
     threshold check the strategy makes internally, via its own helpers,
     instead of duplicating its subprocess logic here.
 
-    `markitdown` is deliberately never part of this chain (R3).
-
     Returns:
         (text, effective_strategy_name, fallback_occurred) -- fallback_occurred
-        is False only when the structured strategy succeeds outright.
+        is False only when the first link succeeds outright.
 
     Raises:
         ExtractionError: if every link in the chain is exhausted without
@@ -118,13 +128,16 @@ def _run_auto_chain(pdf_path: Path, registry: "StrategyRegistry") -> Tuple[str, 
     from .strategies.base import ExtractionError
     from .strategies.pdftotext_strategy import MIN_CHARS as AUTO_MIN_CHARS
 
-    structured = registry.get("pymupdf4llm")
-    try:
-        text = structured.extract(pdf_path)
+    # Markdown-preserving links, best first. Both read the embedded text
+    # layer and share the same success test, so they differ only in engine.
+    for position, name in enumerate(("pymupdf4llm", "markitdown")):
+        strategy = registry.get(name)
+        try:
+            text = strategy.extract(pdf_path)
+        except ExtractionError:
+            continue
         if len(text.strip()) >= AUTO_MIN_CHARS:
-            return text, structured.name, False
-    except ExtractionError:
-        pass
+            return text, strategy.name, position > 0
 
     plain_strategy = registry.get("pdftotext")
     # Private helpers, deliberately reused rather than duplicated (see

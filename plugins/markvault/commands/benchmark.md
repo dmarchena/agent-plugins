@@ -13,8 +13,14 @@ itself, and it is a separate entrypoint from `/extract` (`markvault.cli`).
    arguments:
 
    ```
-   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}/scripts" python3 -m markvault.benchmark $ARGUMENTS
+   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}/scripts" uv run --with pymupdf4llm --with 'markitdown[pdf]' --python 3.13 python -m markvault.benchmark $ARGUMENTS
    ```
+
+   Both `--with` flags belong here, unlike in `/extract` (which passes only
+   the one its `--strategy` needs): the benchmark's whole job is to run
+   *every* registered strategy, so a missing package would surface as a
+   spurious `error` row rather than a real comparison. `markitdown` must
+   carry its `[pdf]` extra or its rows all fail. Requires `uv` on `PATH`.
 
 2. With no arguments it benchmarks the bundled corpus/goldens under
    `plugins/markvault/tests/fixtures/` (`benchmark_corpus/`,

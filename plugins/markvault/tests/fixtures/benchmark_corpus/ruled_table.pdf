@@ -1,0 +1,52 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 612 792] /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 884 >>
+stream
+BT /F1 10 Tf 72 750 Td (El siguiente cuadro resume las unidades vendidas y el importe) Tj ET
+BT /F1 10 Tf 72 736 Td (facturado por cada producto durante el ejercicio en curso.) Tj ET
+BT /F1 10 Tf 72 580 Td (Los importes se expresan en euros e incluyen los impuestos) Tj ET
+BT /F1 10 Tf 72 566 Td (aplicables en el momento de la facturacion de cada pedido.) Tj ET
+72 700 m 72 610 l S
+200 700 m 200 610 l S
+330 700 m 330 610 l S
+460 700 m 460 610 l S
+72 700 m 460 700 l S
+72 670 m 460 670 l S
+72 640 m 460 640 l S
+72 610 m 460 610 l S
+BT /F1 10 Tf 78 680 Td (Producto) Tj ET
+BT /F1 10 Tf 206 680 Td (Unidades) Tj ET
+BT /F1 10 Tf 336 680 Td (Importe) Tj ET
+BT /F1 10 Tf 78 650 Td (Tornillos) Tj ET
+BT /F1 10 Tf 206 650 Td (1200) Tj ET
+BT /F1 10 Tf 336 650 Td (340.50) Tj ET
+BT /F1 10 Tf 78 620 Td (Tuercas) Tj ET
+BT /F1 10 Tf 206 620 Td (980) Tj ET
+BT /F1 10 Tf 336 620 Td (127.75) Tj ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1246
+%%EOF
